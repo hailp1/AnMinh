@@ -1,0 +1,148 @@
+{
+  "customers": [
+    {
+      "id": "c001",
+      "code": "NT001",
+      "name": "Nhà thuốc Long Hưng",
+      "address": "123 Nguyễn Văn Cừ, Phường 4, Quận 5, TP.HCM",
+      "phone": "02838345678",
+      "latitude": 10.7594,
+      "longitude": 106.6672,
+      "owner": "Nguyễn Văn Long",
+      "type": "Nhà thuốc",
+      "hub": "Trung tâm"
+    },
+    {
+      "id": "c002",
+      "code": "NT002",
+      "name": "Nhà thuốc Minh Đức",
+      "address": "456 Lê Hồng Phong, Phường 1, Quận 5, TP.HCM",
+      "phone": "02838345679",
+      "latitude": 10.7610,
+      "longitude": 106.6690,
+      "owner": "Trần Thị Minh",
+      "type": "Nhà thuốc",
+      "hub": "Trung tâm"
+    },
+    {
+      "id": "c003",
+      "code": "NT003",
+      "name": "Nhà thuốc An Khang",
+      "address": "789 Trần Hưng Đạo, Phường 11, Quận 5, TP.HCM",
+      "phone": "02838345680",
+      "latitude": 10.7570,
+      "longitude": 106.6650,
+      "owner": "Lê Văn An",
+      "type": "Nhà thuốc",
+      "hub": "Trung tâm"
+    },
+    {
+      "id": "c004",
+      "code": "NT004",
+      "name": "Nhà thuốc Phước Thành",
+      "address": "321 Nguyễn Trãi, Phường 3, Quận 5, TP.HCM",
+      "phone": "02838345681",
+      "latitude": 10.7630,
+      "longitude": 106.6710,
+      "owner": "Phạm Thị Phước",
+      "type": "Nhà thuốc",
+      "hub": "Trung tâm"
+    },
+    {
+      "id": "c005",
+      "code": "NT005",
+      "name": "Nhà thuốc Hồng Phát",
+      "address": "654 Hồng Bàng, Phường 12, Quận 5, TP.HCM",
+      "phone": "02838345682",
+      "latitude": 10.7550,
+      "longitude": 106.6630,
+      "owner": "Hoàng Văn Hồng",
+      "type": "Nhà thuốc",
+      "hub": "Củ Chi"
+    },
+    {
+      "id": "c006",
+      "code": "NT006",
+      "name": "Nhà thuốc Thành Công",
+      "address": "987 An Dương Vương, Phường 9, Quận 5, TP.HCM",
+      "phone": "02838345683",
+      "latitude": 10.7650,
+      "longitude": 106.6730,
+      "owner": "Võ Thị Thành",
+      "type": "Nhà thuốc",
+      "hub": "Củ Chi"
+    },
+    {
+      "id": "c007",
+      "code": "NT007",
+      "name": "Nhà thuốc Bình An",
+      "address": "147 Võ Văn Tần, Phường 6, Quận 3, TP.HCM",
+      "phone": "02839345684",
+      "latitude": 10.7756,
+      "longitude": 106.6878,
+      "owner": "Đặng Văn Bình",
+      "type": "Nhà thuốc",
+      "hub": "Trung tâm"
+    },
+    {
+      "id": "c008",
+      "code": "NT008",
+      "name": "Nhà thuốc Đức Hạnh",
+      "address": "258 Lý Tự Trọng, Phường Bến Nghé, Quận 1, TP.HCM",
+      "phone": "02838245685",
+      "latitude": 10.7769,
+      "longitude": 106.7009,
+      "owner": "Bùi Thị Đức",
+      "type": "Nhà thuốc",
+      "hub": "Trung tâm"
+    },
+    {
+      "id": "c009",
+      "code": "NT009",
+      "name": "Nhà thuốc Phú Thọ",
+      "address": "369 Điện Biên Phủ, Phường 25, Bình Thạnh, TP.HCM",
+      "phone": "02838445686",
+      "latitude": 10.8014,
+      "longitude": 106.7108,
+      "owner": "Ngô Văn Phú",
+      "type": "Nhà thuốc",
+      "hub": "Đồng Nai"
+    },
+    {
+      "id": "c010",
+      "code": "NT010",
+      "name": "Nhà thuốc Gia Định",
+      "address": "741 Nguyễn Oanh, Phường 10, Gò Vấp, TP.HCM",
+      "phone": "02838545687",
+      "latitude": 10.8376,
+      "longitude": 106.6717,
+      "owner": "Đỗ Thị Gia",
+      "type": "Nhà thuốc",
+      "hub": "Củ Chi"
+    },
+    {
+      "id": "c011",
+      "code": "NT011",
+      "name": "Nhà thuốc Tân Phú",
+      "address": "852 Tân Hương, Phường Tân Phú, Quận 7, TP.HCM",
+      "phone": "02838645688",
+      "latitude": 10.7378,
+      "longitude": 106.7197,
+      "owner": "Lý Văn Tân",
+      "type": "Nhà thuốc",
+      "hub": "Đồng Nai"
+    },
+    {
+      "id": "c012",
+      "code": "NT012",
+      "name": "Nhà thuốc Thủ Đức",
+      "address": "963 Võ Văn Ngân, Phường Linh Chiểu, Thủ Đức, TP.HCM",
+      "phone": "02838745689",
+      "latitude": 10.8525,
+      "longitude": 106.7717,
+      "owner": "Trương Thị Thủ",
+      "type": "Nhà thuốc",
+      "hub": "Đồng Nai"
+    }
+  ]
+}
