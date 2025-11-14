@@ -115,11 +115,11 @@ const Login = () => {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '420px',
-        background: 'rgba(255, 255, 255, 0.95)',
+        maxWidth: '500px',
+        background: 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '20px',
-        padding: '25px 20px',
+        borderRadius: '24px',
+        padding: '40px 32px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
         zIndex: 1,
@@ -131,57 +131,80 @@ const Login = () => {
         {/* Header with Logo */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '15px',
+          marginBottom: '30px',
           flexShrink: 0
         }}>
           <button 
             onClick={handleBackClick} 
             style={{
               position: 'absolute',
-              top: '15px',
-              left: '15px',
-              background: 'rgba(26, 92, 162, 0.1)',
+              top: '20px',
+              left: '20px',
+              background: 'rgba(26, 92, 162, 0.15)',
               border: 'none',
-              borderRadius: '10px',
-              width: '36px',
-              height: '36px',
+              borderRadius: '12px',
+              width: '44px',
+              height: '44px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '18px',
+              fontSize: '20px',
               color: '#1a5ca2',
-              transition: 'all 0.2s'
+              fontWeight: 'bold',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(26, 92, 162, 0.2)'
             }}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(26, 92, 162, 0.2)'}
-            onMouseLeave={(e) => e.target.style.background = 'rgba(26, 92, 162, 0.1)'}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(26, 92, 162, 0.25)';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(26, 92, 162, 0.15)';
+              e.target.style.transform = 'scale(1)';
+            }}
           >
             ←
           </button>
 
-          <img 
-            src="/image/logo.png" 
-            alt="Sapharco Sales" 
-            style={{
-              maxWidth: '80px',
-              height: 'auto',
-              marginBottom: '8px'
-            }}
-          />
+          <div style={{
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+            padding: '15px',
+            boxShadow: '0 8px 24px rgba(26, 92, 162, 0.15)'
+          }}>
+            <img 
+              src="/image/logo.png" 
+              alt="Sapharco Sales" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
           <h1 style={{
-            fontSize: '22px',
+            fontSize: '32px',
             fontWeight: 'bold',
-            color: '#1a5ca2',
-            margin: '0 0 4px 0'
+            color: '#1a1a2e',
+            margin: '0 0 8px 0',
+            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
             Sapharco Sales
           </h1>
           <p style={{
-            fontSize: '12px',
-            color: '#666',
-            margin: 0
+            fontSize: '16px',
+            color: '#374151',
+            margin: 0,
+            fontWeight: '500'
           }}>
-            Đăng nhập
+            Đăng nhập vào tài khoản
           </p>
         </div>
 
@@ -208,15 +231,15 @@ const Login = () => {
                 </div>
               )}
 
-              <div style={{ marginBottom: '15px', flexShrink: 0 }}>
+              <div style={{ marginBottom: '20px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
-                  fontSize: '13px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   color: '#1a1a2e',
-                  marginBottom: '6px'
+                  marginBottom: '8px'
                 }}>
-                  <span style={{ marginRight: '6px' }}>📱</span>
+                  <span style={{ marginRight: '8px' }}>📱</span>
                   Số điện thoại
                 </label>
                 <input
@@ -227,29 +250,37 @@ const Login = () => {
                   placeholder="0901 234 567"
                   style={{
                     width: '100%',
-                    padding: '12px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '15px',
+                    padding: '14px 16px',
+                    border: '2px solid #d1d5db',
+                    borderRadius: '12px',
+                    fontSize: '16px',
                     transition: 'all 0.2s',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#1a5ca2'}
-                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#1a5ca2';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(26, 92, 162, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
                   maxLength={12}
                   required
                 />
               </div>
               
-              <div style={{ marginBottom: '15px', flexShrink: 0 }}>
+              <div style={{ marginBottom: '20px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
-                  fontSize: '13px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   color: '#1a1a2e',
-                  marginBottom: '6px'
+                  marginBottom: '8px'
                 }}>
-                  <span style={{ marginRight: '6px' }}>🔒</span>
+                  <span style={{ marginRight: '8px' }}>🔒</span>
                   Mật khẩu
                 </label>
                 <input
@@ -260,15 +291,23 @@ const Login = () => {
                   placeholder="Nhập mật khẩu"
                   style={{
                     width: '100%',
-                    padding: '12px 14px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '15px',
+                    padding: '14px 16px',
+                    border: '2px solid #d1d5db',
+                    borderRadius: '12px',
+                    fontSize: '16px',
                     transition: 'all 0.2s',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#1a5ca2'}
-                  onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#1a5ca2';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(26, 92, 162, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
                   required
                 />
               </div>
@@ -279,21 +318,21 @@ const Login = () => {
                   disabled={loading}
                   style={{
                     width: '100%',
-                    padding: '14px',
+                    padding: '16px',
                     background: loading 
                       ? '#9ca3af' 
                       : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '15px',
+                    borderRadius: '12px',
+                    fontSize: '16px',
                     fontWeight: '600',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
                     boxShadow: loading 
                       ? 'none' 
-                      : '0 4px 12px rgba(26, 92, 162, 0.3)',
-                    marginBottom: '12px'
+                      : '0 6px 20px rgba(26, 92, 162, 0.4)',
+                    marginBottom: '15px'
                   }}
                   onMouseEnter={(e) => {
                     if (!loading) {
@@ -330,7 +369,7 @@ const Login = () => {
                   )}
                 </button>
 
-                <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
                   <button 
                     type="button"
                     onClick={() => navigateWithTransition('/forgot-password')}
@@ -338,10 +377,11 @@ const Login = () => {
                       background: 'none',
                       border: 'none',
                       color: '#1a5ca2',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       cursor: 'pointer',
                       textDecoration: 'underline',
-                      padding: '4px'
+                      padding: '6px',
+                      fontWeight: '500'
                     }}
                   >
                     Quên mật khẩu?
@@ -349,14 +389,15 @@ const Login = () => {
                 </div>
 
                 <div style={{
-                  paddingTop: '12px',
-                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '20px',
+                  borderTop: '2px solid #e5e7eb',
                   textAlign: 'center'
                 }}>
                   <p style={{
-                    fontSize: '12px',
-                    color: '#666',
-                    margin: '0 0 8px 0'
+                    fontSize: '14px',
+                    color: '#374151',
+                    margin: '0 0 12px 0',
+                    fontWeight: '500'
                   }}>
                     Chưa có tài khoản?
                   </p>
@@ -366,9 +407,9 @@ const Login = () => {
                       background: 'rgba(26, 92, 162, 0.1)',
                       border: '2px solid #1a5ca2',
                       color: '#1a5ca2',
-                      padding: '10px 20px',
-                      borderRadius: '10px',
-                      fontSize: '13px',
+                      padding: '12px 24px',
+                      borderRadius: '12px',
+                      fontSize: '15px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
@@ -376,9 +417,11 @@ const Login = () => {
                     }}
                     onMouseEnter={(e) => {
                       e.target.style.background = 'rgba(26, 92, 162, 0.2)';
+                      e.target.style.transform = 'translateY(-2px)';
                     }}
                     onMouseLeave={(e) => {
                       e.target.style.background = 'rgba(26, 92, 162, 0.1)';
+                      e.target.style.transform = 'translateY(0)';
                     }}
                   >
                     Đăng ký ngay

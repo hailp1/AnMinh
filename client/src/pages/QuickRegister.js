@@ -381,11 +381,11 @@ const QuickRegister = () => {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '450px',
-        background: 'rgba(255, 255, 255, 0.95)',
+        maxWidth: '500px',
+        background: 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '20px',
-        padding: '20px',
+        borderRadius: '24px',
+        padding: '40px 32px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
         zIndex: 1,
@@ -397,7 +397,7 @@ const QuickRegister = () => {
         {/* Header with Logo */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '12px',
+          marginBottom: '25px',
           position: 'relative',
           flexShrink: 0
         }}>
@@ -407,42 +407,64 @@ const QuickRegister = () => {
               position: 'absolute',
               top: '0',
               left: '0',
-              background: 'rgba(26, 92, 162, 0.1)',
+              background: 'rgba(26, 92, 162, 0.15)',
               border: 'none',
-              borderRadius: '10px',
-              width: '36px',
-              height: '36px',
+              borderRadius: '12px',
+              width: '44px',
+              height: '44px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '18px',
+              fontSize: '20px',
               color: '#1a5ca2',
-              transition: 'all 0.2s'
+              fontWeight: 'bold',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(26, 92, 162, 0.2)'
             }}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(26, 92, 162, 0.2)'}
-            onMouseLeave={(e) => e.target.style.background = 'rgba(26, 92, 162, 0.1)'}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(26, 92, 162, 0.25)';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(26, 92, 162, 0.15)';
+              e.target.style.transform = 'scale(1)';
+            }}
           >
             ←
           </button>
 
           {step === 1 && (
-            <img 
-              src="/image/logo.png" 
-              alt="Sapharco Sales" 
-              style={{
-                maxWidth: '80px',
-                height: 'auto',
-                marginBottom: '8px'
-              }}
-            />
+            <div style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+              padding: '15px',
+              boxShadow: '0 8px 24px rgba(26, 92, 162, 0.15)'
+            }}>
+              <img 
+                src="/image/logo.png" 
+                alt="Sapharco Sales" 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
           )}
           
           <h1 style={{
-            fontSize: '20px',
+            fontSize: '28px',
             fontWeight: 'bold',
-            color: '#1a5ca2',
-            margin: '0 0 4px 0'
+            color: '#1a1a2e',
+            margin: '0 0 8px 0',
+            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
             Đăng ký
           </h1>
@@ -486,10 +508,10 @@ const QuickRegister = () => {
           flexDirection: 'column'
         }}>
           <div style={{
-            fontSize: '16px',
+            fontSize: '18px',
             fontWeight: '600',
             color: '#1a1a2e',
-            marginBottom: '15px',
+            marginBottom: '20px',
             textAlign: 'center',
             flexShrink: 0
           }}>
@@ -528,6 +550,10 @@ const QuickRegister = () => {
                     placeholder="0901 234 567"
                     maxLength={12}
                     className="auth-input phone-field"
+                    style={{
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
                   />
                 </div>
               </div>
@@ -576,6 +602,10 @@ const QuickRegister = () => {
                   placeholder="123456"
                   className="auth-input otp-input"
                   maxLength={6}
+                  style={{
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
                 />
               </div>
 
@@ -625,6 +655,10 @@ const QuickRegister = () => {
                   placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
                   className="auth-input"
                   minLength={6}
+                  style={{
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
                 />
                 <div className="password-requirements">
                   <div className={`requirement ${formData.password.length >= 6 ? 'met' : ''}`}>
@@ -647,6 +681,10 @@ const QuickRegister = () => {
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   placeholder="Nhập lại mật khẩu"
                   className="auth-input"
+                  style={{
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
                 />
                 {formData.confirmPassword && (
                   <div className={`password-match ${formData.password === formData.confirmPassword ? 'match' : 'no-match'}`}>
@@ -718,6 +756,10 @@ const QuickRegister = () => {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Nguyễn Văn A"
                   className="auth-input"
+                  style={{
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
                 />
               </div>
 
@@ -993,6 +1035,10 @@ const QuickRegister = () => {
                   placeholder="Nhà thuốc ABC, Nhà thuốc XYZ..."
                   className="auth-input"
                   required
+                  style={{
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
                 />
               </div>
 
@@ -1008,6 +1054,10 @@ const QuickRegister = () => {
                   placeholder="Họ và tên chủ nhà thuốc"
                   className="auth-input"
                   required
+                  style={{
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
                 />
               </div>
 
