@@ -370,45 +370,36 @@ const QuickRegister = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: '15px',
       position: 'relative',
-      overflow: 'auto'
+      overflow: 'hidden'
     }}>
-      {/* Background decoration */}
-      <div style={{
-        position: 'fixed',
-        top: '-50%',
-        right: '-50%',
-        width: '200%',
-        height: '200%',
-        background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-        animation: 'pulse 20s ease-in-out infinite',
-        zIndex: 0
-      }}></div>
-
       <div style={{
         width: '100%',
-        maxWidth: '500px',
+        maxWidth: '450px',
         background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '24px',
-        padding: '30px',
+        borderRadius: '20px',
+        padding: '20px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
         zIndex: 1,
-        marginTop: '20px',
-        marginBottom: '20px'
+        maxHeight: '95vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         {/* Header with Logo */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '25px',
-          position: 'relative'
+          marginBottom: '12px',
+          position: 'relative',
+          flexShrink: 0
         }}>
           <button 
             onClick={handleBackClick} 
@@ -418,14 +409,14 @@ const QuickRegister = () => {
               left: '0',
               background: 'rgba(26, 92, 162, 0.1)',
               border: 'none',
-              borderRadius: '12px',
-              width: '40px',
-              height: '40px',
+              borderRadius: '10px',
+              width: '36px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '20px',
+              fontSize: '18px',
               color: '#1a5ca2',
               transition: 'all 0.2s'
             }}
@@ -440,61 +431,70 @@ const QuickRegister = () => {
               src="/image/logo.png" 
               alt="Sapharco Sales" 
               style={{
-                maxWidth: '120px',
+                maxWidth: '80px',
                 height: 'auto',
-                marginBottom: '15px'
+                marginBottom: '8px'
               }}
             />
           )}
           
           <h1 style={{
-            fontSize: '24px',
+            fontSize: '20px',
             fontWeight: 'bold',
             color: '#1a5ca2',
-            margin: '0 0 8px 0'
+            margin: '0 0 4px 0'
           }}>
             Đăng ký
           </h1>
         </div>
 
         {/* Progress Indicator */}
-        <div className="auth-progress">
-          <div className="progress-bar">
+        <div style={{
+          marginBottom: '12px',
+          flexShrink: 0
+        }}>
+          <div style={{
+            height: '6px',
+            background: '#e5e7eb',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            marginBottom: '6px'
+          }}>
             <div 
-              className="progress-fill"
-              style={{ width: `${(step / (formData.role === 'PHARMACY' ? 6 : 5)) * 100}%` }}
+              style={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                width: `${(step / (formData.role === 'PHARMACY' ? 6 : 5)) * 100}%`,
+                transition: 'width 0.3s ease'
+              }}
             ></div>
           </div>
-          <div className="progress-text">
+          <div style={{
+            fontSize: '11px',
+            color: '#666',
+            textAlign: 'center'
+          }}>
             Bước {step}/{formData.role === 'PHARMACY' ? 6 : 5}
           </div>
         </div>
 
-        {/* Hero Icon with Logo */}
-        <div className="auth-hero-section">
-          <div className="auth-icon-circle">
-            {step === 1 ? (
-              <img 
-                src="/image/logo.png" 
-                alt="Sapharco Sales Logo" 
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  borderRadius: '50%'
-                }}
-              />
-            ) : (
-              <div className="auth-icon">
-                <div className="register-icon">{getStepIcon()}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Form Content */}
-        <div className="auth-form-content">
-          <div className="auth-subtitle">{getStepTitle()}</div>
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#1a1a2e',
+            marginBottom: '15px',
+            textAlign: 'center',
+            flexShrink: 0
+          }}>
+            {getStepTitle()}
+          </div>
 
           {/* Step 1: Phone Number */}
           {step === 1 && (
@@ -1107,13 +1107,6 @@ const QuickRegister = () => {
         </div>
       </div>
 
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.1); opacity: 0.7; }
-        }
-      `}</style>
     </div>
   );
 };

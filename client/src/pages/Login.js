@@ -104,58 +104,52 @@ const Login = () => {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      padding: '15px',
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* Background decoration */}
-      <div style={{
-        position: 'absolute',
-        top: '-50%',
-        right: '-50%',
-        width: '200%',
-        height: '200%',
-        background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-        animation: 'pulse 20s ease-in-out infinite'
-      }}></div>
-
       <div style={{
         width: '100%',
-        maxWidth: '450px',
+        maxWidth: '420px',
         background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '24px',
-        padding: '40px 30px',
+        borderRadius: '20px',
+        padding: '25px 20px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        maxHeight: '95vh',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         {/* Header with Logo */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '30px'
+          marginBottom: '15px',
+          flexShrink: 0
         }}>
           <button 
             onClick={handleBackClick} 
             style={{
               position: 'absolute',
-              top: '20px',
-              left: '20px',
+              top: '15px',
+              left: '15px',
               background: 'rgba(26, 92, 162, 0.1)',
               border: 'none',
-              borderRadius: '12px',
-              width: '40px',
-              height: '40px',
+              borderRadius: '10px',
+              width: '36px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '20px',
+              fontSize: '18px',
               color: '#1a5ca2',
               transition: 'all 0.2s'
             }}
@@ -169,94 +163,60 @@ const Login = () => {
             src="/image/logo.png" 
             alt="Sapharco Sales" 
             style={{
-              maxWidth: '120px',
+              maxWidth: '80px',
               height: 'auto',
-              marginBottom: '15px'
+              marginBottom: '8px'
             }}
           />
           <h1 style={{
-            fontSize: '28px',
+            fontSize: '22px',
             fontWeight: 'bold',
             color: '#1a5ca2',
-            margin: '0 0 8px 0'
+            margin: '0 0 4px 0'
           }}>
             Sapharco Sales
           </h1>
           <p style={{
-            fontSize: '14px',
+            fontSize: '12px',
             color: '#666',
             margin: 0
           }}>
-            Đăng nhập vào tài khoản của bạn
+            Đăng nhập
           </p>
         </div>
 
-        {/* Hero Icon */}
-        <div style={{
-          textAlign: 'center',
-          marginBottom: '30px'
-        }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto',
-            fontSize: '36px',
-            boxShadow: '0 8px 24px rgba(26, 92, 162, 0.3)'
-          }}>
-            {showSuccess ? (
-              <div style={{ color: '#fff', fontSize: '40px' }}>✓</div>
-            ) : (
-              <div style={{ color: '#fff' }}>🔐</div>
-            )}
-          </div>
-        </div>
-
         {/* Form Content */}
-        <div>
-          <div style={{
-            textAlign: 'center',
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1a1a2e',
-            marginBottom: '25px'
-          }}>
-            {showSuccess ? 'Đăng nhập thành công! 🎉' : 'Chào mừng trở lại'}
-          </div>
-          
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
           {!showSuccess && (
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {error && (
                 <div style={{
-                  padding: '12px 16px',
+                  padding: '10px 12px',
                   background: '#fee2e2',
                   border: '1px solid #fecaca',
-                  borderRadius: '12px',
-                  marginBottom: '20px',
+                  borderRadius: '10px',
+                  marginBottom: '15px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  gap: '8px',
                   color: '#dc2626',
-                  fontSize: '14px'
+                  fontSize: '13px',
+                  flexShrink: 0
                 }}>
                   <span>⚠️</span>
                   <span>{error}</span>
                 </div>
               )}
 
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '15px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: '600',
                   color: '#1a1a2e',
-                  marginBottom: '8px'
+                  marginBottom: '6px'
                 }}>
-                  <span style={{ marginRight: '8px' }}>📱</span>
+                  <span style={{ marginRight: '6px' }}>📱</span>
                   Số điện thoại
                 </label>
                 <input
@@ -267,10 +227,10 @@ const Login = () => {
                   placeholder="0901 234 567"
                   style={{
                     width: '100%',
-                    padding: '14px 16px',
+                    padding: '12px 14px',
                     border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    fontSize: '16px',
+                    borderRadius: '10px',
+                    fontSize: '15px',
                     transition: 'all 0.2s',
                     boxSizing: 'border-box'
                   }}
@@ -281,15 +241,15 @@ const Login = () => {
                 />
               </div>
               
-              <div style={{ marginBottom: '25px' }}>
+              <div style={{ marginBottom: '15px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: '600',
                   color: '#1a1a2e',
-                  marginBottom: '8px'
+                  marginBottom: '6px'
                 }}>
-                  <span style={{ marginRight: '8px' }}>🔒</span>
+                  <span style={{ marginRight: '6px' }}>🔒</span>
                   Mật khẩu
                 </label>
                 <input
@@ -300,10 +260,10 @@ const Login = () => {
                   placeholder="Nhập mật khẩu"
                   style={{
                     width: '100%',
-                    padding: '14px 16px',
+                    padding: '12px 14px',
                     border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    fontSize: '16px',
+                    borderRadius: '10px',
+                    fontSize: '15px',
                     transition: 'all 0.2s',
                     boxSizing: 'border-box'
                   }}
@@ -313,78 +273,117 @@ const Login = () => {
                 />
               </div>
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  background: loading 
-                    ? '#9ca3af' 
-                    : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: loading 
-                    ? 'none' 
-                    : '0 4px 12px rgba(26, 92, 162, 0.3)',
-                  marginBottom: '15px'
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 16px rgba(26, 92, 162, 0.4)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
-                  }
-                }}
-              >
-                {loading ? (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px'
-                  }}>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      border: '3px solid rgba(255,255,255,0.3)',
-                      borderTop: '3px solid #fff',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                    <span>Đang đăng nhập...</span>
-                  </div>
-                ) : (
-                  'Đăng nhập'
-                )}
-              </button>
-
-              {/* Forgot Password Link */}
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ marginTop: 'auto', flexShrink: 0 }}>
                 <button 
-                  type="button"
-                  onClick={() => navigateWithTransition('/forgot-password')}
+                  type="submit" 
+                  disabled={loading}
                   style={{
-                    background: 'none',
+                    width: '100%',
+                    padding: '14px',
+                    background: loading 
+                      ? '#9ca3af' 
+                      : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                    color: '#fff',
                     border: 'none',
-                    color: '#1a5ca2',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: loading 
+                      ? 'none' 
+                      : '0 4px 12px rgba(26, 92, 162, 0.3)',
+                    marginBottom: '12px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 16px rgba(26, 92, 162, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
+                    }
                   }}
                 >
-                  Quên mật khẩu?
+                  {loading ? (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}>
+                      <div style={{
+                        width: '18px',
+                        height: '18px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTop: '2px solid #fff',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      <span>Đang đăng nhập...</span>
+                    </div>
+                  ) : (
+                    'Đăng nhập'
+                  )}
                 </button>
+
+                <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                  <button 
+                    type="button"
+                    onClick={() => navigateWithTransition('/forgot-password')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#1a5ca2',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: '4px'
+                    }}
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+
+                <div style={{
+                  paddingTop: '12px',
+                  borderTop: '1px solid #e5e7eb',
+                  textAlign: 'center'
+                }}>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#666',
+                    margin: '0 0 8px 0'
+                  }}>
+                    Chưa có tài khoản?
+                  </p>
+                  <button 
+                    onClick={() => navigateWithTransition('/register')}
+                    style={{
+                      background: 'rgba(26, 92, 162, 0.1)',
+                      border: '2px solid #1a5ca2',
+                      color: '#1a5ca2',
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = 'rgba(26, 92, 162, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'rgba(26, 92, 162, 0.1)';
+                    }}
+                  >
+                    Đăng ký ngay
+                  </button>
+                </div>
               </div>
             </form>
           )}
@@ -392,56 +391,19 @@ const Login = () => {
           {showSuccess && (
             <div style={{
               textAlign: 'center',
-              padding: '20px',
+              padding: '15px',
               background: '#f0fdf4',
-              borderRadius: '12px',
-              color: '#16a34a'
+              borderRadius: '10px',
+              color: '#16a34a',
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}>
               <p style={{ margin: 0, fontSize: '14px' }}>Chuyển hướng đến trang chủ...</p>
             </div>
           )}
         </div>
-
-        {/* Footer Actions */}
-        {!showSuccess && (
-          <div style={{
-            marginTop: '30px',
-            paddingTop: '20px',
-            borderTop: '1px solid #e5e7eb',
-            textAlign: 'center'
-          }}>
-            <p style={{
-              fontSize: '14px',
-              color: '#666',
-              margin: '0 0 10px 0'
-            }}>
-              Chưa có tài khoản?
-            </p>
-            <button 
-              onClick={() => navigateWithTransition('/register')}
-              style={{
-                background: 'rgba(26, 92, 162, 0.1)',
-                border: '2px solid #1a5ca2',
-                color: '#1a5ca2',
-                padding: '12px 24px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                width: '100%'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(26, 92, 162, 0.2)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(26, 92, 162, 0.1)';
-              }}
-            >
-              Đăng ký ngay
-            </button>
-          </div>
-        )}
       </div>
 
       {/* CSS Animations */}
@@ -449,10 +411,6 @@ const Login = () => {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.1); opacity: 0.7; }
         }
       `}</style>
     </div>
