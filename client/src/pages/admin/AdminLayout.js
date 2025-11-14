@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const AdminLayout = ({ children }) => {
   const [adminUser, setAdminUser] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,6 +22,19 @@ const AdminLayout = ({ children }) => {
     } catch (err) {
       navigate('/admin/login');
     }
+
+    // Handle window resize
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -100,15 +114,17 @@ const AdminLayout = ({ children }) => {
     }}>
       {/* Sidebar */}
       <div style={{
-        width: sidebarOpen ? '280px' : '80px',
+        width: sidebarOpen ? (isMobile ? '100%' : '280px') : (isMobile ? '0' : '80px'),
         background: 'linear-gradient(180deg, #1a5ca2 0%, #1a1a2e 100%)',
         color: '#fff',
-        transition: 'width 0.3s ease',
-        position: 'fixed',
+        transition: 'width 0.3s ease, transform 0.3s ease',
+        position: isMobile ? 'fixed' : 'fixed',
         height: '100vh',
         overflowY: 'auto',
-        zIndex: 1000,
-        boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
+        zIndex: isMobile && sidebarOpen ? 1000 : 1000,
+        boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+        transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
+        display: isMobile && !sidebarOpen ? 'none' : 'block'
       }}>
         {/* Logo */}
         <div style={{
@@ -287,16 +303,32 @@ const AdminLayout = ({ children }) => {
         </div>
       </div>
 
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 999
+          }}
+        />
+      )}
+
       {/* Main Content */}
       <div style={{
         flex: 1,
-        marginLeft: sidebarOpen ? '280px' : '80px',
+        marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'),
         transition: 'margin-left 0.3s ease'
       }}>
         {/* Top Bar */}
         <div style={{
           background: '#fff',
-          padding: '16px 32px',
+          padding: isMobile ? '12px 16px' : '16px 32px',
           borderBottom: '1px solid #e5e7eb',
           display: 'flex',
           alignItems: 'center',
@@ -307,41 +339,75 @@ const AdminLayout = ({ children }) => {
           zIndex: 100
         }}>
           <div style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#1a1a2e'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flex: 1,
+            minWidth: 0
           }}>
-            {menuItems.find(item => isActive(item.path))?.label || 'Dashboard'}
+            {isMobile && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                style={{
+                  padding: '8px',
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ☰
+              </button>
+            )}
+            <div style={{
+              fontSize: isMobile ? '16px' : '20px',
+              fontWeight: '600',
+              color: '#1a1a2e',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {menuItems.find(item => isActive(item.path))?.label || 'Dashboard'}
+            </div>
           </div>
           
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: isMobile ? '8px' : '16px',
+            flexShrink: 0
           }}>
-            <div style={{
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              {new Date().toLocaleDateString('vi-VN', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </div>
+            {!isMobile && (
+              <div style={{
+                fontSize: '14px',
+                color: '#666',
+                whiteSpace: 'nowrap'
+              }}>
+                {new Date().toLocaleDateString('vi-VN', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </div>
+            )}
             <button
               onClick={handleLogout}
               style={{
-                padding: '8px 16px',
+                padding: isMobile ? '8px 12px' : '8px 16px',
                 background: '#fee2e2',
                 border: '1px solid #fecaca',
                 borderRadius: '8px',
                 color: '#dc2626',
                 cursor: 'pointer',
-                fontSize: '14px',
+                fontSize: isMobile ? '12px' : '14px',
                 fontWeight: '500',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => {
                 e.target.style.background = '#fecaca';
@@ -350,15 +416,16 @@ const AdminLayout = ({ children }) => {
                 e.target.style.background = '#fee2e2';
               }}
             >
-              Đăng xuất
+              {isMobile ? 'Đăng xuất' : 'Đăng xuất'}
             </button>
           </div>
         </div>
 
         {/* Page Content */}
         <div style={{
-          padding: '32px',
-          minHeight: 'calc(100vh - 80px)'
+          padding: isMobile ? '16px' : '32px',
+          minHeight: 'calc(100vh - 80px)',
+          boxSizing: 'border-box'
         }}>
           {children}
         </div>
