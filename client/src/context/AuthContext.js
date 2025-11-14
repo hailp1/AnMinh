@@ -15,12 +15,35 @@ export const AuthProvider = ({ children }) => {
     // Khởi tạo admin user nếu chưa có
     initializeAdminUser();
     
-    // Lấy user từ localStorage
-    const savedUser = getFromLocalStorage('currentUser');
-    if (savedUser) {
-      setUser(savedUser);
-    }
-    setLoading(false);
+    // Tự động đăng nhập lại nếu có user đã lưu
+    const autoLogin = () => {
+      const savedUser = getFromLocalStorage('currentUser');
+      
+      if (savedUser) {
+        // Kiểm tra xem user có còn tồn tại trong danh sách users không
+        const users = getFromLocalStorage('users', []);
+        const currentUser = users.find(u => u.id === savedUser.id || u.phone === savedUser.phone);
+        
+        if (currentUser) {
+          // Cập nhật thông tin user từ danh sách để đảm bảo dữ liệu mới nhất
+          const updatedUser = { 
+            ...currentUser, 
+            lastLogin: savedUser.lastLogin || currentUser.lastLogin 
+          };
+          saveToLocalStorage('currentUser', updatedUser);
+          setUser(updatedUser);
+          console.log('✅ Tự động đăng nhập lại:', updatedUser.name || updatedUser.phone);
+        } else {
+          // User không còn tồn tại, xóa cache
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('savedLoginInfo');
+        }
+      }
+      
+      setLoading(false);
+    };
+    
+    autoLogin();
   }, []);
 
   // Khởi tạo admin user mặc định
@@ -128,9 +151,23 @@ export const AuthProvider = ({ children }) => {
       // Cập nhật thời gian đăng nhập cuối
       user.lastLogin = new Date().toISOString();
       
+      // Cập nhật user trong danh sách users
+      const userIndex = users.findIndex(u => u.id === user.id || u.phone === user.phone);
+      if (userIndex !== -1) {
+        users[userIndex] = { ...users[userIndex], lastLogin: user.lastLogin };
+        saveToLocalStorage('users', users);
+      }
+      
       // Lưu user hiện tại
       saveToLocalStorage('currentUser', user);
       setUser(user);
+      
+      // Lưu thông tin đăng nhập để tự động login lại
+      saveToLocalStorage('savedLoginInfo', {
+        phone: phone,
+        password: password,
+        savedAt: new Date().toISOString()
+      });
       
       // Redirect dựa trên role
       const redirectPath = user.role === 'ADMIN' ? '/admin' : '/home';
@@ -258,7 +295,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Xóa thông tin đăng nhập đã lưu
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('savedLoginInfo');
     setUser(null);
   };
 
