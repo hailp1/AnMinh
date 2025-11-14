@@ -249,7 +249,7 @@ const Chat = () => {
           </button>
           <button 
             className="quick-msg-btn"
-            onClick={() => setNewMessage('Bạn đang ở trạm sạc nào vậy?')}
+            onClick={() => setNewMessage('Bạn đang ở nhà thuốc nào vậy?')}
           >
             <span className="quick-icon">📍</span>
             <span className="quick-text">Hỏi vị trí</span>

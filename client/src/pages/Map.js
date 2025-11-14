@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getStationsNearby, getNearbyUsers, initializeNearbyUsers, initializePharmacyReps } from '../utils/mockData';
+import { getNearbyUsers, initializeNearbyUsers, initializePharmacyReps } from '../utils/mockData';
 import customersData from '../data/customers.json';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';

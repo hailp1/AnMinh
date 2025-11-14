@@ -83,7 +83,11 @@ const Navbar = () => {
             </div>
             <div className="user-info">
               <span className="user-name">{user.name}</span>
-              <span className="user-role">{user.role === 'STATION_OWNER' ? 'Station Owner' : 'User'}</span>
+              <span className="user-role">
+                {user.role === 'PHARMACY_REP' ? 'Trình dược viên' : 
+                 user.role === 'PHARMACY' ? 'Nhà thuốc' : 
+                 user.role === 'DELIVERY' ? 'Giao hàng' : 'User'}
+              </span>
             </div>
             <span className="dropdown-arrow">▼</span>
           </button>
@@ -150,7 +154,7 @@ const Navbar = () => {
             onClick={() => setShowMobileMenu(false)}
           >
             <span className="nav-icon">➕</span>
-            <span className="nav-text">Add Station</span>
+            <span className="nav-text">Thêm nhà thuốc</span>
           </Link>
           
           <Link 

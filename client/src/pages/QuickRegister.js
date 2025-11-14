@@ -7,7 +7,7 @@ import vehicleModels from '../data/vehicleModels.json';
 
 const QuickRegister = () => {
   const [currentTime, setCurrentTime] = useState('');
-  const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 3: Password, 4: Basic Info, 5: Additional Info, 6: Station Info (for STATION_OWNER)
+  const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 3: Password, 4: Basic Info, 5: Additional Info, 6: Pharmacy Info (for PHARMACY)
   const [formData, setFormData] = useState({
     phone: '',
     otp: '',
@@ -22,14 +22,12 @@ const QuickRegister = () => {
     vehicleModelId: '',
     location: null,
     address: '',
-    // Station info for PHARMACY
-    stationName: '',
-    stationAddress: '',
-    stationLocation: null,
-    chargerTypes: [],
-    pricing: [],
-    amenities: [],
-    promotions: []
+    // Pharmacy info for PHARMACY
+    pharmacyName: '',
+    pharmacyAddress: '',
+    pharmacyLocation: null,
+    owner: '',
+    type: 'Nhà thuốc'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -209,19 +207,19 @@ const QuickRegister = () => {
     }
   };
 
-  const completeStationOwnerRegistration = async () => {
-    if (!formData.stationName.trim()) {
-      setError('Vui lòng nhập tên trạm sạc');
+  const completePharmacyRegistration = async () => {
+    if (!formData.pharmacyName.trim()) {
+      setError('Vui lòng nhập tên nhà thuốc');
       return;
     }
 
-    if (!formData.stationLocation) {
-      setError('Vui lòng chọn vị trí trạm sạc');
+    if (!formData.pharmacyLocation) {
+      setError('Vui lòng chọn vị trí nhà thuốc');
       return;
     }
 
-    if (formData.chargerTypes.length === 0) {
-      setError('Vui lòng chọn ít nhất một loại sạc');
+    if (!formData.owner.trim()) {
+      setError('Vui lòng nhập tên chủ nhà thuốc');
       return;
     }
 
@@ -241,14 +239,12 @@ const QuickRegister = () => {
         vehicleModel: formData.vehicleModel,
         location: formData.location,
         address: formData.address,
-        stationInfo: {
-          name: formData.stationName,
-          address: formData.stationAddress,
-          location: formData.stationLocation,
-          chargerTypes: formData.chargerTypes,
-          pricing: formData.pricing,
-          amenities: formData.amenities,
-          promotions: formData.promotions
+        pharmacyInfo: {
+          name: formData.pharmacyName,
+          address: formData.pharmacyAddress,
+          location: formData.pharmacyLocation,
+          owner: formData.owner,
+          type: formData.type
         }
       }
     );
@@ -373,27 +369,92 @@ const QuickRegister = () => {
   };
 
   return (
-    <div className="auth-app-container">
-      {/* Status Bar */}
-      <div className="auth-status-bar">
-        <span className="auth-time">{currentTime}</span>
-        <div className="auth-signal">
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <span className="auth-battery"></span>
-      </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      position: 'relative',
+      overflow: 'auto'
+    }}>
+      {/* Background decoration */}
+      <div style={{
+        position: 'fixed',
+        top: '-50%',
+        right: '-50%',
+        width: '200%',
+        height: '200%',
+        background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+        animation: 'pulse 20s ease-in-out infinite',
+        zIndex: 0
+      }}></div>
 
-      <div className="auth-card">
-        {/* Header */}
-        <div className="auth-header">
-          <button onClick={handleBackClick} className="auth-back-btn">
-            <span className="back-icon">←</span>
+      <div style={{
+        width: '100%',
+        maxWidth: '500px',
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '24px',
+        padding: '30px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        position: 'relative',
+        zIndex: 1,
+        marginTop: '20px',
+        marginBottom: '20px'
+      }}>
+        {/* Header with Logo */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '25px',
+          position: 'relative'
+        }}>
+          <button 
+            onClick={handleBackClick} 
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: '0',
+              background: 'rgba(26, 92, 162, 0.1)',
+              border: 'none',
+              borderRadius: '12px',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '20px',
+              color: '#1a5ca2',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = 'rgba(26, 92, 162, 0.2)'}
+            onMouseLeave={(e) => e.target.style.background = 'rgba(26, 92, 162, 0.1)'}
+          >
+            ←
           </button>
-          <h1 className="auth-title">Đăng ký</h1>
-          <div className="auth-spacer"></div>
+
+          {step === 1 && (
+            <img 
+              src="/image/logo.png" 
+              alt="Sapharco Sales" 
+              style={{
+                maxWidth: '120px',
+                height: 'auto',
+                marginBottom: '15px'
+              }}
+            />
+          )}
+          
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#1a5ca2',
+            margin: '0 0 8px 0'
+          }}>
+            Đăng ký
+          </h1>
         </div>
 
         {/* Progress Indicator */}
@@ -633,7 +694,7 @@ const QuickRegister = () => {
                 <div className="auth-welcome-message">
                   <span className="welcome-icon">🎉</span>
                   <div className="welcome-text">
-                    <strong>Chào mừng bạn đến với EV Charging!</strong>
+                    <strong>Chào mừng bạn đến với Sapharco Sales!</strong>
                     <span>Hãy hoàn thiện thông tin để tạo tài khoản mới</span>
                   </div>
                 </div>
@@ -906,11 +967,11 @@ const QuickRegister = () => {
             </div>
           )}
 
-          {/* Step 6: Station Info (for STATION_OWNER) */}
+          {/* Step 6: Pharmacy Info (for PHARMACY) */}
           {step === 6 && !showSuccess && (
             <div className="auth-form">
               <div className="step-info">
-                <p>Tạo trạm sạc đầu tiên của bạn và nhận <strong>200 token thưởng</strong> 🎁</p>
+                <p>Thông tin nhà thuốc của bạn 🏥</p>
               </div>
 
               {error && (
@@ -922,14 +983,29 @@ const QuickRegister = () => {
 
               <div className="auth-form-group">
                 <label className="auth-label">
-                  <span className="label-icon">🏪</span>
-                  <span>Tên trạm sạc</span>
+                  <span className="label-icon">🏥</span>
+                  <span>Tên nhà thuốc</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.stationName}
-                  onChange={(e) => setFormData({ ...formData, stationName: e.target.value })}
-                  placeholder="Trạm sạc ABC, Sạc nhanh XYZ..."
+                  value={formData.pharmacyName}
+                  onChange={(e) => setFormData({ ...formData, pharmacyName: e.target.value })}
+                  placeholder="Nhà thuốc ABC, Nhà thuốc XYZ..."
+                  className="auth-input"
+                  required
+                />
+              </div>
+
+              <div className="auth-form-group">
+                <label className="auth-label">
+                  <span className="label-icon">👤</span>
+                  <span>Chủ nhà thuốc</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.owner}
+                  onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+                  placeholder="Họ và tên chủ nhà thuốc"
                   className="auth-input"
                   required
                 />
@@ -938,19 +1014,19 @@ const QuickRegister = () => {
               <div className="auth-form-group">
                 <label className="auth-label">
                   <span className="label-icon">📍</span>
-                  <span>Vị trí trạm sạc</span>
+                  <span>Địa chỉ nhà thuốc</span>
                 </label>
                 <div className="location-section">
-                  {formData.stationLocation ? (
+                  {formData.pharmacyLocation ? (
                     <div className="location-info">
                       <div className="location-icon">✅</div>
                       <div className="location-text">
                         <strong>Đã chọn vị trí</strong>
-                        <span>{formData.stationAddress}</span>
+                        <span>{formData.pharmacyAddress}</span>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setFormData({ ...formData, stationLocation: null, stationAddress: '' })}
+                        onClick={() => setFormData({ ...formData, pharmacyLocation: null, pharmacyAddress: '' })}
                         className="location-change-btn"
                       >
                         Đổi
@@ -964,8 +1040,8 @@ const QuickRegister = () => {
                           if (formData.location) {
                             setFormData({ 
                               ...formData, 
-                              stationLocation: formData.location,
-                              stationAddress: formData.address || 'Vị trí hiện tại'
+                              pharmacyLocation: formData.location,
+                              pharmacyAddress: formData.address || 'Vị trí hiện tại'
                             });
                           } else {
                             getCurrentLocation();
@@ -980,12 +1056,12 @@ const QuickRegister = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          const address = prompt('Nhập địa chỉ trạm sạc:');
+                          const address = prompt('Nhập địa chỉ nhà thuốc:');
                           if (address) {
                             setFormData({ 
                               ...formData, 
-                              stationAddress: address,
-                              stationLocation: { lat: 0, lng: 0 } // Placeholder
+                              pharmacyAddress: address,
+                              pharmacyLocation: { lat: 0, lng: 0 } // Placeholder
                             });
                           }
                         }}
@@ -999,105 +1075,9 @@ const QuickRegister = () => {
                 </div>
               </div>
 
-              <div className="auth-form-group">
-                <label className="auth-label">
-                  <span className="label-icon">⚡</span>
-                  <span>Loại sạc có sẵn</span>
-                </label>
-                <div className="charger-types-selector">
-                  {[
-                    { type: 'AC Slow (3.7kW)', icon: '🔌', price: 3000 },
-                    { type: 'AC Fast (7kW)', icon: '⚡', price: 5000 },
-                    { type: 'AC Fast (22kW)', icon: '⚡', price: 8000 },
-                    { type: 'DC Fast (50kW)', icon: '🚀', price: 12000 }
-                  ].map((charger) => (
-                    <div
-                      key={charger.type}
-                      className={`charger-type-option ${formData.chargerTypes.includes(charger.type) ? 'active' : ''}`}
-                      onClick={() => {
-                        const isSelected = formData.chargerTypes.includes(charger.type);
-                        if (isSelected) {
-                          setFormData({
-                            ...formData,
-                            chargerTypes: formData.chargerTypes.filter(t => t !== charger.type),
-                            pricing: formData.pricing.filter(p => p.chargerType !== charger.type)
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            chargerTypes: [...formData.chargerTypes, charger.type],
-                            pricing: [...formData.pricing, {
-                              chargerType: charger.type,
-                              pricePerHour: charger.price
-                            }]
-                          });
-                        }
-                      }}
-                    >
-                      <div className="charger-icon">{charger.icon}</div>
-                      <div className="charger-info">
-                        <strong>{charger.type}</strong>
-                        <span>{charger.price.toLocaleString()}đ/giờ</span>
-                      </div>
-                      <div className="charger-check">
-                        {formData.chargerTypes.includes(charger.type) ? '✓' : '+'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="auth-form-group">
-                <label className="auth-label">
-                  <span className="label-icon">🎁</span>
-                  <span>Khuyến mãi khai trương (tùy chọn)</span>
-                </label>
-                <div className="promotions-section">
-                  <div className="promotion-templates">
-                    {[
-                      { title: 'Giảm 20% tuần đầu', discount: 20, description: 'Áp dụng 7 ngày đầu' },
-                      { title: 'Miễn phí 30 phút đầu', discount: 0, description: 'Cho khách hàng mới' },
-                      { title: 'Giảm 50% cuối tuần', discount: 50, description: 'Thứ 7 & Chủ nhật' }
-                    ].map((promo, index) => (
-                      <div
-                        key={index}
-                        className={`promotion-template ${formData.promotions.some(p => p.title === promo.title) ? 'active' : ''}`}
-                        onClick={() => {
-                          const isSelected = formData.promotions.some(p => p.title === promo.title);
-                          if (isSelected) {
-                            setFormData({
-                              ...formData,
-                              promotions: formData.promotions.filter(p => p.title !== promo.title)
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              promotions: [...formData.promotions, {
-                                ...promo,
-                                validFrom: new Date(),
-                                validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-                              }]
-                            });
-                          }
-                        }}
-                      >
-                        <div className="promo-icon">🎁</div>
-                        <div className="promo-info">
-                          <strong>{promo.title}</strong>
-                          <span>{promo.description}</span>
-                        </div>
-                        <div className="promo-check">
-                          {formData.promotions.some(p => p.title === promo.title) ? '✓' : '+'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
               <button 
-                onClick={completeStationOwnerRegistration}
-                disabled={loading || !formData.stationName.trim() || !formData.stationLocation || formData.chargerTypes.length === 0}
+                onClick={completePharmacyRegistration}
+                disabled={loading || !formData.pharmacyName.trim() || !formData.pharmacyLocation || !formData.owner.trim()}
                 className="auth-btn auth-btn-primary"
               >
                 {loading ? (
@@ -1106,30 +1086,34 @@ const QuickRegister = () => {
                     <span>Đang tạo tài khoản...</span>
                   </div>
                 ) : (
-                  '🎉 Hoàn tất đăng ký & Tạo trạm'
+                  '🎉 Hoàn tất đăng ký'
                 )}
               </button>
-
-              <div className="station-owner-bonus">
-                <div className="bonus-info">
-                  <span className="bonus-icon">🏆</span>
-                  <div className="bonus-text">
-                    <strong>Thưởng chủ trạm:</strong>
-                    <span>+200 token + 100 điểm khi tạo trạm đầu tiên</span>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
           {/* Success State */}
           {showSuccess && (
-            <div className="success-message">
-              <p>Đăng ký thành công! Chuyển hướng...</p>
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              background: '#f0fdf4',
+              borderRadius: '12px',
+              color: '#16a34a'
+            }}>
+              <p style={{ margin: 0, fontSize: '14px' }}>Đăng ký thành công! Chuyển hướng...</p>
             </div>
           )}
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 0.7; }
+        }
+      `}</style>
     </div>
   );
 };

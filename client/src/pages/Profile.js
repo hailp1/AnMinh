@@ -33,7 +33,12 @@ const Profile = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'rgba(102, 126, 234, 0.1)', borderRadius: '12px' }}>
             <span style={{ fontSize: '1.5rem' }}>🎭</span>
             <div>
-              <strong>Loại tài khoản:</strong> {user.role === 'USER' ? '🙋‍♂️ Người dùng' : user.role === 'STATION_OWNER' ? '🏪 Chủ trạm' : '⚙️ Admin'}
+              <strong>Loại tài khoản:</strong> {
+                user.role === 'PHARMACY_REP' ? '👨‍⚕️ Trình dược viên' : 
+                user.role === 'PHARMACY' ? '🏥 Nhà thuốc' : 
+                user.role === 'DELIVERY' ? '🚚 Giao hàng' : 
+                '⚙️ Admin'
+              }
             </div>
           </div>
           

@@ -83,7 +83,7 @@ const AdminDashboard = () => {
           <div className="stat-icon">🏪</div>
           <div className="stat-content">
             <div className="stat-number">{stats.totalStations}</div>
-            <div className="stat-label">Trạm sạc</div>
+            <div className="stat-label">Nhà thuốc</div>
           </div>
         </div>
         
@@ -115,7 +115,7 @@ const AdminDashboard = () => {
           
           <button className="action-btn stations-btn">
             <span className="action-icon">🏪</span>
-            <span>Quản lý trạm sạc</span>
+            <span>Quản lý nhà thuốc</span>
           </button>
           
           <button className="action-btn analytics-btn">
