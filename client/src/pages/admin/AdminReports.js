@@ -6,9 +6,21 @@ import { getFromLocalStorage } from '../../utils/mockData';
 const AdminReports = () => {
   const [selectedHub, setSelectedHub] = useState('all');
   const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [stats, setStats] = useState({});
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    activeCustomers: 0,
+    averageOrderValue: 0,
+    customerActivityRate: 0
+  });
   const [businessActivity, setBusinessActivity] = useState([]);
-  const [coverageData, setCoverageData] = useState({});
+  const [coverageData, setCoverageData] = useState({
+    byProduct: [],
+    byCategory: [],
+    byCustomerType: [],
+    byHub: []
+  });
   const [performanceData, setPerformanceData] = useState([]);
 
   useEffect(() => {
@@ -206,14 +218,16 @@ const AdminReports = () => {
   };
 
   const formatCurrency = (amount) => {
+    const value = amount || 0;
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
-    }).format(amount);
+    }).format(value);
   };
 
   const formatNumber = (num) => {
-    return new Intl.NumberFormat('vi-VN').format(num);
+    const value = num || 0;
+    return new Intl.NumberFormat('vi-VN').format(value);
   };
 
   return (
@@ -318,7 +332,7 @@ const AdminReports = () => {
           },
           {
             label: 'Tỷ lệ hoạt động',
-            value: `${stats.customerActivityRate.toFixed(1)}%`,
+            value: `${(stats.customerActivityRate || 0).toFixed(1)}%`,
             icon: '📊',
             color: '#10b981',
             change: '+5.1%'
@@ -526,8 +540,9 @@ const AdminReports = () => {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {coverageData.byCategory?.map((cat, index) => {
-              const maxRevenue = Math.max(...coverageData.byCategory.map(c => c.revenue));
-              const width = maxRevenue > 0 ? (cat.revenue / maxRevenue) * 100 : 0;
+              const revenues = coverageData.byCategory.map(c => c.revenue || 0);
+              const maxRevenue = revenues.length > 0 ? Math.max(...revenues) : 0;
+              const width = maxRevenue > 0 ? ((cat.revenue || 0) / maxRevenue) * 100 : 0;
               return (
                 <div key={cat.id}>
                   <div style={{

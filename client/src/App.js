@@ -30,6 +30,8 @@ import AdminMap from './pages/admin/AdminMap';
 import AdminReports from './pages/admin/AdminReports';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminProducts from './pages/admin/AdminProducts';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminSettings from './pages/admin/AdminSettings';
 import './styles-production.css';
 
 function AppContent() {
@@ -51,6 +53,8 @@ function AppContent() {
         <Route path="/admin/reports" element={<AdminWrapper><AdminReports /></AdminWrapper>} />
         <Route path="/admin/orders" element={<AdminWrapper><AdminOrders /></AdminWrapper>} />
         <Route path="/admin/products" element={<AdminWrapper><AdminProducts /></AdminWrapper>} />
+        <Route path="/admin/users" element={<AdminWrapper><AdminUsers /></AdminWrapper>} />
+        <Route path="/admin/settings" element={<AdminWrapper><AdminSettings /></AdminWrapper>} />
       </Routes>
     );
   }
