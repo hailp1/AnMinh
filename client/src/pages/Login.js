@@ -115,41 +115,41 @@ const Login = () => {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '500px',
+        maxWidth: '600px',
         background: 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '24px',
-        padding: '40px 32px',
+        borderRadius: '28px',
+        padding: '48px 40px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
         zIndex: 1,
-        maxHeight: '95vh',
-        overflow: 'hidden',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        minHeight: 'auto'
       }}>
         {/* Header with Logo */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '30px',
-          flexShrink: 0
+          marginBottom: '40px',
+          flexShrink: 0,
+          position: 'relative'
         }}>
           <button 
             onClick={handleBackClick} 
             style={{
               position: 'absolute',
-              top: '20px',
-              left: '20px',
+              top: '0',
+              left: '0',
               background: 'rgba(26, 92, 162, 0.15)',
               border: 'none',
               borderRadius: '12px',
-              width: '44px',
-              height: '44px',
+              width: '48px',
+              height: '48px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '20px',
+              fontSize: '22px',
               color: '#1a5ca2',
               fontWeight: 'bold',
               transition: 'all 0.2s',
@@ -168,16 +168,18 @@ const Login = () => {
           </button>
 
           <div style={{
-            width: '120px',
-            height: '120px',
+            width: '180px',
+            height: '180px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
+            background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.15), rgba(62, 180, 168, 0.15))',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(20px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 20px',
-            padding: '15px',
-            boxShadow: '0 8px 24px rgba(26, 92, 162, 0.15)'
+            margin: '0 auto 24px',
+            padding: '20px',
+            boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
           }}>
             <img 
               src="/image/logo.png" 
@@ -185,21 +187,22 @@ const Login = () => {
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain'
+                objectFit: 'contain',
+                borderRadius: '50%'
               }}
             />
           </div>
           <h1 style={{
-            fontSize: '32px',
+            fontSize: '36px',
             fontWeight: 'bold',
             color: '#1a1a2e',
-            margin: '0 0 8px 0',
+            margin: '0 0 12px 0',
             textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
             Sapharco Sales
           </h1>
           <p style={{
-            fontSize: '16px',
+            fontSize: '18px',
             color: '#374151',
             margin: 0,
             fontWeight: '500'
@@ -209,21 +212,21 @@ const Login = () => {
         </div>
 
         {/* Form Content */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {!showSuccess && (
             <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {error && (
                 <div style={{
-                  padding: '10px 12px',
+                  padding: '14px 16px',
                   background: '#fee2e2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '10px',
-                  marginBottom: '15px',
+                  border: '2px solid #fecaca',
+                  borderRadius: '12px',
+                  marginBottom: '24px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '10px',
                   color: '#dc2626',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   flexShrink: 0
                 }}>
                   <span>⚠️</span>
@@ -231,15 +234,15 @@ const Login = () => {
                 </div>
               )}
 
-              <div style={{ marginBottom: '20px', flexShrink: 0 }}>
+              <div style={{ marginBottom: '24px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
-                  fontSize: '15px',
+                  fontSize: '16px',
                   fontWeight: '600',
                   color: '#1a1a2e',
-                  marginBottom: '8px'
+                  marginBottom: '10px'
                 }}>
-                  <span style={{ marginRight: '8px' }}>📱</span>
+                  <span style={{ marginRight: '10px' }}>📱</span>
                   Số điện thoại
                 </label>
                 <input
@@ -250,10 +253,10 @@ const Login = () => {
                   placeholder="0901 234 567"
                   style={{
                     width: '100%',
-                    padding: '14px 16px',
+                    padding: '16px 18px',
                     border: '2px solid #d1d5db',
-                    borderRadius: '12px',
-                    fontSize: '16px',
+                    borderRadius: '14px',
+                    fontSize: '17px',
                     transition: 'all 0.2s',
                     boxSizing: 'border-box',
                     color: '#1a1a2e',
@@ -261,7 +264,7 @@ const Login = () => {
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = '#1a5ca2';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(26, 92, 162, 0.1)';
+                    e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#d1d5db';
@@ -272,15 +275,15 @@ const Login = () => {
                 />
               </div>
               
-              <div style={{ marginBottom: '20px', flexShrink: 0 }}>
+              <div style={{ marginBottom: '28px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
-                  fontSize: '15px',
+                  fontSize: '16px',
                   fontWeight: '600',
                   color: '#1a1a2e',
-                  marginBottom: '8px'
+                  marginBottom: '10px'
                 }}>
-                  <span style={{ marginRight: '8px' }}>🔒</span>
+                  <span style={{ marginRight: '10px' }}>🔒</span>
                   Mật khẩu
                 </label>
                 <input
@@ -291,10 +294,10 @@ const Login = () => {
                   placeholder="Nhập mật khẩu"
                   style={{
                     width: '100%',
-                    padding: '14px 16px',
+                    padding: '16px 18px',
                     border: '2px solid #d1d5db',
-                    borderRadius: '12px',
-                    fontSize: '16px',
+                    borderRadius: '14px',
+                    fontSize: '17px',
                     transition: 'all 0.2s',
                     boxSizing: 'border-box',
                     color: '#1a1a2e',
@@ -302,7 +305,7 @@ const Login = () => {
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = '#1a5ca2';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(26, 92, 162, 0.1)';
+                    e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#d1d5db';
@@ -318,32 +321,32 @@ const Login = () => {
                   disabled={loading}
                   style={{
                     width: '100%',
-                    padding: '16px',
+                    padding: '18px',
                     background: loading 
                       ? '#9ca3af' 
                       : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '16px',
+                    borderRadius: '14px',
+                    fontSize: '17px',
                     fontWeight: '600',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
                     boxShadow: loading 
                       ? 'none' 
-                      : '0 6px 20px rgba(26, 92, 162, 0.4)',
-                    marginBottom: '15px'
+                      : '0 8px 24px rgba(26, 92, 162, 0.4)',
+                    marginBottom: '20px'
                   }}
                   onMouseEnter={(e) => {
                     if (!loading) {
                       e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 16px rgba(26, 92, 162, 0.4)';
+                      e.target.style.boxShadow = '0 10px 28px rgba(26, 92, 162, 0.5)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!loading) {
                       e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
+                      e.target.style.boxShadow = '0 8px 24px rgba(26, 92, 162, 0.4)';
                     }
                   }}
                 >
@@ -352,13 +355,13 @@ const Login = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px'
+                      gap: '10px'
                     }}>
                       <div style={{
-                        width: '18px',
-                        height: '18px',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTop: '2px solid #fff',
+                        width: '20px',
+                        height: '20px',
+                        border: '3px solid rgba(255,255,255,0.3)',
+                        borderTop: '3px solid #fff',
                         borderRadius: '50%',
                         animation: 'spin 1s linear infinite'
                       }}></div>
@@ -369,7 +372,7 @@ const Login = () => {
                   )}
                 </button>
 
-                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                   <button 
                     type="button"
                     onClick={() => navigateWithTransition('/forgot-password')}
@@ -377,10 +380,10 @@ const Login = () => {
                       background: 'none',
                       border: 'none',
                       color: '#1a5ca2',
-                      fontSize: '14px',
+                      fontSize: '15px',
                       cursor: 'pointer',
                       textDecoration: 'underline',
-                      padding: '6px',
+                      padding: '8px',
                       fontWeight: '500'
                     }}
                   >
@@ -389,14 +392,14 @@ const Login = () => {
                 </div>
 
                 <div style={{
-                  paddingTop: '20px',
+                  paddingTop: '24px',
                   borderTop: '2px solid #e5e7eb',
                   textAlign: 'center'
                 }}>
                   <p style={{
-                    fontSize: '14px',
+                    fontSize: '15px',
                     color: '#374151',
-                    margin: '0 0 12px 0',
+                    margin: '0 0 16px 0',
                     fontWeight: '500'
                   }}>
                     Chưa có tài khoản?
@@ -407,9 +410,9 @@ const Login = () => {
                       background: 'rgba(26, 92, 162, 0.1)',
                       border: '2px solid #1a5ca2',
                       color: '#1a5ca2',
-                      padding: '12px 24px',
-                      borderRadius: '12px',
-                      fontSize: '15px',
+                      padding: '14px 28px',
+                      borderRadius: '14px',
+                      fontSize: '16px',
                       fontWeight: '600',
                       cursor: 'pointer',
                       transition: 'all 0.2s',

@@ -21,12 +21,39 @@ import AdminDashboard from './pages/AdminDashboard';
 import Chat from './pages/Chat';
 import CreateOrder from './pages/CreateOrder';
 import OrderSummary from './pages/OrderSummary';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminWrapper from './pages/admin/AdminWrapper';
+import AdminDashboardPage from './pages/admin/AdminDashboard';
+import AdminCustomers from './pages/admin/AdminCustomers';
+import AdminRoutes from './pages/admin/AdminRoutes';
+import AdminMap from './pages/admin/AdminMap';
+import AdminReports from './pages/admin/AdminReports';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminProducts from './pages/admin/AdminProducts';
 import './styles-production.css';
 
 function AppContent() {
   const location = useLocation();
   const isOnboarding = location.pathname === '/';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/quick-register' || location.pathname === '/forgot-password' || location.pathname === '/reset-password';
+  const isAdminPage = location.pathname.startsWith('/admin');
+
+  // Admin routes
+  if (isAdminPage) {
+    return (
+      <Routes>
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminWrapper><AdminDashboardPage /></AdminWrapper>} />
+        <Route path="/admin/customers" element={<AdminWrapper><AdminCustomers /></AdminWrapper>} />
+        <Route path="/admin/routes" element={<AdminWrapper><AdminRoutes /></AdminWrapper>} />
+        <Route path="/admin/map" element={<AdminWrapper><AdminMap /></AdminWrapper>} />
+        <Route path="/admin/reports" element={<AdminWrapper><AdminReports /></AdminWrapper>} />
+        <Route path="/admin/orders" element={<AdminWrapper><AdminOrders /></AdminWrapper>} />
+        <Route path="/admin/products" element={<AdminWrapper><AdminProducts /></AdminWrapper>} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="App">
@@ -49,7 +76,7 @@ function AppContent() {
             <Route path="/edit-pharmacy/:id" element={<CreatePharmacy />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin-old" element={<AdminDashboard />} />
             <Route path="/chat/:userId" element={<Chat />} />
             <Route path="/create-order" element={<CreateOrder />} />
             <Route path="/order-summary" element={<OrderSummary />} />

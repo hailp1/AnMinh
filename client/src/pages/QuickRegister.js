@@ -381,23 +381,22 @@ const QuickRegister = () => {
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '500px',
+        maxWidth: '600px',
         background: 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(10px)',
-        borderRadius: '24px',
-        padding: '40px 32px',
+        borderRadius: '28px',
+        padding: '48px 40px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
         zIndex: 1,
-        maxHeight: '95vh',
-        overflow: 'hidden',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        minHeight: 'auto'
       }}>
         {/* Header with Logo */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '25px',
+          marginBottom: '35px',
           position: 'relative',
           flexShrink: 0
         }}>
@@ -410,13 +409,13 @@ const QuickRegister = () => {
               background: 'rgba(26, 92, 162, 0.15)',
               border: 'none',
               borderRadius: '12px',
-              width: '44px',
-              height: '44px',
+              width: '48px',
+              height: '48px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '20px',
+              fontSize: '22px',
               color: '#1a5ca2',
               fontWeight: 'bold',
               transition: 'all 0.2s',
@@ -436,16 +435,18 @@ const QuickRegister = () => {
 
           {step === 1 && (
             <div style={{
-              width: '120px',
-              height: '120px',
+              width: '180px',
+              height: '180px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
+              background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.15), rgba(62, 180, 168, 0.15))',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(20px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 20px',
-              padding: '15px',
-              boxShadow: '0 8px 24px rgba(26, 92, 162, 0.15)'
+              margin: '0 auto 24px',
+              padding: '20px',
+              boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
             }}>
               <img 
                 src="/image/logo.png" 
@@ -453,17 +454,18 @@ const QuickRegister = () => {
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  borderRadius: '50%'
                 }}
               />
             </div>
           )}
           
           <h1 style={{
-            fontSize: '28px',
+            fontSize: '34px',
             fontWeight: 'bold',
             color: '#1a1a2e',
-            margin: '0 0 8px 0',
+            margin: '0 0 12px 0',
             textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
             Đăng ký
@@ -472,15 +474,15 @@ const QuickRegister = () => {
 
         {/* Progress Indicator */}
         <div style={{
-          marginBottom: '12px',
+          marginBottom: '20px',
           flexShrink: 0
         }}>
           <div style={{
-            height: '6px',
+            height: '8px',
             background: '#e5e7eb',
-            borderRadius: '10px',
+            borderRadius: '12px',
             overflow: 'hidden',
-            marginBottom: '6px'
+            marginBottom: '10px'
           }}>
             <div 
               style={{ 
@@ -492,9 +494,10 @@ const QuickRegister = () => {
             ></div>
           </div>
           <div style={{
-            fontSize: '11px',
+            fontSize: '13px',
             color: '#666',
-            textAlign: 'center'
+            textAlign: 'center',
+            fontWeight: '500'
           }}>
             Bước {step}/{formData.role === 'PHARMACY' ? 6 : 5}
           </div>
@@ -508,10 +511,10 @@ const QuickRegister = () => {
           flexDirection: 'column'
         }}>
           <div style={{
-            fontSize: '18px',
+            fontSize: '20px',
             fontWeight: '600',
             color: '#1a1a2e',
-            marginBottom: '20px',
+            marginBottom: '28px',
             textAlign: 'center',
             flexShrink: 0
           }}>
