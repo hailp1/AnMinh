@@ -12,6 +12,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +33,16 @@ const Login = () => {
     updateTime();
     const interval = setInterval(updateTime, 1000);
 
-    return () => clearInterval(interval);
+    // Handle window resize
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -104,14 +114,14 @@ const Login = () => {
 
   return (
     <div style={{
-      height: '100vh',
+      minHeight: '100vh',
       background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '15px',
+      padding: '20px',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'auto'
     }}>
       <div style={{
         width: '100%',
@@ -119,13 +129,14 @@ const Login = () => {
         background: 'rgba(255, 255, 255, 0.98)',
         backdropFilter: 'blur(10px)',
         borderRadius: '28px',
-        padding: '48px 40px',
+        padding: isMobile ? '32px 24px' : '48px 40px',
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
         zIndex: 1,
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 'auto'
+        margin: '20px 0',
+        boxSizing: 'border-box'
       }}>
         {/* Header with Logo */}
         <div style={{
@@ -168,8 +179,8 @@ const Login = () => {
           </button>
 
           <div style={{
-            width: '180px',
-            height: '180px',
+            width: isMobile ? '140px' : '180px',
+            height: isMobile ? '140px' : '180px',
             borderRadius: '50%',
             background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.15), rgba(62, 180, 168, 0.15))',
             border: '2px solid rgba(255, 255, 255, 0.3)',
@@ -178,8 +189,9 @@ const Login = () => {
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 24px',
-            padding: '20px',
-            boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
+            padding: isMobile ? '15px' : '20px',
+            boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)',
+            boxSizing: 'border-box'
           }}>
             <img 
               src="/image/logo.png" 
@@ -193,7 +205,7 @@ const Login = () => {
             />
           </div>
           <h1 style={{
-            fontSize: '36px',
+            fontSize: isMobile ? '28px' : '36px',
             fontWeight: 'bold',
             color: '#1a1a2e',
             margin: '0 0 12px 0',
@@ -202,7 +214,7 @@ const Login = () => {
             Sapharco Sales
           </h1>
           <p style={{
-            fontSize: '18px',
+            fontSize: isMobile ? '16px' : '18px',
             color: '#374151',
             margin: 0,
             fontWeight: '500'
@@ -212,9 +224,9 @@ const Login = () => {
         </div>
 
         {/* Form Content */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           {!showSuccess && (
-            <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
               {error && (
                 <div style={{
                   padding: '14px 16px',
@@ -315,7 +327,7 @@ const Login = () => {
                 />
               </div>
 
-              <div style={{ marginTop: 'auto', flexShrink: 0 }}>
+              <div style={{ marginTop: '24px', flexShrink: 0 }}>
                 <button 
                   type="submit" 
                   disabled={loading}
