@@ -743,23 +743,33 @@ const QuickRegister = () => {
                 </div>
               </div>
               
-              {/* Hub selection for Pharmacy Rep */}
+              {/* Hub selection for Pharmacy Rep - Beautiful Design */}
               {formData.role === 'PHARMACY_REP' && (
                 <div className="auth-form-group">
                   <label className="auth-label">
                     <span className="label-icon">📍</span>
                     <span>Hub Phụ trách</span>
                   </label>
-                  <div className="hub-selection">
-                    {['Trung tâm', 'Củ Chi', 'Đồng Nai'].map((hub) => (
-                      <button
-                        key={hub}
-                        type="button"
-                        className={`hub-option ${formData.hub === hub ? 'active' : ''}`}
-                        onClick={() => setFormData({ ...formData, hub })}
+                  <div className="hub-selection-grid">
+                    {[
+                      { name: 'Trung tâm', icon: '🏢', description: 'Khu vực trung tâm TP.HCM' },
+                      { name: 'Củ Chi', icon: '🌾', description: 'Huyện Củ Chi' },
+                      { name: 'Đồng Nai', icon: '🏭', description: 'Tỉnh Đồng Nai' }
+                    ].map((hub) => (
+                      <div
+                        key={hub.name}
+                        className={`hub-card ${formData.hub === hub.name ? 'selected' : ''}`}
+                        onClick={() => setFormData({ ...formData, hub: hub.name })}
                       >
-                        {hub}
-                      </button>
+                        <div className="hub-card-icon">{hub.icon}</div>
+                        <div className="hub-card-content">
+                          <h4>{hub.name}</h4>
+                          <p>{hub.description}</p>
+                        </div>
+                        <div className="hub-card-check">
+                          {formData.hub === hub.name ? '✓' : ''}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -799,7 +809,7 @@ const QuickRegister = () => {
             </div>
           )}
 
-          {/* Step 5: Additional Info */}
+          {/* Step 5: Additional Info - Simplified (Gender only) */}
           {step === 5 && !showSuccess && (
             <div className="auth-form">
               <div className="step-info">
@@ -831,175 +841,6 @@ const QuickRegister = () => {
                   ))}
                 </div>
               </div>
-
-              <div className="auth-form-group">
-                <label className="auth-label">
-                  <span className="label-icon">🚗</span>
-                  <span>Loại xe điện</span>
-                </label>
-                <div className="vehicle-type-selection">
-                  <div
-                    className={`vehicle-type-card ${formData.vehicleType === 'car' ? 'selected' : ''}`}
-                    onClick={() => {
-                      setFormData({ ...formData, vehicleType: 'car', vehicleModel: '', vehicleModelId: '' });
-                      setShowVehicleModels(false);
-                    }}
-                  >
-                    <div className="vehicle-type-header">
-                      <div className="vehicle-type-icon">🚗</div>
-                      <div className="vehicle-type-badge">Phổ biến</div>
-                    </div>
-                    <div className="vehicle-type-content">
-                      <h4>Ô tô điện</h4>
-                      <p>Xe 4 bánh, phù hợp đi xa</p>
-                      <div className="vehicle-examples">
-                        <span>VinFast VF8</span>
-                        <span>Tesla Model 3</span>
-                        <span>BMW iX3</span>
-                      </div>
-                    </div>
-                    <div className="vehicle-type-specs">
-                      <div className="spec-item">
-                        <span className="spec-icon">⚡</span>
-                        <span>AC/DC Fast</span>
-                      </div>
-                      <div className="spec-item">
-                        <span className="spec-icon">🔋</span>
-                        <span>50-100kWh</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div
-                    className={`vehicle-type-card ${formData.vehicleType === 'motorbike' ? 'selected' : ''}`}
-                    onClick={() => {
-                      setFormData({ ...formData, vehicleType: 'motorbike', vehicleModel: '', vehicleModelId: '' });
-                      setShowVehicleModels(false);
-                    }}
-                  >
-                    <div className="vehicle-type-header">
-                      <div className="vehicle-type-icon">🏍️</div>
-                      <div className="vehicle-type-badge">Tiết kiệm</div>
-                    </div>
-                    <div className="vehicle-type-content">
-                      <h4>Xe máy điện</h4>
-                      <p>Xe 2 bánh, linh hoạt trong phố</p>
-                      <div className="vehicle-examples">
-                        <span>VinFast Klara</span>
-                        <span>Pega Cap A</span>
-                        <span>Yadea Xmen</span>
-                      </div>
-                    </div>
-                    <div className="vehicle-type-specs">
-                      <div className="spec-item">
-                        <span className="spec-icon">🔌</span>
-                        <span>AC Slow</span>
-                      </div>
-                      <div className="spec-item">
-                        <span className="spec-icon">🔋</span>
-                        <span>1-5kWh</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {formData.vehicleType && (
-                <div className="auth-form-group">
-                  <label className="auth-label">
-                    <span className="label-icon">🏷️</span>
-                    <span>Chọn mẫu xe VinFast (tùy chọn)</span>
-                  </label>
-                  
-                  {!showVehicleModels ? (
-                    <div className="vehicle-model-actions">
-                      <button
-                        type="button"
-                        onClick={() => setShowVehicleModels(true)}
-                        className="vehicle-model-btn"
-                      >
-                        <span className="model-icon">🏷️</span>
-                        <span>Chọn mẫu xe VinFast</span>
-                        <span className="arrow-icon">→</span>
-                      </button>
-                      
-                      <div className="or-divider">
-                        <span>hoặc</span>
-                      </div>
-                      
-                      <input
-                        type="text"
-                        value={formData.vehicleModel}
-                        onChange={(e) => setFormData({ ...formData, vehicleModel: e.target.value, vehicleModelId: '' })}
-                        placeholder={formData.vehicleType === 'car' ? 'Nhập tên xe khác (Tesla Model 3, BMW i4...)' : 'Nhập tên xe khác (Pega Cap A, Yadea...)'}
-                        className="auth-input"
-                      />
-                    </div>
-                  ) : (
-                    <div className="vehicle-models-list">
-                      <div className="models-header">
-                        <button
-                          type="button"
-                          onClick={() => setShowVehicleModels(false)}
-                          className="back-to-input-btn"
-                        >
-                          ← Quay lại
-                        </button>
-                        <span>Chọn mẫu xe {formData.vehicleType === 'car' ? 'ô tô' : 'xe máy'} VinFast</span>
-                      </div>
-                      
-                      <div className="models-grid">
-                        {vehicleModels[formData.vehicleType]?.map((model) => (
-                          <div
-                            key={model.id}
-                            className={`model-option ${formData.vehicleModelId === model.id ? 'active' : ''}`}
-                            onClick={() => {
-                              setFormData({ 
-                                ...formData, 
-                                vehicleModel: model.name,
-                                vehicleModelId: model.id
-                              });
-                              setShowVehicleModels(false);
-                            }}
-                          >
-                            <div className="model-image">{model.image}</div>
-                            <div className="model-info">
-                              <strong>{model.name}</strong>
-                              <span className="model-type">{model.type}</span>
-                              <div className="model-specs">
-                                <span className="range">🔋 {model.range}</span>
-                                <span className="price">💰 {model.price}</span>
-                              </div>
-                            </div>
-                            <div className="model-check">
-                              {formData.vehicleModelId === model.id ? '✓' : '+'}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <div className="custom-model-option">
-                        <input
-                          type="text"
-                          value={formData.vehicleModelId ? '' : formData.vehicleModel}
-                          onChange={(e) => setFormData({ ...formData, vehicleModel: e.target.value, vehicleModelId: '' })}
-                          placeholder="Hoặc nhập tên xe khác..."
-                          className="auth-input"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {formData.vehicleModel && (
-                    <div className="selected-vehicle">
-                      <div className="selected-info">
-                        <span className="selected-icon">✅</span>
-                        <span>Đã chọn: <strong>{formData.vehicleModel}</strong></span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               <div className="auth-form-group">
                 <label className="auth-label">

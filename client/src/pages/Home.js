@@ -1,33 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getStationsNearby } from '../utils/mockData';
-import StarRating from '../components/StarRating';
+import customersData from '../data/customers.json';
 
 const Home = () => {
   const { user } = useAuth();
-  const [nearbyStations, setNearbyStations] = useState([]);
+  const [nearbyPharmacies, setNearbyPharmacies] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(false);
-  const [vehicleFilter] = useState('all'); // all, car, motorbike
 
   useEffect(() => {
     if (user) {
-      getCurrentLocationAndStations();
+      getCurrentLocationAndPharmacies();
     } else {
       setLoading(false);
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch when vehicle filter changes
-  useEffect(() => {
-    if (user && userLocation) {
-      fetchNearbyStations(userLocation.lat, userLocation.lng);
-    }
-  }, [vehicleFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const getCurrentLocationAndStations = () => {
+  const getCurrentLocationAndPharmacies = () => {
     setLoading(true);
     
     if (navigator.geolocation) {
@@ -35,7 +26,7 @@ const Home = () => {
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
-          fetchNearbyStations(latitude, longitude);
+          fetchNearbyPharmacies(latitude, longitude);
           setLocationError(false);
         },
         (error) => {
@@ -43,30 +34,34 @@ const Home = () => {
           setLocationError(true);
           // Fallback to TP.HCM center
           setUserLocation({ lat: 10.7769, lng: 106.7009 });
-          fetchNearbyStations(10.7769, 106.7009);
+          fetchNearbyPharmacies(10.7769, 106.7009);
         }
       );
     } else {
       setLocationError(true);
       setUserLocation({ lat: 10.7769, lng: 106.7009 });
-      fetchNearbyStations(10.7769, 106.7009);
+      fetchNearbyPharmacies(10.7769, 106.7009);
     }
   };
 
-  const fetchNearbyStations = async (lat, lng) => {
+  const fetchNearbyPharmacies = async (lat, lng) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    let stations = getStationsNearby(lat, lng, 50000); // 50km radius
+    const allPharmacies = customersData?.customers || [];
     
-    // Filter by vehicle type
-    if (vehicleFilter !== 'all') {
-      stations = stations.filter(station => 
-        station.supportedVehicles && station.supportedVehicles.includes(vehicleFilter)
-      );
+    // Lọc theo Hub phụ trách nếu user là Trình dược viên
+    let filteredPharmacies = allPharmacies;
+    if (user && user.hub) {
+      filteredPharmacies = allPharmacies.filter(pharmacy => pharmacy.hub === user.hub);
     }
     
-    console.log(`Searching from ${lat}, ${lng} - Found ${stations.length} stations (filter: ${vehicleFilter})`);
-    setNearbyStations(stations.slice(0, 5)); // Top 5 closest
+    // Tính khoảng cách và sắp xếp
+    const pharmaciesWithDistance = filteredPharmacies.map(pharmacy => {
+      const distance = calculateDistance(lat, lng, pharmacy.latitude, pharmacy.longitude);
+      return { ...pharmacy, distance };
+    }).sort((a, b) => a.distance - b.distance);
+    
+    setNearbyPharmacies(pharmaciesWithDistance.slice(0, 5)); // Top 5 closest
     setLoading(false);
   };
 
@@ -82,12 +77,9 @@ const Home = () => {
     return R * c;
   };
 
-  const getDistanceText = (station) => {
-    if (!userLocation) return '';
-    const distance = calculateDistance(
-      userLocation.lat, userLocation.lng, 
-      station.latitude, station.longitude
-    );
+  const getDistanceText = (pharmacy) => {
+    if (!userLocation || !pharmacy.distance) return '';
+    const distance = pharmacy.distance;
     
     if (distance < 1000) {
       return `${Math.round(distance)}m`;
@@ -96,9 +88,9 @@ const Home = () => {
     }
   };
 
-  const openDirections = (station) => {
-    console.log('Opening directions to:', station.name);
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}&travelmode=driving`;
+  const openDirections = (pharmacy) => {
+    console.log('Opening directions to:', pharmacy.name);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${pharmacy.latitude},${pharmacy.longitude}&travelmode=driving`;
     window.open(url, '_blank');
   };
 
@@ -294,87 +286,60 @@ const Home = () => {
         </Link>
       </div>
 
-      {/* Nearby Stations */}
+      {/* Nearby Pharmacies - Các nhà thuốc chăm sóc */}
       <div className="nearby-section">
         <div className="section-header">
-          <h2>⚡ Trạm sạc gần nhất</h2>
-          <Link to="/nearby" className="see-all-btn">Xem tất cả</Link>
-        </div>
-
-        {/* Quick Links to Nearby with Filter */}
-        <div className="quick-filter-links">
-          <Link to="/nearby?filter=all" className="quick-link">
-            📍 Tất cả trạm gần
-          </Link>
-          <Link to="/nearby?filter=car" className="quick-link car">
-            🚗 Trạm sạc ô tô
-          </Link>
-          <Link to="/nearby?filter=motorbike" className="quick-link motorbike">
-            🏍️ Trạm sạc xe máy
-          </Link>
+          <h2>🏥 Các nhà thuốc chăm sóc</h2>
+          <Link to="/map" className="see-all-btn">Xem tất cả</Link>
         </div>
 
         {loading ? (
           <div className="loading-stations">
             <div className="loading-spinner"></div>
-            <p>Đang tìm trạm sạc gần bạn...</p>
+            <p>Đang tìm nhà thuốc gần bạn...</p>
           </div>
-        ) : nearbyStations.length > 0 ? (
+        ) : nearbyPharmacies.length > 0 ? (
           <div className="stations-grid">
-            {nearbyStations.map((station, index) => (
-              <div key={station.id} className="station-card-compact" style={{ animationDelay: `${index * 0.1}s` }}>
+            {nearbyPharmacies.map((pharmacy, index) => (
+              <div key={pharmacy.id} className="station-card-compact" style={{ animationDelay: `${index * 0.1}s` }}>
                 <div className="station-main-info">
                   <div className="station-header-compact">
-                    <h3>{station.name}</h3>
+                    <h3>🏥 {pharmacy.name}</h3>
                     <div className="station-badges">
-                      <span className="distance-badge">{getDistanceText(station)}</span>
-                      {station.isVerified && <span className="verified-badge">✅</span>}
+                      <span className="distance-badge">{getDistanceText(pharmacy)}</span>
+                      <span className="verified-badge" style={{ background: 'rgba(26, 92, 162, 0.1)', color: '#1a5ca2' }}>
+                        {pharmacy.code}
+                      </span>
                     </div>
                   </div>
                   
                   <div className="station-details-compact">
                     <div className="detail-item">
-                      <StarRating 
-                        rating={station.rating} 
-                        totalRatings={station.totalRatings}
-                        size="small"
-                      />
+                      <span style={{ fontSize: '14px', color: '#666' }}>📍 {pharmacy.address}</span>
                     </div>
                     
                     <div className="detail-item">
-                      <span className="price-from">Từ {formatPrice(Math.min(...station.pricing.map(p => p.pricePerHour)))}đ/h</span>
+                      <span style={{ fontSize: '14px', color: '#666' }}>📞 {pharmacy.phone}</span>
                     </div>
                     
                     <div className="detail-item">
-                      <div className="charger-types-display">
-                        {getRelevantChargerTypes(station, user.vehicleType).map((charger, idx) => (
-                          <div key={idx} className="charger-type-chip">
-                            <span className="charger-icon">{getChargerIcon(charger.type)}</span>
-                            <span className="charger-name">{getChargerDisplayName(charger.type)}</span>
-                            <span className="charger-price">{formatPrice(charger.pricePerHour)}đ/h</span>
-                          </div>
-                        ))}
-                      </div>
+                      <span style={{ fontSize: '14px', color: '#1a5ca2', fontWeight: '600' }}>
+                        Hub: {pharmacy.hub}
+                      </span>
                     </div>
                   </div>
-
-                  {station.promotions.length > 0 && (
-                    <div className="promotion-tag">
-                      🎁 Giảm {station.promotions[0].discount}%
-                    </div>
-                  )}
                 </div>
 
                 <div className="station-actions-compact">
                   <button 
-                    onClick={() => openDirections(station)}
+                    onClick={() => openDirections(pharmacy)}
                     className="directions-btn"
                   >
                     🧭 Chỉ đường
                   </button>
                   
                   <Link 
-                    to={`/station/${station.id}`}
+                    to={`/station/${pharmacy.id}`}
                     className="details-btn"
                   >
                     Chi tiết
@@ -385,12 +350,9 @@ const Home = () => {
           </div>
         ) : (
           <div className="no-stations">
-            <div className="no-stations-icon">📍</div>
-            <h3>Không tìm thấy trạm sạc gần</h3>
-            <p>Thử mở rộng bán kính tìm kiếm hoặc thêm trạm mới</p>
-            <Link to="/create-station" className="btn-primary-ios">
-              ➕ Thêm trạm sạc
-            </Link>
+            <div className="no-stations-icon">🏥</div>
+            <h3>Không tìm thấy nhà thuốc nào</h3>
+            <p>Bạn chưa có nhà thuốc được phân công trong khu vực này</p>
           </div>
         )}
       </div>
