@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const OrderSummary = () => {
@@ -60,375 +60,472 @@ const OrderSummary = () => {
 
   if (orders.length === 0) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>Không có đơn hàng nào</h2>
-        <button onClick={handleBack} style={{
-          padding: '10px 20px',
-          backgroundColor: '#007AFF',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          marginTop: '20px'
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: '16px',
+          padding: '40px 20px',
+          textAlign: 'center',
+          maxWidth: '400px',
+          width: '100%'
         }}>
-          Quay lại
-        </button>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>📋</div>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', color: '#1a1a2e' }}>
+            Không có đơn hàng nào
+          </h2>
+          <button 
+            onClick={handleBack} 
+            style={{
+              padding: '14px 28px',
+              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              width: '100%'
+            }}
+          >
+            ← Quay lại
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="order-summary-container" style={{ 
-      padding: '20px', 
-      maxWidth: '800px', 
-      margin: '0 auto',
-      backgroundColor: '#fff'
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      paddingBottom: '100px'
     }}>
-      {/* Header với Logo */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginBottom: '30px',
-        borderBottom: '2px solid #eee',
-        paddingBottom: '20px'
+      {/* Mobile Header */}
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        padding: '15px 20px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
       }}>
-        <img 
-          src="/image/logo.png" 
-          alt="Logo" 
-          style={{
-            maxWidth: '150px',
-            height: 'auto',
-            marginBottom: '15px'
-          }}
-        />
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '10px 0' }}>
-          Sapharco Sales
+        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1a5ca2' }}>
+          ←
+        </Link>
+        <h1 style={{ 
+          fontSize: '16px', 
+          fontWeight: 'bold', 
+          margin: 0,
+          color: '#1a5ca2',
+          flex: 1,
+          textAlign: 'center'
+        }}>
+          📋 Tổng Kết Đơn Hàng
         </h1>
-        <p style={{ color: '#666', fontSize: '14px' }}>
-          HÓA ĐƠN BÁN HÀNG
-        </p>
-        <p style={{ color: '#666', fontSize: '12px', marginTop: '5px' }}>
-          Ngày: {new Date().toLocaleDateString('vi-VN')} | 
-          Giờ: {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-        </p>
-        {user && (
-          <p style={{ color: '#666', fontSize: '12px', marginTop: '5px' }}>
-            Trình dược viên: {user.name}
-          </p>
-        )}
+        <div style={{ width: '24px' }}></div>
       </div>
 
-      {/* Danh sách đơn hàng theo khách hàng */}
-      {orders.map((order, orderIndex) => {
-        const customer = order.customer;
-        const items = order.items;
-        const orderTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        return (
-          <div 
-            key={orderIndex}
-            style={{
-              marginBottom: '40px',
-              pageBreakInside: 'avoid',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              padding: '20px',
-              backgroundColor: '#fafafa'
-            }}
-          >
-            {/* Thông tin khách hàng */}
-            <div style={{
-              backgroundColor: '#1a5ca2',
-              color: '#fff',
-              padding: '15px',
-              borderRadius: '8px 8px 0 0',
-              margin: '-20px -20px 20px -20px'
-            }}>
-              <h2 style={{ margin: '0 0 10px 0', fontSize: '20px' }}>
-                🏥 {customer.name}
-                {customer.code && <span style={{ fontSize: '14px', marginLeft: '10px', opacity: 0.9 }}>({customer.code})</span>}
-              </h2>
-              <div style={{ fontSize: '14px', opacity: 0.9 }}>
-                <div style={{ marginBottom: '5px' }}>
-                  📍 {customer.address}
-                </div>
-                <div>
-                  📞 {customer.phone}
-                </div>
-                {customer.owner && (
-                  <div style={{ marginTop: '5px' }}>
-                    👤 Chủ nhà thuốc: {customer.owner}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bảng sản phẩm */}
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              marginBottom: '20px',
-              backgroundColor: '#fff',
-              borderRadius: '8px',
-              overflow: 'hidden'
-            }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f5f5f5' }}>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'left', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    STT
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'left', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Nhóm SP
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'left', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Mã SP
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'left', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Tên sản phẩm
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'center', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Đơn vị
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'right', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Đơn giá
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'center', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Số lượng
-                  </th>
-                  <th style={{ 
-                    padding: '12px', 
-                    textAlign: 'right', 
-                    borderBottom: '2px solid #ddd',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Thành tiền
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, itemIndex) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                      {itemIndex + 1}
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                      {item.productGroup}
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500' }}>
-                      {item.productCode || 'N/A'}
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '14px', fontWeight: '500' }}>
-                      {item.productName}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
-                      {item.unit}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px' }}>
-                      {item.price.toLocaleString('vi-VN')}đ
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px' }}>
-                      {item.quantity}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600' }}>
-                      {(item.price * item.quantity).toLocaleString('vi-VN')}đ
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Tổng tiền đơn hàng */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              marginTop: '20px',
-              paddingTop: '15px',
-              borderTop: '2px solid #1a5ca2'
-            }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '16px', marginBottom: '5px', color: '#666' }}>
-                  Tổng tiền đơn hàng:
-                </div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1a5ca2' }}>
-                  {formatCurrency(orderTotal)}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Tổng kết chung */}
-      <div style={{
-        marginTop: '30px',
-        padding: '20px',
-        backgroundColor: '#f0f8ff',
-        borderRadius: '8px',
-        border: '2px solid #1a5ca2'
+      <div className="order-summary-container" style={{ 
+        padding: '15px',
+        maxWidth: '800px', 
+        margin: '0 auto'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: '16px', color: '#666', marginBottom: '5px' }}>
-              Tổng số đơn hàng: <strong>{totalOrders}</strong>
+        {/* Header với Logo - Mobile Optimized */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginBottom: '20px',
+          background: '#fff',
+          borderRadius: '16px',
+          padding: '20px 15px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <img 
+            src="/image/logo.png" 
+            alt="Logo" 
+            style={{
+              maxWidth: '120px',
+              height: 'auto',
+              marginBottom: '12px'
+            }}
+          />
+          <h1 style={{ 
+            fontSize: '20px', 
+            fontWeight: 'bold', 
+            margin: '8px 0',
+            color: '#1a5ca2'
+          }}>
+            Sapharco Sales
+          </h1>
+          <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>
+            HÓA ĐƠN BÁN HÀNG
+          </p>
+          <div style={{ 
+            fontSize: '11px', 
+            color: '#666',
+            lineHeight: '1.6'
+          }}>
+            <div>📅 {new Date().toLocaleDateString('vi-VN')}</div>
+            <div>🕐 {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+            {user && (
+              <div style={{ marginTop: '5px' }}>
+                👨‍⚕️ {user.name}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Danh sách đơn hàng theo khách hàng */}
+        {orders.map((order, orderIndex) => {
+          const customer = order.customer;
+          const items = order.items;
+          const orderTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+          return (
+            <div 
+              key={orderIndex}
+              style={{
+                marginBottom: '20px',
+                background: '#fff',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}
+            >
+              {/* Thông tin khách hàng - Mobile Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                color: '#fff',
+                padding: '16px'
+              }}>
+                <h2 style={{ 
+                  margin: '0 0 10px 0', 
+                  fontSize: '18px',
+                  fontWeight: 'bold'
+                }}>
+                  🏥 {customer.name}
+                  {customer.code && (
+                    <span style={{ 
+                      fontSize: '12px', 
+                      marginLeft: '8px', 
+                      opacity: 0.9,
+                      display: 'block',
+                      marginTop: '4px'
+                    }}>
+                      ({customer.code})
+                    </span>
+                  )}
+                </h2>
+                <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.6' }}>
+                  <div style={{ marginBottom: '6px' }}>
+                    📍 {customer.address}
+                  </div>
+                  <div style={{ marginBottom: '6px' }}>
+                    📞 {customer.phone}
+                  </div>
+                  {customer.owner && (
+                    <div>
+                      👤 {customer.owner}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sản phẩm - Card Layout cho Mobile */}
+              <div style={{ padding: '15px' }}>
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1a5ca2',
+                  marginBottom: '12px',
+                  paddingBottom: '8px',
+                  borderBottom: '2px solid #e5e7eb'
+                }}>
+                  📦 Danh sách sản phẩm ({items.length} sản phẩm)
+                </div>
+
+                {/* Mobile Card Layout - Thay thế table */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {items.map((item, itemIndex) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        background: '#f9fafb',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        border: '1px solid #e5e7eb'
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '8px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontSize: '13px',
+                            color: '#666',
+                            marginBottom: '4px'
+                          }}>
+                            #{itemIndex + 1} • {item.productGroup}
+                          </div>
+                          <div style={{
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            color: '#1a1a2e',
+                            marginBottom: '4px'
+                          }}>
+                            {item.productName}
+                          </div>
+                          <div style={{
+                            fontSize: '12px',
+                            color: '#1a5ca2',
+                            fontWeight: '600',
+                            marginBottom: '6px'
+                          }}>
+                            🆔 {item.productCode || 'N/A'} | 📦 {item.unit}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: '8px',
+                        borderTop: '1px solid #e5e7eb',
+                        marginTop: '8px'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#666' }}>
+                          <div>Đơn giá: {item.price.toLocaleString('vi-VN')}đ</div>
+                          <div style={{ marginTop: '4px' }}>
+                            Số lượng: <strong style={{ color: '#1a5ca2' }}>{item.quantity}</strong>
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          color: '#1a5ca2',
+                          textAlign: 'right'
+                        }}>
+                          {(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tổng tiền đơn hàng - Mobile */}
+                <div style={{
+                  marginTop: '16px',
+                  padding: '15px',
+                  background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
+                  borderRadius: '12px',
+                  border: '2px solid #1a5ca2'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a2e' }}>
+                      Tổng tiền đơn hàng:
+                    </div>
+                    <div style={{ 
+                      fontSize: '20px', 
+                      fontWeight: 'bold', 
+                      color: '#1a5ca2'
+                    }}>
+                      {formatCurrency(orderTotal)}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: '16px', color: '#666' }}>
-              Tổng số sản phẩm: <strong>{totalItems}</strong>
+          );
+        })}
+
+        {/* Tổng kết chung - Mobile */}
+        <div style={{
+          marginTop: '20px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
+          borderRadius: '16px',
+          border: '2px solid #1a5ca2',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#666', 
+              marginBottom: '8px',
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}>
+              <span>Tổng số đơn hàng:</span>
+              <strong style={{ color: '#1a5ca2' }}>{totalOrders}</strong>
+            </div>
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#666',
+              display: 'flex',
+              justifyContent: 'space-between'
+            }}>
+              <span>Tổng số sản phẩm:</span>
+              <strong style={{ color: '#1a5ca2' }}>{totalItems}</strong>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '18px', color: '#666', marginBottom: '5px' }}>
+          <div style={{
+            paddingTop: '15px',
+            borderTop: '2px solid #1a5ca2',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e' }}>
               Tổng giá trị:
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1a5ca2' }}>
+            <div style={{ 
+              fontSize: '24px', 
+              fontWeight: 'bold', 
+              color: '#1a5ca2'
+            }}>
               {formatCurrency(totalAmount)}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Câu cảm ơn khách hàng */}
-      <div style={{
-        marginTop: '30px',
-        padding: '25px',
-        backgroundColor: '#f0f8ff',
-        borderRadius: '12px',
-        border: '2px solid #3eb4a8',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '24px', marginBottom: '15px' }}>
-          🙏
+        {/* Câu cảm ơn khách hàng - Mobile */}
+        <div style={{
+          marginTop: '20px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, rgba(62, 180, 168, 0.1), rgba(229, 170, 66, 0.1))',
+          borderRadius: '16px',
+          border: '2px solid #3eb4a8',
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>
+            🙏
+          </div>
+          <h3 style={{ 
+            fontSize: '18px', 
+            fontWeight: 'bold', 
+            color: '#1a5ca2',
+            marginBottom: '10px'
+          }}>
+            Cảm ơn Quý Khách Hàng!
+          </h3>
+          <p style={{ 
+            fontSize: '14px', 
+            color: '#666',
+            lineHeight: '1.6',
+            marginBottom: '8px'
+          }}>
+            Chúng tôi chân thành cảm ơn Quý khách đã tin tưởng và sử dụng dịch vụ của Sapharco Sales.
+          </p>
+          <p style={{ 
+            fontSize: '14px', 
+            color: '#666',
+            lineHeight: '1.6'
+          }}>
+            Chúc Quý khách sức khỏe và thành công trong công việc!
+          </p>
         </div>
-        <h3 style={{ 
-          fontSize: '20px', 
-          fontWeight: 'bold', 
-          color: '#1a5ca2',
-          marginBottom: '10px'
-        }}>
-          Cảm ơn Quý Khách Hàng!
-        </h3>
-        <p style={{ 
-          fontSize: '16px', 
-          color: '#666',
-          lineHeight: '1.6',
-          marginBottom: '10px'
-        }}>
-          Chúng tôi chân thành cảm ơn Quý khách đã tin tưởng và sử dụng dịch vụ của Sapharco Sales.
-        </p>
-        <p style={{ 
-          fontSize: '16px', 
-          color: '#666',
+
+        {/* Footer - Mobile */}
+        <div style={{
+          marginTop: '20px',
+          textAlign: 'center',
+          paddingTop: '15px',
+          borderTop: '1px solid rgba(255,255,255,0.3)',
+          color: 'rgba(255,255,255,0.9)',
+          fontSize: '11px',
           lineHeight: '1.6'
         }}>
-          Chúc Quý khách sức khỏe và thành công trong công việc!
-        </p>
+          <p>Cảm ơn quý khách đã sử dụng dịch vụ của Sapharco Sales</p>
+          <p>© 2024 Sapharco Sales - Hệ thống quản lý bán hàng</p>
+        </div>
       </div>
 
-      {/* Footer */}
+      {/* Sticky Action Buttons - Mobile */}
       <div style={{
-        marginTop: '30px',
-        textAlign: 'center',
-        paddingTop: '20px',
-        borderTop: '1px solid #eee',
-        color: '#666',
-        fontSize: '12px'
-      }}>
-        <p>Cảm ơn quý khách đã sử dụng dịch vụ của Sapharco Sales</p>
-        <p>© 2024 Sapharco Sales - Hệ thống quản lý bán hàng</p>
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(10px)',
+        padding: '12px 15px',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
+        zIndex: 100,
+        borderTop: '1px solid #e5e7eb',
         display: 'flex',
-        gap: '15px',
-        marginTop: '30px',
-        justifyContent: 'center'
+        gap: '10px'
       }}>
         <button
           onClick={handlePrint}
           style={{
-            padding: '12px 30px',
-            backgroundColor: '#1a5ca2',
+            flex: 1,
+            padding: '14px',
+            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
             color: '#fff',
             border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
+            borderRadius: '12px',
+            fontSize: '14px',
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            boxShadow: '0 2px 8px rgba(26, 92, 162, 0.3)'
           }}
         >
-          🖨️ In Đơn Hàng
+          🖨️ In
         </button>
         <button
           onClick={handleNewOrder}
           style={{
-            padding: '12px 30px',
-            backgroundColor: '#3eb4a8',
+            flex: 1,
+            padding: '14px',
+            background: 'linear-gradient(135deg, #3eb4a8, #e5aa42)',
             color: '#fff',
             border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
+            borderRadius: '12px',
+            fontSize: '14px',
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            boxShadow: '0 2px 8px rgba(62, 180, 168, 0.3)'
           }}
         >
-          ➕ Tạo Đơn Mới
+          ➕ Đơn Mới
         </button>
         <button
           onClick={handleBack}
           style={{
-            padding: '12px 30px',
-            backgroundColor: '#e5e7eb',
+            flex: 1,
+            padding: '14px',
+            background: '#f3f4f6',
             color: '#1a1a2e',
             border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
+            borderRadius: '12px',
+            fontSize: '14px',
             fontWeight: '600',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            touchAction: 'manipulation'
           }}
         >
-          ← Quay lại
+          ← Về
         </button>
       </div>
 
@@ -446,9 +543,18 @@ const OrderSummary = () => {
             left: 0;
             top: 0;
             width: 100%;
+            background: #fff;
+            padding: 20px;
           }
           button {
             display: none !important;
+          }
+        }
+        
+        /* Desktop: Hiển thị table */
+        @media (min-width: 768px) {
+          .order-summary-container {
+            padding: 30px;
           }
         }
       `}</style>
@@ -457,4 +563,3 @@ const OrderSummary = () => {
 };
 
 export default OrderSummary;
-
