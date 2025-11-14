@@ -32,7 +32,30 @@ const OrderSummary = () => {
 
   // Quay lại
   const handleBack = () => {
-    navigate('/create-order');
+    // Lấy customer từ đơn hàng đầu tiên để truyền lại
+    const firstOrder = orders[0];
+    const customer = firstOrder?.customer;
+    
+    navigate('/create-order', {
+      state: {
+        customer: customer,
+        keepCustomer: true // Flag để giữ customer khi quay lại
+      }
+    });
+  };
+  
+  // Tạo đơn hàng mới cho cùng khách hàng
+  const handleNewOrder = () => {
+    const firstOrder = orders[0];
+    const customer = firstOrder?.customer;
+    
+    navigate('/create-order', {
+      state: {
+        customer: customer,
+        keepCustomer: true,
+        newOrder: true // Flag để tạo đơn mới
+      }
+    });
   };
 
   if (orders.length === 0) {
@@ -378,7 +401,7 @@ const OrderSummary = () => {
           🖨️ In Đơn Hàng
         </button>
         <button
-          onClick={handleBack}
+          onClick={handleNewOrder}
           style={{
             padding: '12px 30px',
             backgroundColor: '#3eb4a8',
@@ -391,6 +414,21 @@ const OrderSummary = () => {
           }}
         >
           ➕ Tạo Đơn Mới
+        </button>
+        <button
+          onClick={handleBack}
+          style={{
+            padding: '12px 30px',
+            backgroundColor: '#e5e7eb',
+            color: '#1a1a2e',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          ← Quay lại
         </button>
       </div>
 

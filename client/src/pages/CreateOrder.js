@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import customersData from '../data/customers.json';
 import productsData from '../data/products.json';
@@ -7,15 +7,20 @@ import productsData from '../data/products.json';
 const CreateOrder = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  // Lấy customer từ state nếu có (khi quay lại từ OrderSummary)
+  const customerFromState = location.state?.customer;
+  const isNewOrder = location.state?.newOrder;
+  
+  const [selectedCustomer, setSelectedCustomer] = useState(customerFromState || null);
   const [selectedProductGroup, setSelectedProductGroup] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [orderItems, setOrderItems] = useState([]);
+  const [orderItems, setOrderItems] = useState(isNewOrder ? [] : []); // Reset nếu là đơn mới
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState(null);
-  const [activeStep, setActiveStep] = useState(1); // 1: Customer, 2: Product, 3: Review
+  const [activeStep, setActiveStep] = useState(customerFromState ? 2 : 1); // Tự động chuyển sang bước 2 nếu đã có customer
 
   const customers = useMemo(() => customersData?.customers || [], []);
   const productGroups = useMemo(() => productsData?.productGroups || [], []);
@@ -133,14 +138,20 @@ const CreateOrder = () => {
       setOrderItems([...orderItems, newItem]);
     }
 
-    // Reset form
+    // Reset chỉ sản phẩm và số lượng, giữ lại customer và productGroup để thêm tiếp
     setSelectedProduct('');
     setQuantity(1);
     
-    // Chuyển sang bước review nếu có sản phẩm
-    if (orderItems.length === 0) {
-      setActiveStep(3);
-    }
+    // Chuyển sang bước review để xem đơn hàng
+    setActiveStep(3);
+    
+    // Hiển thị thông báo thành công
+    const message = existingItem 
+      ? `Đã cập nhật số lượng ${product.name}`
+      : `Đã thêm ${product.name} vào đơn hàng`;
+    
+    // Có thể thêm toast notification ở đây
+    console.log(message);
   };
 
   // Xóa sản phẩm khỏi đơn hàng
@@ -739,6 +750,32 @@ const CreateOrder = () => {
                 >
                   ➕ Thêm vào đơn hàng
                 </button>
+                
+                {/* Nút thêm sản phẩm khác - hiển thị sau khi đã có sản phẩm */}
+                {orderItems.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setActiveStep(2);
+                      setSelectedProduct('');
+                      setQuantity(1);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      background: 'linear-gradient(135deg, #e5aa42, #f5c869)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      touchAction: 'manipulation',
+                      marginTop: '10px'
+                    }}
+                  >
+                    ➕ Thêm sản phẩm khác
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -766,19 +803,39 @@ const CreateOrder = () => {
               }}>
                 📋 Đơn Hàng ({orderItems.length} sản phẩm)
               </h2>
-              <button
-                onClick={() => setActiveStep(2)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '14px',
-                  color: '#1a5ca2',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                Thêm sản phẩm
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => {
+                    setActiveStep(2);
+                    setSelectedProduct('');
+                    setQuantity(1);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'linear-gradient(135deg, #e5aa42, #f5c869)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ➕ Thêm SP
+                </button>
+                {selectedCustomer && (
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'rgba(26, 92, 162, 0.1)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#1a5ca2',
+                    fontWeight: '600'
+                  }}>
+                    🏥 {selectedCustomer.name}
+                  </div>
+                )}
+              </div>
             </div>
             
             <div style={{ marginBottom: '20px' }}>
