@@ -66,6 +66,15 @@ const AdminMap = () => {
   const [selectedHub, setSelectedHub] = useState('all');
   const [mapCenter, setMapCenter] = useState([10.7769, 106.7009]);
   const [mapZoom, setMapZoom] = useState(11);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadCustomers();
@@ -91,17 +100,17 @@ const AdminMap = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '0' : '0' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px'
+        marginBottom: isMobile ? '16px' : '24px'
       }}>
         <div>
           <h1 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '600',
             color: '#1a1a2e',
             marginBottom: '8px'
@@ -109,7 +118,7 @@ const AdminMap = () => {
             Bản đồ định vị
           </h1>
           <p style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             color: '#666'
           }}>
             {filteredCustomers.length} nhà thuốc • {hubs.length} Hub
@@ -120,12 +129,12 @@ const AdminMap = () => {
       {/* Hub Filter */}
       <div style={{
         background: '#fff',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '24px',
+        borderRadius: isMobile ? '10px' : '12px',
+        padding: isMobile ? '16px' : '20px',
+        marginBottom: isMobile ? '16px' : '24px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         display: 'flex',
-        gap: '12px',
+        gap: isMobile ? '8px' : '12px',
         flexWrap: 'wrap'
       }}>
         <button
@@ -135,14 +144,14 @@ const AdminMap = () => {
             setMapZoom(11);
           }}
           style={{
-            padding: '10px 20px',
+            padding: isMobile ? '8px 14px' : '10px 20px',
             background: selectedHub === 'all' 
               ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)' 
               : '#f3f4f6',
             border: 'none',
-            borderRadius: '8px',
+            borderRadius: isMobile ? '6px' : '8px',
             color: selectedHub === 'all' ? '#fff' : '#666',
-            fontSize: '14px',
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.2s'
@@ -155,20 +164,20 @@ const AdminMap = () => {
             key={hub.id}
             onClick={() => handleHubClick(hub)}
             style={{
-              padding: '10px 20px',
+              padding: isMobile ? '8px 14px' : '10px 20px',
               background: selectedHub === hub.id 
                 ? '#e5aa42' 
                 : '#fff',
               border: `2px solid ${selectedHub === hub.id ? '#e5aa42' : '#e5e7eb'}`,
-              borderRadius: '8px',
+              borderRadius: isMobile ? '6px' : '8px',
               color: selectedHub === hub.id ? '#fff' : '#1a1a2e',
-              fontSize: '14px',
+              fontSize: isMobile ? '12px' : '14px',
               fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: isMobile ? '6px' : '8px'
             }}
           >
             <span>🏢</span>
@@ -180,10 +189,10 @@ const AdminMap = () => {
       {/* Map */}
       <div style={{
         background: '#fff',
-        borderRadius: '12px',
+        borderRadius: isMobile ? '10px' : '12px',
         overflow: 'hidden',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        height: '600px',
+        height: isMobile ? '400px' : '600px',
         position: 'relative'
       }}>
         <MapContainer
@@ -292,18 +301,18 @@ const AdminMap = () => {
         {/* Legend */}
         <div style={{
           position: 'absolute',
-          bottom: '20px',
-          right: '20px',
+          bottom: isMobile ? '10px' : '20px',
+          right: isMobile ? '10px' : '20px',
           background: 'rgba(255,255,255,0.95)',
-          padding: '16px',
-          borderRadius: '12px',
+          padding: isMobile ? '12px' : '16px',
+          borderRadius: isMobile ? '8px' : '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
           zIndex: 1000
         }}>
           <div style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '12px' : '14px',
             fontWeight: '600',
-            marginBottom: '12px',
+            marginBottom: isMobile ? '8px' : '12px',
             color: '#1a1a2e'
           }}>
             Chú thích
@@ -360,9 +369,9 @@ const AdminMap = () => {
       {/* Stats */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '16px',
-        marginTop: '24px'
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: isMobile ? '12px' : '16px',
+        marginTop: isMobile ? '16px' : '24px'
       }}>
         {hubs.map(hub => {
           const hubCustomers = customers.filter(c => c.hub === hub.name);
@@ -371,17 +380,17 @@ const AdminMap = () => {
               key={hub.id}
               style={{
                 background: '#fff',
-                borderRadius: '12px',
-                padding: '20px',
+                borderRadius: isMobile ? '10px' : '12px',
+                padding: isMobile ? '16px' : '20px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 border: '2px solid #e5aa42'
               }}
             >
               <div style={{
-                fontSize: '16px',
+                fontSize: isMobile ? '14px' : '16px',
                 fontWeight: '600',
                 color: '#1a1a2e',
-                marginBottom: '12px',
+                marginBottom: isMobile ? '10px' : '12px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -390,7 +399,7 @@ const AdminMap = () => {
                 <span>{hub.name}</span>
               </div>
               <div style={{
-                fontSize: '32px',
+                fontSize: isMobile ? '24px' : '32px',
                 fontWeight: 'bold',
                 color: '#e5aa42',
                 marginBottom: '4px'
@@ -398,7 +407,7 @@ const AdminMap = () => {
                 {hubCustomers.length}
               </div>
               <div style={{
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
                 color: '#666'
               }}>
                 Nhà thuốc

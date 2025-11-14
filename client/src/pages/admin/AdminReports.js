@@ -22,6 +22,15 @@ const AdminReports = () => {
     byHub: []
   });
   const [performanceData, setPerformanceData] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadReportData();
@@ -231,19 +240,19 @@ const AdminReports = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '0' : '0' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px',
+        marginBottom: isMobile ? '16px' : '24px',
         flexWrap: 'wrap',
-        gap: '16px'
+        gap: isMobile ? '12px' : '16px'
       }}>
         <div>
           <h1 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '600',
             color: '#1a1a2e',
             marginBottom: '8px'
@@ -251,7 +260,7 @@ const AdminReports = () => {
             Báo cáo & Thống kê
           </h1>
           <p style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             color: '#666'
           }}>
             Phân tích hoạt động kinh doanh và bao phủ thị trường
@@ -261,19 +270,23 @@ const AdminReports = () => {
         {/* Filters */}
         <div style={{
           display: 'flex',
-          gap: '12px',
-          flexWrap: 'wrap'
+          gap: isMobile ? '8px' : '12px',
+          flexWrap: 'wrap',
+          width: isMobile ? '100%' : 'auto'
         }}>
           <select
             value={selectedHub}
             onChange={(e) => setSelectedHub(e.target.value)}
             style={{
-              padding: '10px 16px',
+              padding: isMobile ? '8px 12px' : '10px 16px',
               border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
+              borderRadius: isMobile ? '6px' : '8px',
+              fontSize: isMobile ? '13px' : '14px',
               cursor: 'pointer',
-              background: '#fff'
+              background: '#fff',
+              flex: isMobile ? '1 1 100%' : 'none',
+              minWidth: isMobile ? '100%' : '150px',
+              boxSizing: 'border-box'
             }}
           >
             <option value="all">Tất cả Hub</option>
@@ -286,12 +299,15 @@ const AdminReports = () => {
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
             style={{
-              padding: '10px 16px',
+              padding: isMobile ? '8px 12px' : '10px 16px',
               border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
+              borderRadius: isMobile ? '6px' : '8px',
+              fontSize: isMobile ? '13px' : '14px',
               cursor: 'pointer',
-              background: '#fff'
+              background: '#fff',
+              flex: isMobile ? '1 1 100%' : 'none',
+              minWidth: isMobile ? '100%' : '150px',
+              boxSizing: 'border-box'
             }}
           >
             <option value="week">7 ngày qua</option>
@@ -304,9 +320,9 @@ const AdminReports = () => {
       {/* Key Metrics */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '20px',
-        marginBottom: '32px'
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: isMobile ? '12px' : '20px',
+        marginBottom: isMobile ? '24px' : '32px'
       }}>
         {[
           {
@@ -356,8 +372,8 @@ const AdminReports = () => {
             key={index}
             style={{
               background: '#fff',
-              borderRadius: '16px',
-              padding: '24px',
+              borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '16px' : '24px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               border: `2px solid ${metric.color}20`
             }}
@@ -366,11 +382,11 @@ const AdminReports = () => {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'start',
-              marginBottom: '16px'
+              marginBottom: isMobile ? '12px' : '16px'
             }}>
               <div style={{
-                width: '48px',
-                height: '48px',
+                width: isMobile ? '40px' : '48px',
+                height: isMobile ? '40px' : '48px',
                 borderRadius: '12px',
                 background: `${metric.color}15`,
                 display: 'flex',
@@ -392,7 +408,7 @@ const AdminReports = () => {
               </span>
             </div>
             <div style={{
-              fontSize: '24px',
+              fontSize: isMobile ? '20px' : '24px',
               fontWeight: 'bold',
               color: '#1a1a2e',
               marginBottom: '8px'
@@ -400,7 +416,7 @@ const AdminReports = () => {
               {metric.value}
             </div>
             <div style={{
-              fontSize: '13px',
+              fontSize: isMobile ? '12px' : '13px',
               color: '#666'
             }}>
               {metric.label}
@@ -412,24 +428,24 @@ const AdminReports = () => {
       {/* Business Activity Chart */}
       <div style={{
         background: '#fff',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '32px',
+        borderRadius: isMobile ? '12px' : '16px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '24px' : '32px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{
-          fontSize: '20px',
+          fontSize: isMobile ? '18px' : '20px',
           fontWeight: '600',
           color: '#1a1a2e',
-          marginBottom: '24px'
+          marginBottom: isMobile ? '16px' : '24px'
         }}>
           📈 Hoạt động kinh doanh
         </h2>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-          gap: '12px',
-          maxHeight: '300px',
+          gridTemplateColumns: isMobile ? 'repeat(auto-fit, minmax(60px, 1fr))' : 'repeat(auto-fit, minmax(100px, 1fr))',
+          gap: isMobile ? '8px' : '12px',
+          maxHeight: isMobile ? '250px' : '300px',
           overflowY: 'auto'
         }}>
           {businessActivity.map((item, index) => {
@@ -438,15 +454,15 @@ const AdminReports = () => {
             return (
               <div key={index} style={{ textAlign: 'center' }}>
                 <div style={{
-                  height: '200px',
+                  height: isMobile ? '150px' : '200px',
                   display: 'flex',
                   alignItems: 'flex-end',
                   justifyContent: 'center',
-                  marginBottom: '8px'
+                  marginBottom: isMobile ? '6px' : '8px'
                 }}>
                   <div style={{
                     width: '100%',
-                    maxWidth: '40px',
+                    maxWidth: isMobile ? '30px' : '40px',
                     height: `${height}px`,
                     background: 'linear-gradient(180deg, #1a5ca2, #3eb4a8)',
                     borderRadius: '6px 6px 0 0',
@@ -454,7 +470,7 @@ const AdminReports = () => {
                   }}></div>
                 </div>
                 <div style={{
-                  fontSize: '11px',
+                  fontSize: isMobile ? '10px' : '11px',
                   color: '#666',
                   marginBottom: '4px'
                 }}>
@@ -475,16 +491,16 @@ const AdminReports = () => {
       {/* Coverage by Product */}
       <div style={{
         background: '#fff',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '32px',
+        borderRadius: isMobile ? '12px' : '16px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '24px' : '32px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{
-          fontSize: '20px',
+          fontSize: isMobile ? '18px' : '20px',
           fontWeight: '600',
           color: '#1a1a2e',
-          marginBottom: '24px'
+          marginBottom: isMobile ? '16px' : '24px'
         }}>
           💊 Bao phủ theo sản phẩm
         </h2>
@@ -519,9 +535,9 @@ const AdminReports = () => {
       {/* Coverage by Category & Customer Type */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-        gap: '24px',
-        marginBottom: '32px'
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))',
+        gap: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '24px' : '32px'
       }}>
         {/* By Category */}
         <div style={{
@@ -637,9 +653,9 @@ const AdminReports = () => {
       {/* Coverage by Hub */}
       <div style={{
         background: '#fff',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '32px',
+        borderRadius: isMobile ? '12px' : '16px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '24px' : '32px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{
@@ -652,8 +668,8 @@ const AdminReports = () => {
         </h2>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '20px'
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: isMobile ? '12px' : '20px'
         }}>
           {coverageData.byHub?.map((hub, index) => (
             <div key={index} style={{

@@ -11,6 +11,15 @@ const AdminOrders = () => {
   const [filterHub, setFilterHub] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -153,19 +162,19 @@ const AdminOrders = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '0' : '0' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px',
+        marginBottom: isMobile ? '16px' : '24px',
         flexWrap: 'wrap',
         gap: '16px'
       }}>
         <div>
           <h1 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '600',
             color: '#1a1a2e',
             marginBottom: '8px'
@@ -173,7 +182,7 @@ const AdminOrders = () => {
             Quản lý đơn hàng
           </h1>
           <p style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             color: '#666'
           }}>
             Tổng số: {filteredOrders.length} đơn hàng
@@ -184,9 +193,9 @@ const AdminOrders = () => {
       {/* Filters */}
       <div style={{
         background: '#fff',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '24px',
+        borderRadius: isMobile ? '10px' : '12px',
+        padding: isMobile ? '16px' : '20px',
+        marginBottom: isMobile ? '16px' : '24px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         display: 'flex',
         gap: '16px',

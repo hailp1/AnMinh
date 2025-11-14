@@ -11,7 +11,16 @@ const AdminDashboard = () => {
     activeReps: 0
   });
   const [recentOrders, setRecentOrders] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -77,50 +86,54 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '0' : '0' }}>
       {/* Stats Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '24px',
-        marginBottom: '32px'
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '24px' : '32px'
       }}>
         {statCards.map((stat, index) => (
           <div
             key={index}
             style={{
               background: '#fff',
-              borderRadius: '16px',
-              padding: '24px',
+              borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '16px' : '24px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               border: `1px solid ${stat.color}20`,
               transition: 'transform 0.2s',
               cursor: 'pointer'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              }
             }}
           >
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '16px'
+              marginBottom: isMobile ? '12px' : '16px'
             }}>
               <div style={{
-                width: '56px',
-                height: '56px',
+                width: isMobile ? '48px' : '56px',
+                height: isMobile ? '48px' : '56px',
                 borderRadius: '12px',
                 background: `${stat.color}15`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '24px'
+                fontSize: isMobile ? '20px' : '24px'
               }}>
                 {stat.icon}
               </div>
@@ -128,7 +141,7 @@ const AdminDashboard = () => {
                 padding: '4px 12px',
                 background: '#10b98115',
                 borderRadius: '8px',
-                fontSize: '12px',
+                fontSize: isMobile ? '11px' : '12px',
                 color: '#10b981',
                 fontWeight: '600'
               }}>
@@ -136,7 +149,7 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div style={{
-              fontSize: '32px',
+              fontSize: isMobile ? '24px' : '32px',
               fontWeight: 'bold',
               color: '#1a1a2e',
               marginBottom: '8px'
@@ -144,7 +157,7 @@ const AdminDashboard = () => {
               {stat.value}
             </div>
             <div style={{
-              fontSize: '14px',
+              fontSize: isMobile ? '13px' : '14px',
               color: '#666'
             }}>
               {stat.title}
@@ -156,23 +169,23 @@ const AdminDashboard = () => {
       {/* Quick Actions */}
       <div style={{
         background: '#fff',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '32px',
+        borderRadius: isMobile ? '12px' : '16px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '24px' : '32px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
         <h2 style={{
-          fontSize: '20px',
+          fontSize: isMobile ? '18px' : '20px',
           fontWeight: '600',
           color: '#1a1a2e',
-          marginBottom: '20px'
+          marginBottom: isMobile ? '16px' : '20px'
         }}>
           Thao tác nhanh
         </h2>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '16px'
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: isMobile ? '12px' : '16px'
         }}>
           {[
             { label: 'Thêm khách hàng', icon: '➕', path: '/admin/customers?action=add' },
@@ -182,29 +195,34 @@ const AdminDashboard = () => {
           ].map((action, index) => (
             <button
               key={index}
-              onClick={() => navigate(action.path)}
-              style={{
-                padding: '16px',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = 'none';
-              }}
+                  onClick={() => navigate(action.path)}
+                  style={{
+                    padding: isMobile ? '14px' : '16px',
+                    background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                    border: 'none',
+                    borderRadius: isMobile ? '10px' : '12px',
+                    color: '#fff',
+                    fontSize: isMobile ? '13px' : '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isMobile ? '10px' : '12px',
+                    transition: 'all 0.2s',
+                    minHeight: isMobile ? '48px' : 'auto'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isMobile) {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isMobile) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }}
             >
               <span style={{ fontSize: '20px' }}>{action.icon}</span>
               <span>{action.label}</span>
@@ -216,21 +234,21 @@ const AdminDashboard = () => {
       {/* Recent Orders & Activity */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-        gap: '24px'
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))',
+        gap: isMobile ? '16px' : '24px'
       }}>
         {/* Recent Orders */}
         <div style={{
           background: '#fff',
-          borderRadius: '16px',
-          padding: '24px',
+          borderRadius: isMobile ? '12px' : '16px',
+          padding: isMobile ? '16px' : '24px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           <h2 style={{
-            fontSize: '20px',
+            fontSize: isMobile ? '18px' : '20px',
             fontWeight: '600',
             color: '#1a1a2e',
-            marginBottom: '20px'
+            marginBottom: isMobile ? '16px' : '20px'
           }}>
             Đơn hàng gần đây
           </h2>

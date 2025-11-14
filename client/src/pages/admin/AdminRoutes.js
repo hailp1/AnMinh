@@ -16,6 +16,15 @@ const AdminRoutes = () => {
   });
   const [customers, setCustomers] = useState([]);
   const [reps, setReps] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -111,17 +120,19 @@ const AdminRoutes = () => {
   };
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '0' : '0' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px'
+        marginBottom: isMobile ? '16px' : '24px',
+        flexWrap: 'wrap',
+        gap: '12px'
       }}>
         <div>
           <h1 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '600',
             color: '#1a1a2e',
             marginBottom: '8px'
@@ -129,7 +140,7 @@ const AdminRoutes = () => {
             Quản lý lộ trình
           </h1>
           <p style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             color: '#666'
           }}>
             Tổng số: {routes.length} lộ trình
@@ -171,8 +182,8 @@ const AdminRoutes = () => {
               key={route.id}
               style={{
                 background: '#fff',
-                borderRadius: '16px',
-                padding: '24px',
+                borderRadius: isMobile ? '12px' : '16px',
+                padding: isMobile ? '16px' : '24px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 border: `2px solid ${route.status === 'active' ? '#10b981' : '#e5e7eb'}`
               }}
@@ -181,11 +192,11 @@ const AdminRoutes = () => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'start',
-                marginBottom: '16px'
+                marginBottom: isMobile ? '12px' : '16px'
               }}>
                 <div>
                   <h3 style={{
-                    fontSize: '18px',
+                    fontSize: isMobile ? '16px' : '18px',
                     fontWeight: '600',
                     color: '#1a1a2e',
                     marginBottom: '8px'

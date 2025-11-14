@@ -9,6 +9,15 @@ const AdminCustomers = () => {
   const [filterHub, setFilterHub] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -128,17 +137,19 @@ const AdminCustomers = () => {
   const hubs = ['Trung tâm', 'Củ Chi', 'Đồng Nai'];
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '0' : '0' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '24px'
+        marginBottom: isMobile ? '16px' : '24px',
+        flexWrap: 'wrap',
+        gap: '12px'
       }}>
         <div>
           <h1 style={{
-            fontSize: '24px',
+            fontSize: isMobile ? '20px' : '24px',
             fontWeight: '600',
             color: '#1a1a2e',
             marginBottom: '8px'
@@ -146,7 +157,7 @@ const AdminCustomers = () => {
             Quản lý khách hàng
           </h1>
           <p style={{
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             color: '#666'
           }}>
             Tổng số: {filteredCustomers.length} khách hàng
@@ -155,17 +166,18 @@ const AdminCustomers = () => {
         <button
           onClick={handleAdd}
           style={{
-            padding: '12px 24px',
+            padding: isMobile ? '10px 16px' : '12px 24px',
             background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
             border: 'none',
-            borderRadius: '12px',
+            borderRadius: isMobile ? '10px' : '12px',
             color: '#fff',
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             fontWeight: '600',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            whiteSpace: 'nowrap'
           }}
         >
           <span>➕</span>
@@ -176,37 +188,41 @@ const AdminCustomers = () => {
       {/* Filters */}
       <div style={{
         background: '#fff',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '24px',
+        borderRadius: isMobile ? '10px' : '12px',
+        padding: isMobile ? '16px' : '20px',
+        marginBottom: isMobile ? '16px' : '24px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         display: 'flex',
-        gap: '16px',
+        gap: isMobile ? '12px' : '16px',
         flexWrap: 'wrap'
       }}>
         <input
           type="text"
-          placeholder="🔍 Tìm kiếm theo tên, mã, SĐT, địa chỉ..."
+          placeholder="🔍 Tìm kiếm..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            flex: 1,
-            minWidth: '300px',
-            padding: '12px 16px',
+            flex: isMobile ? '1 1 100%' : '1',
+            minWidth: isMobile ? '100%' : '300px',
+            padding: isMobile ? '10px 14px' : '12px 16px',
             border: '2px solid #e5e7eb',
-            borderRadius: '10px',
-            fontSize: '14px'
+            borderRadius: isMobile ? '8px' : '10px',
+            fontSize: isMobile ? '13px' : '14px',
+            boxSizing: 'border-box'
           }}
         />
         <select
           value={filterHub}
           onChange={(e) => setFilterHub(e.target.value)}
           style={{
-            padding: '12px 16px',
+            padding: isMobile ? '10px 14px' : '12px 16px',
             border: '2px solid #e5e7eb',
-            borderRadius: '10px',
-            fontSize: '14px',
-            cursor: 'pointer'
+            borderRadius: isMobile ? '8px' : '10px',
+            fontSize: isMobile ? '13px' : '14px',
+            cursor: 'pointer',
+            flex: isMobile ? '1 1 100%' : 'none',
+            minWidth: isMobile ? '100%' : '150px',
+            boxSizing: 'border-box'
           }}
         >
           <option value="all">Tất cả Hub</option>
@@ -216,75 +232,70 @@ const AdminCustomers = () => {
         </select>
       </div>
 
-      {/* Table */}
-      <div style={{
-        background: '#fff',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
+      {/* Mobile Card View */}
+      {isMobile ? (
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '80px 120px 1fr 200px 150px 120px 120px',
-          gap: '16px',
-          padding: '16px 20px',
-          background: '#f9fafb',
-          borderBottom: '2px solid #e5e7eb',
-          fontWeight: '600',
-          fontSize: '14px',
-          color: '#1a1a2e'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
         }}>
-          <div>STT</div>
-          <div>Mã</div>
-          <div>Tên nhà thuốc</div>
-          <div>Địa chỉ</div>
-          <div>Chủ sở hữu</div>
-          <div>Hub</div>
-          <div>Thao tác</div>
-        </div>
-        <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
           {filteredCustomers.map((customer, index) => (
             <div
               key={customer.id}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '80px 120px 1fr 200px 150px 120px 120px',
-                gap: '16px',
-                padding: '16px 20px',
-                borderBottom: '1px solid #e5e7eb',
-                alignItems: 'center',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f9fafb';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#fff';
+                background: '#fff',
+                borderRadius: '12px',
+                padding: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                border: '1px solid #e5e7eb'
               }}
             >
-              <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a5ca2' }}>
-                {customer.code}
-              </div>
-              <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
-                {customer.name}
-              </div>
-              <div style={{ fontSize: '13px', color: '#666' }}>
-                {customer.address.length > 30 ? customer.address.substring(0, 30) + '...' : customer.address}
-              </div>
-              <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
-                {customer.owner}
-              </div>
-              <div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'start',
+                marginBottom: '12px'
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1a5ca2',
+                    marginBottom: '4px'
+                  }}>
+                    {customer.code}
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1a1a2e',
+                    marginBottom: '8px'
+                  }}>
+                    {customer.name}
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: '#666',
+                    marginBottom: '4px'
+                  }}>
+                    📍 {customer.address}
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: '#666',
+                    marginBottom: '4px'
+                  }}>
+                    👤 {customer.owner}
+                  </div>
+                </div>
                 <span style={{
-                  padding: '4px 12px',
-                  background: customer.hub === 'Củ Chi' ? '#e5aa4215' : 
-                             customer.hub === 'Đồng Nai' ? '#e5aa4215' : '#1a5ca215',
-                  color: customer.hub === 'Củ Chi' ? '#e5aa42' : 
-                         customer.hub === 'Đồng Nai' ? '#e5aa42' : '#1a5ca2',
+                  padding: '4px 10px',
+                  background: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#e5aa4215' : '#1a5ca215',
+                  color: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#e5aa42' : '#1a5ca2',
                   borderRadius: '6px',
                   fontSize: '12px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap'
                 }}>
                   {customer.hub}
                 </span>
@@ -296,36 +307,151 @@ const AdminCustomers = () => {
                 <button
                   onClick={() => handleEdit(customer)}
                   style={{
-                    padding: '6px 12px',
+                    flex: 1,
+                    padding: '10px',
                     background: '#3eb4a815',
                     border: '1px solid #3eb4a8',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     color: '#3eb4a8',
-                    fontSize: '12px',
+                    fontSize: '13px',
+                    fontWeight: '600',
                     cursor: 'pointer'
                   }}
                 >
-                  ✏️
+                  ✏️ Sửa
                 </button>
                 <button
                   onClick={() => handleDelete(customer.id)}
                   style={{
-                    padding: '6px 12px',
+                    flex: 1,
+                    padding: '10px',
                     background: '#fee2e2',
                     border: '1px solid #fecaca',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     color: '#dc2626',
-                    fontSize: '12px',
+                    fontSize: '13px',
+                    fontWeight: '600',
                     cursor: 'pointer'
                   }}
                 >
-                  🗑️
+                  🗑️ Xóa
                 </button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      ) : (
+        /* Desktop Table View */
+        <div style={{
+          background: '#fff',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '80px 120px 1fr 200px 150px 120px 120px',
+            gap: '16px',
+            padding: '16px 20px',
+            background: '#f9fafb',
+            borderBottom: '2px solid #e5e7eb',
+            fontWeight: '600',
+            fontSize: '14px',
+            color: '#1a1a2e'
+          }}>
+            <div>STT</div>
+            <div>Mã</div>
+            <div>Tên nhà thuốc</div>
+            <div>Địa chỉ</div>
+            <div>Chủ sở hữu</div>
+            <div>Hub</div>
+            <div>Thao tác</div>
+          </div>
+          <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            {filteredCustomers.map((customer, index) => (
+              <div
+                key={customer.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '80px 120px 1fr 200px 150px 120px 120px',
+                  gap: '16px',
+                  padding: '16px 20px',
+                  borderBottom: '1px solid #e5e7eb',
+                  alignItems: 'center',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f9fafb';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#fff';
+                }}
+              >
+                <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a5ca2' }}>
+                  {customer.code}
+                </div>
+                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
+                  {customer.name}
+                </div>
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  {customer.address.length > 30 ? customer.address.substring(0, 30) + '...' : customer.address}
+                </div>
+                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
+                  {customer.owner}
+                </div>
+                <div>
+                  <span style={{
+                    padding: '4px 12px',
+                    background: customer.hub === 'Củ Chi' ? '#e5aa4215' : 
+                               customer.hub === 'Đồng Nai' ? '#e5aa4215' : '#1a5ca215',
+                    color: customer.hub === 'Củ Chi' ? '#e5aa42' : 
+                           customer.hub === 'Đồng Nai' ? '#e5aa42' : '#1a5ca2',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {customer.hub}
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: '8px'
+                }}>
+                  <button
+                    onClick={() => handleEdit(customer)}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#3eb4a815',
+                      border: '1px solid #3eb4a8',
+                      borderRadius: '6px',
+                      color: '#3eb4a8',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDelete(customer.id)}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#fee2e2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '6px',
+                      color: '#dc2626',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -346,12 +472,13 @@ const AdminCustomers = () => {
           <div
             style={{
               background: '#fff',
-              borderRadius: '16px',
-              padding: '32px',
+              borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '20px' : '32px',
               width: '90%',
               maxWidth: '600px',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              boxSizing: 'border-box'
             }}
             onClick={(e) => e.stopPropagation()}
           >
