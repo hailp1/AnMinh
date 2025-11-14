@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  points    Int      @default(0)
+  phone     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  ownedStations ChargingStation[]
+  reviews       Review[]
+
+  @@map("users")
+}
+
+model ChargingStation {
+  id            String   @id @default(cuid())
+  name          String
+  address       String
+  latitude      Float
+  longitude     Float
+  ownerId       String
+  rating        Float    @default(0)
+  totalRatings  Int      @default(0)
+  chargerTypes  String[]
+  amenities     String[]
+  images        String[]
+  isVerified    Boolean  @default(false)
+  status        StationStatus @default(ACTIVE)
+  createdAt     DateTime @default(now())
+
+  // JSON fields
+  pricing         Json?
+  operatingHours  Json?
+  promotions      Json?
+
+  // Relations
+  owner    User     @relation(fields: [ownerId], references: [id])
+  reviews  Review[]
+
+  @@map("charging_stations")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  stationId String
+  rating    Int
+  comment   String?
+  images    String[]
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User            @relation(fields: [userId], references: [id])
+  station ChargingStation @relation(fields: [stationId], references: [id])
+
+  @@map("reviews")
+}
+
+enum Role {
+  USER
+  STATION_OWNER
+  ADMIN
+}
+
+enum StationStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}

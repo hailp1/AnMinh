@@ -1,0 +1,88 @@
+{
+  "chargerTypes": [
+    {
+      "id": "type_a",
+      "name": "Type A (AC)",
+      "icon": "🔌",
+      "description": "Sạc chậm AC",
+      "power": "3-7kW",
+      "defaultPrice": 3000,
+      "priceRange": {
+        "min": 2000,
+        "max": 5000
+      },
+      "vehicleTypes": ["car", "motorbike"],
+      "chargingTime": "6-8 giờ"
+    },
+    {
+      "id": "type_b",
+      "name": "Type B (AC)",
+      "icon": "⚡",
+      "description": "Sạc nhanh AC",
+      "power": "7-22kW",
+      "defaultPrice": 5000,
+      "priceRange": {
+        "min": 4000,
+        "max": 8000
+      },
+      "vehicleTypes": ["car"],
+      "chargingTime": "2-4 giờ"
+    },
+    {
+      "id": "type_c",
+      "name": "Type C (DC)",
+      "icon": "🚀",
+      "description": "Sạc siêu nhanh DC",
+      "power": "22-50kW",
+      "defaultPrice": 8000,
+      "priceRange": {
+        "min": 6000,
+        "max": 12000
+      },
+      "vehicleTypes": ["car"],
+      "chargingTime": "30-60 phút"
+    },
+    {
+      "id": "fast_charge",
+      "name": "Fast Charge",
+      "icon": "💨",
+      "description": "DC Fast Charging",
+      "power": "50-150kW",
+      "defaultPrice": 12000,
+      "priceRange": {
+        "min": 10000,
+        "max": 18000
+      },
+      "vehicleTypes": ["car"],
+      "chargingTime": "15-30 phút"
+    },
+    {
+      "id": "super_fast",
+      "name": "Super Fast",
+      "icon": "⚡⚡",
+      "description": "Ultra Fast Charging",
+      "power": "150kW+",
+      "defaultPrice": 18000,
+      "priceRange": {
+        "min": 15000,
+        "max": 25000
+      },
+      "vehicleTypes": ["car"],
+      "chargingTime": "10-20 phút"
+    },
+    {
+      "id": "motorbike_ac",
+      "name": "Xe máy AC",
+      "icon": "🏍️",
+      "description": "Sạc AC cho xe máy điện",
+      "power": "1-3kW",
+      "defaultPrice": 2000,
+      "priceRange": {
+        "min": 1500,
+        "max": 3500
+      },
+      "vehicleTypes": ["motorbike"],
+      "chargingTime": "2-4 giờ"
+    }
+  ]
+}

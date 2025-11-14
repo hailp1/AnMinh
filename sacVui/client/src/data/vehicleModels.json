@@ -1,0 +1,102 @@
+{
+  "car": [
+    {
+      "id": "vf8",
+      "name": "VinFast VF8",
+      "type": "SUV điện",
+      "range": "420km",
+      "price": "1.2 tỷ",
+      "image": "🚙"
+    },
+    {
+      "id": "vf9",
+      "name": "VinFast VF9",
+      "type": "SUV điện cao cấp",
+      "range": "438km", 
+      "price": "1.5 tỷ",
+      "image": "🚗"
+    },
+    {
+      "id": "vf6",
+      "name": "VinFast VF6",
+      "type": "SUV điện compact",
+      "range": "380km",
+      "price": "765 triệu",
+      "image": "🚙"
+    },
+    {
+      "id": "vf7",
+      "name": "VinFast VF7",
+      "type": "SUV điện",
+      "range": "450km",
+      "price": "999 triệu", 
+      "image": "🚗"
+    },
+    {
+      "id": "vf5",
+      "name": "VinFast VF5",
+      "type": "SUV điện mini",
+      "range": "300km",
+      "price": "458 triệu",
+      "image": "🚙"
+    },
+    {
+      "id": "vf3",
+      "name": "VinFast VF3",
+      "type": "Xe điện đô thị",
+      "range": "210km",
+      "price": "240 triệu",
+      "image": "🚗"
+    }
+  ],
+  "motorbike": [
+    {
+      "id": "klara-s",
+      "name": "VinFast Klara S",
+      "type": "Xe máy điện cao cấp",
+      "range": "120km",
+      "price": "63 triệu",
+      "image": "🏍️"
+    },
+    {
+      "id": "klara-a2",
+      "name": "VinFast Klara A2",
+      "type": "Xe máy điện thông minh",
+      "range": "80km",
+      "price": "40 triệu",
+      "image": "🛵"
+    },
+    {
+      "id": "feliz-s",
+      "name": "VinFast Feliz S",
+      "type": "Xe máy điện phổ thông",
+      "range": "60km",
+      "price": "21 triệu",
+      "image": "🛵"
+    },
+    {
+      "id": "feliz",
+      "name": "VinFast Feliz",
+      "type": "Xe máy điện cơ bản",
+      "range": "50km",
+      "price": "15 triệu",
+      "image": "🛵"
+    },
+    {
+      "id": "impes",
+      "name": "VinFast Impes",
+      "type": "Xe máy điện thể thao",
+      "range": "90km",
+      "price": "69 triệu",
+      "image": "🏍️"
+    },
+    {
+      "id": "vento-s",
+      "name": "VinFast Vento S",
+      "type": "Xe máy điện cao cấp",
+      "range": "100km",
+      "price": "52 triệu",
+      "image": "🛵"
+    }
+  ]
+}
