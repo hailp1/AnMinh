@@ -282,7 +282,7 @@ const QuickRegister = () => {
               { 
                 signal: controller.signal,
                 headers: {
-                  'User-Agent': 'SapharcoSales-App/1.0'
+                  'User-Agent': 'AnMinhBusinessSystem-App/1.0'
                 }
               }
             );
@@ -371,7 +371,7 @@ const QuickRegister = () => {
   return (
     <div style={{
       height: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: '#1E4A8B',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -416,7 +416,7 @@ const QuickRegister = () => {
               justifyContent: 'center',
               cursor: 'pointer',
               fontSize: '22px',
-              color: '#1a5ca2',
+              color: '#1E4A8B',
               fontWeight: 'bold',
               transition: 'all 0.2s',
               boxShadow: '0 2px 8px rgba(26, 92, 162, 0.2)'
@@ -449,8 +449,8 @@ const QuickRegister = () => {
               boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
             }}>
               <img 
-                src="/image/logo.png" 
-                alt="Sapharco Sales" 
+                src="/image/logo.webp" 
+                alt="An Minh Business System" 
                 style={{
                   width: '100%',
                   height: '100%',
@@ -487,7 +487,7 @@ const QuickRegister = () => {
             <div 
               style={{ 
                 height: '100%',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 width: `${(step / (formData.role === 'PHARMACY' ? 6 : 5)) * 100}%`,
                 transition: 'width 0.3s ease'
               }}
@@ -735,7 +735,7 @@ const QuickRegister = () => {
                 <div className="auth-welcome-message">
                   <span className="welcome-icon">🎉</span>
                   <div className="welcome-text">
-                    <strong>Chào mừng bạn đến với Sapharco Sales!</strong>
+                    <strong>Chào mừng bạn đến với An Minh Business System!</strong>
                     <span>Hãy hoàn thiện thông tin để tạo tài khoản mới</span>
                   </div>
                 </div>

@@ -1,22 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
+import * as XLSX from 'xlsx';
+
+const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-  const [filterHub, setFilterHub] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [formData, setFormData] = useState({
     name: '',
+    employeeCode: '',
+    routeCode: '',
     phone: '',
     email: '',
-    role: 'PHARMACY_REP',
-    hub: 'Trung tâm',
+    role: 'TDV',
     password: ''
   });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadUsers();
@@ -24,95 +36,32 @@ const AdminUsers = () => {
 
   useEffect(() => {
     filterUsers();
-  }, [searchTerm, filterRole, filterHub, users]);
+  }, [searchTerm, filterRole, users]);
 
-  const loadUsers = () => {
-    let storedUsers = getFromLocalStorage('users', []);
-    
-    // Generate mock users if none exist
-    if (storedUsers.length === 0) {
-      storedUsers = generateMockUsers();
-      saveToLocalStorage('users', storedUsers);
-    }
-    
-    setUsers(storedUsers);
-  };
-
-  const generateMockUsers = () => {
-    const mockUsers = [];
-    const roles = ['PHARMACY_REP', 'PHARMACY', 'DELIVERY', 'ADMIN'];
-    const hubs = ['Trung tâm', 'Củ Chi', 'Đồng Nai'];
-    const names = [
-      'Nguyễn Văn A', 'Trần Thị B', 'Lê Văn C', 'Phạm Thị D',
-      'Hoàng Văn E', 'Vũ Thị F', 'Đặng Văn G', 'Bùi Thị H',
-      'Đỗ Văn I', 'Ngô Thị K', 'Lý Văn L', 'Võ Thị M'
-    ];
-
-    // Admin users
-    mockUsers.push({
-      id: 'admin_001',
-      name: 'Administrator',
-      phone: '0900000000',
-      email: 'admin@sapharco.com',
-      role: 'ADMIN',
-      hub: 'Trung tâm',
-      password: 'admin',
-      isOnline: true,
-      lastLogin: new Date().toISOString(),
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    });
-
-    // Pharmacy Reps
-    for (let i = 0; i < 15; i++) {
-      const hub = hubs[Math.floor(Math.random() * hubs.length)];
-      mockUsers.push({
-        id: `rep_${String(i + 1).padStart(3, '0')}`,
-        name: names[i % names.length] + ` ${i + 1}`,
-        phone: `09${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-        email: `rep${i + 1}@sapharco.com`,
-        role: 'PHARMACY_REP',
-        hub: hub,
-        password: '123456',
-        isOnline: Math.random() > 0.5,
-        lastLogin: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/users/admin/users`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
       });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(Array.isArray(data) ? data : []);
+      } else {
+        console.warn('Failed to load users:', response.status);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      alert(`Lỗi khi tải danh sách người dùng: ${error.message}`);
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
-
-    // Pharmacy owners
-    for (let i = 0; i < 20; i++) {
-      const hub = hubs[Math.floor(Math.random() * hubs.length)];
-      mockUsers.push({
-        id: `pharmacy_${String(i + 1).padStart(3, '0')}`,
-        name: `Nhà thuốc ${names[i % names.length]}`,
-        phone: `08${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-        email: `pharmacy${i + 1}@sapharco.com`,
-        role: 'PHARMACY',
-        hub: hub,
-        password: '123456',
-        isOnline: Math.random() > 0.7,
-        lastLogin: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString()
-      });
-    }
-
-    // Delivery users
-    for (let i = 0; i < 10; i++) {
-      mockUsers.push({
-        id: `delivery_${String(i + 1).padStart(3, '0')}`,
-        name: `Giao hàng ${names[i % names.length]}`,
-        phone: `07${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-        email: `delivery${i + 1}@sapharco.com`,
-        role: 'DELIVERY',
-        hub: hubs[Math.floor(Math.random() * hubs.length)],
-        password: '123456',
-        isOnline: Math.random() > 0.6,
-        lastLogin: new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString()
-      });
-    }
-
-    return mockUsers;
   };
 
   const filterUsers = () => {
@@ -121,17 +70,14 @@ const AdminUsers = () => {
     if (searchTerm) {
       filtered = filtered.filter(u => 
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.phone.includes(searchTerm) ||
-        u.email.toLowerCase().includes(searchTerm.toLowerCase())
+        (u.employeeCode && u.employeeCode.toUpperCase().includes(searchTerm.toUpperCase())) ||
+        (u.phone && u.phone.includes(searchTerm)) ||
+        (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     if (filterRole !== 'all') {
       filtered = filtered.filter(u => u.role === filterRole);
-    }
-
-    if (filterHub !== 'all') {
-      filtered = filtered.filter(u => u.hub === filterHub);
     }
 
     setFilteredUsers(filtered);
@@ -141,10 +87,11 @@ const AdminUsers = () => {
     setEditingUser(null);
     setFormData({
       name: '',
+      employeeCode: '',
+      routeCode: '',
       phone: '',
       email: '',
-      role: 'PHARMACY_REP',
-      hub: 'Trung tâm',
+      role: 'TDV',
       password: ''
     });
     setShowModal(true);
@@ -154,65 +101,108 @@ const AdminUsers = () => {
     setEditingUser(user);
     setFormData({
       name: user.name || '',
+      employeeCode: user.employeeCode || '',
+      routeCode: user.routeCode || '',
       phone: user.phone || '',
       email: user.email || '',
-      role: user.role || 'PHARMACY_REP',
-      hub: user.hub || 'Trung tâm',
+      role: user.role || 'TDV',
       password: ''
     });
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa người dùng này?')) {
-      const updated = users.filter(u => u.id !== id);
-      setUsers(updated);
-      saveToLocalStorage('users', updated);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn xóa người dùng này?')) return;
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/users/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+      });
+
+      if (response.ok) {
+        alert('Xóa người dùng thành công!');
+        loadUsers();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Lỗi khi xóa người dùng');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Lỗi khi xóa người dùng');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSave = () => {
-    if (!formData.name || !formData.phone || !formData.role) {
-      alert('Vui lòng điền đầy đủ thông tin');
+  const handleSave = async () => {
+    if (!formData.name || !formData.employeeCode || !formData.role) {
+      alert('Vui lòng điền đầy đủ thông tin bắt buộc: Tên, Mã NV, Vai trò');
       return;
     }
 
-    let updated;
-    if (editingUser) {
-      updated = users.map(u => 
-        u.id === editingUser.id 
-          ? { 
-              ...u, 
-              ...formData,
-              password: formData.password || u.password,
-              updatedAt: new Date().toISOString()
-            }
-          : u
-      );
-    } else {
-      const newUser = {
-        id: `${formData.role.toLowerCase()}_${Date.now()}`,
-        ...formData,
-        password: formData.password || '123456',
-        isOnline: false,
-        createdAt: new Date().toISOString(),
-        lastLogin: null
-      };
-      updated = [...users, newUser];
+    if (!editingUser && !formData.password) {
+      alert('Vui lòng nhập mật khẩu cho người dùng mới');
+      return;
     }
 
-    setUsers(updated);
-    saveToLocalStorage('users', updated);
-    setShowModal(false);
-    setEditingUser(null);
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const payload = {
+        name: formData.name,
+        employeeCode: formData.employeeCode.toUpperCase(),
+        routeCode: formData.routeCode || null,
+        phone: formData.phone || null,
+        email: formData.email || null,
+        role: formData.role,
+      };
+
+      if (formData.password) {
+        payload.password = formData.password;
+      }
+
+      const url = editingUser
+        ? `${API_BASE}/users/admin/users/${editingUser.id}`
+        : `${API_BASE}/users/admin/users`;
+      const method = editingUser ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert(editingUser ? 'Cập nhật người dùng thành công!' : 'Tạo người dùng thành công!');
+        setShowModal(false);
+        setEditingUser(null);
+        loadUsers();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Lỗi khi lưu người dùng');
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      alert('Lỗi khi lưu người dùng');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRoleLabel = (role) => {
     const labels = {
-      'ADMIN': '🛡️ Admin',
-      'PHARMACY_REP': '👨‍⚕️ Trình dược viên',
-      'PHARMACY': '🏥 Nhà thuốc',
-      'DELIVERY': '🚚 Giao hàng'
+      'ADMIN': '👑 Quản trị viên',
+      'TDV': '👨‍⚕️ Trình dược viên',
+      'QL': '👔 Quản lý',
+      'KT': '📊 Kế toán'
     };
     return labels[role] || role;
   };
@@ -222,7 +212,146 @@ const AdminUsers = () => {
     return new Date(dateString).toLocaleDateString('vi-VN');
   };
 
-  const isMobile = window.innerWidth < 768;
+  // Export to Excel
+  const handleExportExcel = () => {
+    const data = filteredUsers.map(user => ({
+      'Mã NV': user.employeeCode || '',
+      'Tên': user.name || '',
+      'Mã tuyến': user.routeCode || '',
+      'Số điện thoại': user.phone || '',
+      'Email': user.email || '',
+      'Vai trò': user.role || '',
+      'Trạng thái': user.isActive ? 'Hoạt động' : 'Không hoạt động',
+      'Ngày tạo': user.createdAt ? formatDate(user.createdAt) : ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Danh sách nhân viên');
+    
+    // Auto-size columns
+    const colWidths = [
+      { wch: 12 }, // Mã NV
+      { wch: 25 }, // Tên
+      { wch: 12 }, // Mã tuyến
+      { wch: 15 }, // Số điện thoại
+      { wch: 25 }, // Email
+      { wch: 15 }, // Vai trò
+      { wch: 12 }, // Trạng thái
+      { wch: 20 }  // Lần đăng nhập cuối
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.writeFile(wb, `Danh_sach_nhan_vien_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  // Import from Excel
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Validate and map data
+        const importedUsers = jsonData.map((row, index) => {
+          const employeeCode = (row['Mã NV'] || row['Mã nhân viên'] || '').toString().trim().toUpperCase();
+          const name = (row['Tên'] || row['Họ tên'] || '').toString().trim();
+          const role = (row['Vai trò'] || row['Role'] || 'TDV').toString().toUpperCase();
+          
+          if (!employeeCode || !name) {
+            throw new Error(`Dòng ${index + 2}: Thiếu Mã NV hoặc Tên`);
+          }
+
+          return {
+            employeeCode,
+            name,
+            routeCode: (row['Mã tuyến'] || row['Mã tuyến phụ trách'] || '').toString().trim() || null,
+            phone: (row['Số điện thoại'] || row['Phone'] || '').toString().trim() || null,
+            email: (row['Email'] || '').toString().trim() || null,
+            role: ['TDV', 'QL', 'KT', 'ADMIN'].includes(role) ? role : 'TDV',
+            password: '123456' // Default password
+          };
+        });
+
+        // Import users via API
+        let successCount = 0;
+        let errorCount = 0;
+        
+        const token = localStorage.getItem('token');
+        for (const importedUser of importedUsers) {
+          try {
+            const response = await fetch(`${API_BASE}/users/admin/users`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'x-auth-token': token } : {}),
+              },
+              body: JSON.stringify(importedUser),
+            });
+
+            if (response.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+              const error = await response.json();
+              console.error(`Error importing user ${importedUser.employeeCode}:`, error.error);
+            }
+          } catch (error) {
+            errorCount++;
+            console.error(`Error importing user ${importedUser.employeeCode}:`, error);
+          }
+        }
+
+        alert(`Đã import ${successCount} người dùng thành công${errorCount > 0 ? `, ${errorCount} lỗi` : ''}!`);
+        loadUsers(); // Reload users from API
+        e.target.value = ''; // Reset input
+      } catch (error) {
+        alert(`Lỗi import: ${error.message}`);
+        e.target.value = ''; // Reset input
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Download template Excel
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Mã NV': 'TDV001',
+        'Tên': 'Nguyễn Văn A',
+        'Mã tuyến': 'T001',
+        'Số điện thoại': '0901234567',
+        'Email': 'tdv001@anminh.com',
+        'Vai trò': 'TDV'
+      },
+      {
+        'Mã NV': 'QL001',
+        'Tên': 'Trần Thị B',
+        'Mã tuyến': '',
+        'Số điện thoại': '0912345678',
+        'Email': 'ql001@anminh.com',
+        'Vai trò': 'QL'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    
+    const colWidths = [
+      { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 15 }
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.writeFile(wb, 'Template_Import_Nhan_Vien.xlsx');
+  };
 
   return (
     <div style={{ padding: isMobile ? '16px' : '0' }}>
@@ -251,11 +380,34 @@ const AdminUsers = () => {
             Tổng số: {filteredUsers.length} người dùng
           </p>
         </div>
-        <button
-          onClick={handleAdd}
-          style={{
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={handleDownloadTemplate}
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#3b82f6',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>📥</span>
+            <span>Template</span>
+          </button>
+          <label style={{
             padding: isMobile ? '10px 16px' : '12px 24px',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+            background: '#10b981',
             border: 'none',
             borderRadius: '12px',
             color: '#fff',
@@ -266,11 +418,57 @@ const AdminUsers = () => {
             alignItems: 'center',
             gap: '8px',
             whiteSpace: 'nowrap'
-          }}
-        >
-          <span>➕</span>
-          <span>Thêm người dùng</span>
-        </button>
+          }}>
+            <span>📤</span>
+            <span>Import Excel</span>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportExcel}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button
+            onClick={handleExportExcel}
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#8b5cf6',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>📊</span>
+            <span>Export Excel</span>
+          </button>
+          <button
+            onClick={handleAdd}
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#F29E2E',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>➕</span>
+            <span>Thêm người dùng</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -311,27 +509,10 @@ const AdminUsers = () => {
           }}
         >
           <option value="all">Tất cả vai trò</option>
-          <option value="ADMIN">Admin</option>
-          <option value="PHARMACY_REP">Trình dược viên</option>
-          <option value="PHARMACY">Nhà thuốc</option>
-          <option value="DELIVERY">Giao hàng</option>
-        </select>
-        <select
-          value={filterHub}
-          onChange={(e) => setFilterHub(e.target.value)}
-          style={{
-            padding: '12px 16px',
-            border: '2px solid #e5e7eb',
-            borderRadius: '10px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            minWidth: isMobile ? '100%' : '150px'
-          }}
-        >
-          <option value="all">Tất cả Hub</option>
-          <option value="Trung tâm">Trung tâm</option>
-          <option value="Củ Chi">Củ Chi</option>
-          <option value="Đồng Nai">Đồng Nai</option>
+          <option value="ADMIN">👑 Quản trị viên</option>
+          <option value="TDV">👨‍⚕️ Trình dược viên</option>
+          <option value="QL">👔 Quản lý</option>
+          <option value="KT">📊 Kế toán</option>
         </select>
       </div>
 
@@ -403,8 +584,8 @@ const AdminUsers = () => {
               }}>
                 <span style={{
                   padding: '4px 10px',
-                  background: '#1a5ca215',
-                  color: '#1a5ca2',
+                  background: '#1E4A8B15',
+                  color: '#1E4A8B',
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: '600'
@@ -413,8 +594,8 @@ const AdminUsers = () => {
                 </span>
                 <span style={{
                   padding: '4px 10px',
-                  background: '#e5aa4215',
-                  color: '#e5aa42',
+                  background: '#F29E2E15',
+                  color: '#F29E2E',
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: '600'
@@ -438,10 +619,10 @@ const AdminUsers = () => {
                   style={{
                     flex: 1,
                     padding: '10px',
-                    background: '#3eb4a815',
-                    border: '1px solid #3eb4a8',
+                    background: '#FBC93D15',
+                    border: '1px solid #FBC93D',
                     borderRadius: '8px',
-                    color: '#3eb4a8',
+                    color: '#FBC93D',
                     fontSize: '13px',
                     fontWeight: '600',
                     cursor: 'pointer'
@@ -493,7 +674,6 @@ const AdminUsers = () => {
             <div>Số điện thoại</div>
             <div>Email</div>
             <div>Vai trò</div>
-            <div>Hub</div>
             <div>Trạng thái</div>
             <div>Thao tác</div>
           </div>
@@ -503,8 +683,8 @@ const AdminUsers = () => {
                 key={user.id}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '60px 1fr 150px 180px 120px 120px 150px 120px',
-                  gap: '16px',
+                  gridTemplateColumns: '60px 1fr 120px 120px 150px 120px 120px 120px 120px',
+                  gap: '12px',
                   padding: '16px 20px',
                   borderBottom: '1px solid #e5e7eb',
                   alignItems: 'center',
@@ -521,13 +701,19 @@ const AdminUsers = () => {
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>
                   {user.name}
                 </div>
-                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>{user.phone}</div>
-                <div style={{ fontSize: '13px', color: '#666' }}>{user.email}</div>
+                <div style={{ fontSize: '13px', color: '#1E4A8B', fontWeight: '600' }}>
+                  {user.employeeCode || '-'}
+                </div>
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  {user.routeCode || '-'}
+                </div>
+                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>{user.phone || '-'}</div>
+                <div style={{ fontSize: '13px', color: '#666' }}>{user.email || '-'}</div>
                 <div>
                   <span style={{
                     padding: '4px 10px',
-                    background: '#1a5ca215',
-                    color: '#1a5ca2',
+                    background: '#1E4A8B15',
+                    color: '#1E4A8B',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: '600'
@@ -535,7 +721,6 @@ const AdminUsers = () => {
                     {getRoleLabel(user.role)}
                   </span>
                 </div>
-                <div style={{ fontSize: '13px', color: '#666' }}>{user.hub}</div>
                 <div>
                   <span style={{
                     padding: '4px 10px',
@@ -556,10 +741,10 @@ const AdminUsers = () => {
                     onClick={() => handleEdit(user)}
                     style={{
                       padding: '6px 12px',
-                      background: '#3eb4a815',
-                      border: '1px solid #3eb4a8',
+                      background: '#FBC93D15',
+                      border: '1px solid #FBC93D',
                       borderRadius: '6px',
-                      color: '#3eb4a8',
+                      color: '#FBC93D',
                       fontSize: '12px',
                       cursor: 'pointer'
                     }}
@@ -643,7 +828,9 @@ const AdminUsers = () => {
                   border: '2px solid #e5e7eb',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  color: '#1a1a2e',
+                  background: '#fff'
                 }}
               />
             </div>
@@ -659,21 +846,26 @@ const AdminUsers = () => {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: '600',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
                 }}>
-                  Số điện thoại *
+                  Mã nhân viên *
                 </label>
                 <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  type="text"
+                  value={formData.employeeCode}
+                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value.toUpperCase() })}
+                  placeholder="TDV001"
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    textTransform: 'uppercase',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
                 />
               </div>
@@ -682,21 +874,26 @@ const AdminUsers = () => {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: '600',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
                 }}>
-                  Email
+                  Mã tuyến phụ trách
                 </label>
                 <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  type="text"
+                  value={formData.routeCode}
+                  onChange={(e) => setFormData({ ...formData, routeCode: e.target.value.toUpperCase() })}
+                  placeholder="T001"
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    textTransform: 'uppercase',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
                 />
               </div>
@@ -713,7 +910,68 @@ const AdminUsers = () => {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: '600',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
+                }}>
+                  Số điện thoại
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
+                }}>
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap: '16px',
+              marginBottom: '16px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
                 }}>
                   Vai trò *
                 </label>
@@ -726,13 +984,15 @@ const AdminUsers = () => {
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
                 >
-                  <option value="PHARMACY_REP">Trình dược viên</option>
-                  <option value="PHARMACY">Nhà thuốc</option>
-                  <option value="DELIVERY">Giao hàng</option>
-                  <option value="ADMIN">Admin</option>
+                  <option value="TDV">👨‍⚕️ Trình dược viên</option>
+                  <option value="QL">👔 Quản lý</option>
+                  <option value="KT">📊 Kế toán</option>
+                  <option value="ADMIN">👑 Quản trị viên</option>
                 </select>
               </div>
               <div>
@@ -740,26 +1000,27 @@ const AdminUsers = () => {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: '600',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
                 }}>
-                  Hub
+                  Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
                 </label>
-                <select
-                  value={formData.hub}
-                  onChange={(e) => setFormData({ ...formData, hub: e.target.value })}
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder={editingUser ? "Để trống nếu không đổi" : "Nhập mật khẩu"}
                   style={{
                     width: '100%',
                     padding: '12px',
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
-                >
-                  <option value="Trung tâm">Trung tâm</option>
-                  <option value="Củ Chi">Củ Chi</option>
-                  <option value="Đồng Nai">Đồng Nai</option>
-                </select>
+                />
               </div>
             </div>
 
@@ -769,7 +1030,8 @@ const AdminUsers = () => {
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: '600',
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  color: '#1a1a2e'
                 }}>
                   Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
                 </label>
@@ -784,7 +1046,9 @@ const AdminUsers = () => {
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
                 />
               </div>
@@ -816,7 +1080,7 @@ const AdminUsers = () => {
                 onClick={handleSave}
                 style={{
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                  background: '#F29E2E',
                   border: 'none',
                   borderRadius: '8px',
                   color: '#fff',

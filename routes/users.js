@@ -115,17 +115,125 @@ router.get('/admin/users', adminAuth, async (req, res) => {
       select: {
         id: true,
         name: true,
+        employeeCode: true,
+        routeCode: true,
         email: true,
         role: true,
-        points: true,
         phone: true,
-        createdAt: true
-      }
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: { createdAt: 'desc' }
     });
     res.json(users);
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Lỗi server');
+  }
+});
+
+// Admin: Tạo user mới
+router.post('/admin/users', adminAuth, async (req, res) => {
+  try {
+    const { name, employeeCode, routeCode, email, phone, role, password } = req.body;
+    
+    if (!name || !employeeCode || !role || !password) {
+      return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
+    }
+
+    // Hash password
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.default.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        employeeCode: employeeCode.toUpperCase(),
+        routeCode: routeCode || null,
+        email: email || null,
+        phone: phone || null,
+        role,
+        password: hashedPassword,
+        isActive: true
+      },
+      select: {
+        id: true,
+        name: true,
+        employeeCode: true,
+        routeCode: true,
+        email: true,
+        role: true,
+        phone: true,
+        isActive: true,
+        createdAt: true
+      }
+    });
+
+    res.status(201).json(user);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Mã nhân viên đã tồn tại' });
+    }
+    console.error(error.message);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Admin: Cập nhật user
+router.put('/admin/users/:id', adminAuth, async (req, res) => {
+  try {
+    const { name, employeeCode, routeCode, email, phone, role, password, isActive } = req.body;
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (employeeCode !== undefined) updateData.employeeCode = employeeCode.toUpperCase();
+    if (routeCode !== undefined) updateData.routeCode = routeCode || null;
+    if (email !== undefined) updateData.email = email || null;
+    if (phone !== undefined) updateData.phone = phone || null;
+    if (role !== undefined) updateData.role = role;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (password) {
+      const bcrypt = await import('bcryptjs');
+      updateData.password = await bcrypt.default.hash(password, 10);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        employeeCode: true,
+        routeCode: true,
+        email: true,
+        role: true,
+        phone: true,
+        isActive: true,
+        createdAt: true
+      }
+    });
+
+    res.json(user);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Mã nhân viên đã tồn tại' });
+    }
+    console.error(error.message);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Admin: Xóa user
+router.delete('/admin/users/:id', adminAuth, async (req, res) => {
+  try {
+    await prisma.user.delete({
+      where: { id: req.params.id }
+    });
+    res.json({ message: 'Xóa user thành công' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: 'Lỗi server' });
   }
 });
 

@@ -1,20 +1,24 @@
 {
-  "name": "charging-station-client",
+  "name": "an-minh-business-system-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "axios": "^1.4.0",
+    "customize-cra": "^1.0.0",
+    "leaflet": "^1.9.4",
     "react": "^18.2.0",
+    "react-app-rewired": "^2.2.1",
     "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
-    "axios": "^1.4.0",
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^4.2.1",
-    "customize-cra": "^1.0.0",
-    "react-app-rewired": "^2.2.1"
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-app-rewired start",
@@ -40,5 +44,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "http://localhost:5000"
 }

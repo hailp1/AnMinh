@@ -62,7 +62,7 @@ const OrderSummary = () => {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+        background: '#1E4A8B',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -84,7 +84,7 @@ const OrderSummary = () => {
             onClick={handleBack} 
             style={{
               padding: '14px 28px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               color: '#fff',
               border: 'none',
               borderRadius: '12px',
@@ -104,7 +104,7 @@ const OrderSummary = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: 'linear-gradient(135deg, #1E4A8B 0%, #FBC93D 50%, #F29E2E 100%)',
       paddingBottom: '100px'
     }}>
       {/* Mobile Header */}
@@ -120,14 +120,14 @@ const OrderSummary = () => {
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1a5ca2' }}>
+        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1E4A8B' }}>
           ←
         </Link>
         <h1 style={{ 
           fontSize: '16px', 
           fontWeight: 'bold', 
           margin: 0,
-          color: '#1a5ca2',
+          color: '#1E4A8B',
           flex: 1,
           textAlign: 'center'
         }}>
@@ -151,7 +151,7 @@ const OrderSummary = () => {
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <img 
-            src="/image/logo.png" 
+            src="/image/logo.webp" 
             alt="Logo" 
             style={{
               maxWidth: '120px',
@@ -163,9 +163,9 @@ const OrderSummary = () => {
             fontSize: '20px', 
             fontWeight: 'bold', 
             margin: '8px 0',
-            color: '#1a5ca2'
+            color: '#1E4A8B'
           }}>
-            Sapharco Sales
+            An Minh Business System
           </h1>
           <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>
             HÓA ĐƠN BÁN HÀNG
@@ -204,7 +204,7 @@ const OrderSummary = () => {
             >
               {/* Thông tin khách hàng - Mobile Card */}
               <div style={{
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 color: '#fff',
                 padding: '16px'
               }}>
@@ -246,7 +246,7 @@ const OrderSummary = () => {
                 <div style={{
                   fontSize: '14px',
                   fontWeight: '600',
-                  color: '#1a5ca2',
+                  color: '#1E4A8B',
                   marginBottom: '12px',
                   paddingBottom: '8px',
                   borderBottom: '2px solid #e5e7eb'
@@ -290,7 +290,7 @@ const OrderSummary = () => {
                           </div>
                           <div style={{
                             fontSize: '12px',
-                            color: '#1a5ca2',
+                            color: '#1E4A8B',
                             fontWeight: '600',
                             marginBottom: '6px'
                           }}>
@@ -310,13 +310,13 @@ const OrderSummary = () => {
                         <div style={{ fontSize: '12px', color: '#666' }}>
                           <div>Đơn giá: {item.price.toLocaleString('vi-VN')}đ</div>
                           <div style={{ marginTop: '4px' }}>
-                            Số lượng: <strong style={{ color: '#1a5ca2' }}>{item.quantity}</strong>
+                            Số lượng: <strong style={{ color: '#1E4A8B' }}>{item.quantity}</strong>
                           </div>
                         </div>
                         <div style={{
                           fontSize: '16px',
                           fontWeight: 'bold',
-                          color: '#1a5ca2',
+                          color: '#1E4A8B',
                           textAlign: 'right'
                         }}>
                           {(item.price * item.quantity).toLocaleString('vi-VN')}đ
@@ -332,7 +332,7 @@ const OrderSummary = () => {
                   padding: '15px',
                   background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
                   borderRadius: '12px',
-                  border: '2px solid #1a5ca2'
+                  border: '2px solid #1E4A8B'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -345,7 +345,7 @@ const OrderSummary = () => {
                     <div style={{ 
                       fontSize: '20px', 
                       fontWeight: 'bold', 
-                      color: '#1a5ca2'
+                      color: '#1E4A8B'
                     }}>
                       {formatCurrency(orderTotal)}
                     </div>
@@ -362,7 +362,7 @@ const OrderSummary = () => {
           padding: '20px',
           background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
           borderRadius: '16px',
-          border: '2px solid #1a5ca2',
+          border: '2px solid #1E4A8B',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <div style={{ marginBottom: '15px' }}>
@@ -374,7 +374,7 @@ const OrderSummary = () => {
               justifyContent: 'space-between'
             }}>
               <span>Tổng số đơn hàng:</span>
-              <strong style={{ color: '#1a5ca2' }}>{totalOrders}</strong>
+              <strong style={{ color: '#1E4A8B' }}>{totalOrders}</strong>
             </div>
             <div style={{ 
               fontSize: '14px', 
@@ -383,12 +383,12 @@ const OrderSummary = () => {
               justifyContent: 'space-between'
             }}>
               <span>Tổng số sản phẩm:</span>
-              <strong style={{ color: '#1a5ca2' }}>{totalItems}</strong>
+              <strong style={{ color: '#1E4A8B' }}>{totalItems}</strong>
             </div>
           </div>
           <div style={{
             paddingTop: '15px',
-            borderTop: '2px solid #1a5ca2',
+            borderTop: '2px solid #1E4A8B',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
@@ -399,7 +399,7 @@ const OrderSummary = () => {
             <div style={{ 
               fontSize: '24px', 
               fontWeight: 'bold', 
-              color: '#1a5ca2'
+              color: '#1E4A8B'
             }}>
               {formatCurrency(totalAmount)}
             </div>
@@ -412,7 +412,7 @@ const OrderSummary = () => {
           padding: '20px',
           background: 'linear-gradient(135deg, rgba(62, 180, 168, 0.1), rgba(229, 170, 66, 0.1))',
           borderRadius: '16px',
-          border: '2px solid #3eb4a8',
+          border: '2px solid #FBC93D',
           textAlign: 'center',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
@@ -422,7 +422,7 @@ const OrderSummary = () => {
           <h3 style={{ 
             fontSize: '18px', 
             fontWeight: 'bold', 
-            color: '#1a5ca2',
+            color: '#1E4A8B',
             marginBottom: '10px'
           }}>
             Cảm ơn Quý Khách Hàng!
@@ -433,7 +433,7 @@ const OrderSummary = () => {
             lineHeight: '1.6',
             marginBottom: '8px'
           }}>
-            Chúng tôi chân thành cảm ơn Quý khách đã tin tưởng và sử dụng dịch vụ của Sapharco Sales.
+            Chúng tôi chân thành cảm ơn Quý khách đã tin tưởng và sử dụng dịch vụ của An Minh Business System.
           </p>
           <p style={{ 
             fontSize: '14px', 
@@ -454,8 +454,8 @@ const OrderSummary = () => {
           fontSize: '11px',
           lineHeight: '1.6'
         }}>
-          <p>Cảm ơn quý khách đã sử dụng dịch vụ của Sapharco Sales</p>
-          <p>© 2024 Sapharco Sales - Hệ thống quản lý bán hàng</p>
+          <p>Cảm ơn quý khách đã sử dụng dịch vụ của An Minh Business System</p>
+          <p>© 2024 An Minh Business System - Developed by AMMedtech Team</p>
         </div>
       </div>
 
@@ -479,7 +479,7 @@ const OrderSummary = () => {
           style={{
             flex: 1,
             padding: '14px',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+            background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
             color: '#fff',
             border: 'none',
             borderRadius: '12px',
@@ -497,7 +497,7 @@ const OrderSummary = () => {
           style={{
             flex: 1,
             padding: '14px',
-            background: 'linear-gradient(135deg, #3eb4a8, #e5aa42)',
+            background: '#F29E2E',
             color: '#fff',
             border: 'none',
             borderRadius: '12px',

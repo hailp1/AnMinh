@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
@@ -9,14 +8,9 @@ const AdminLogin = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Demo users
-  const demoUsers = {
-    'admin': 'admin',
-    'ketoan': 'ketoan'
-  };
+  const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
   const handleChange = (e) => {
     setFormData({
@@ -32,39 +26,34 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      // Check demo users
-      if (demoUsers[formData.username] && demoUsers[formData.username] === formData.password) {
-        // Create admin user object
-        const adminUser = {
-          id: `admin_${formData.username}`,
-          name: formData.username === 'admin' ? 'Administrator' : 'Kế toán',
-          username: formData.username,
-          phone: formData.username === 'admin' ? '0900000000' : '0900000001',
-          role: 'ADMIN',
-          email: `${formData.username}@sapharco.com`,
-          hub: 'Trung tâm',
-          permissions: {
-            manageUsers: true,
-            manageCustomers: true,
-            manageRoutes: true,
-            viewAnalytics: true,
-            systemSettings: formData.username === 'admin'
-          }
-        };
+      // Treat username as employeeCode for admin login via API
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeCode: formData.username,
+          password: formData.password
+        })
+      });
 
-        // Save to localStorage
-        localStorage.setItem('adminUser', JSON.stringify(adminUser));
-        localStorage.setItem('adminLoginTime', new Date().toISOString());
-
-        // Navigate to admin dashboard
-        setTimeout(() => {
-          window.location.href = '/admin/dashboard';
-        }, 500);
-      } else {
-        setError('Tên đăng nhập hoặc mật khẩu không đúng');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng nhập thất bại');
       }
+
+      if (!data.user || data.user.role !== 'ADMIN') {
+        throw new Error('Tài khoản không có quyền ADMIN');
+      }
+
+      // Save token for admin API calls
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('adminUser', JSON.stringify(data.user));
+      localStorage.setItem('adminLoginTime', new Date().toISOString());
+
+      // Navigate to admin dashboard
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
-      setError('Đã xảy ra lỗi. Vui lòng thử lại.');
+      setError(err.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -73,7 +62,7 @@ const AdminLogin = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: '#1E4A8B',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -105,8 +94,8 @@ const AdminLogin = () => {
             boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
           }}>
             <img 
-              src="/image/logo.png" 
-              alt="Sapharco Admin" 
+              src="/image/logo.webp" 
+              alt="An Minh Business System Admin" 
               style={{
                 width: '100%',
                 height: '100%',
@@ -122,7 +111,7 @@ const AdminLogin = () => {
             margin: '0 0 12px 0',
             textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
-            Sapharco Admin
+            An Minh Business System Admin
           </h1>
           <p style={{
             fontSize: '18px',
@@ -158,14 +147,14 @@ const AdminLogin = () => {
               color: '#1a1a2e',
               marginBottom: '10px'
             }}>
-              👤 Tên đăng nhập
+              👤 Mã nhân viên (ADMIN)
             </label>
             <input
               type="text"
               name="username"
               value={formData.username}
               onChange={handleChange}
-              placeholder="admin hoặc ketoan"
+              placeholder="VD: ADMIN001"
               style={{
                 width: '100%',
                 padding: '16px 18px',
@@ -177,7 +166,7 @@ const AdminLogin = () => {
                 background: '#fff'
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = '#1a5ca2';
+                e.target.style.borderColor = '#1E4A8B';
                 e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
               }}
               onBlur={(e) => {
@@ -215,7 +204,7 @@ const AdminLogin = () => {
                 background: '#fff'
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = '#1a5ca2';
+                e.target.style.borderColor = '#1E4A8B';
                 e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
               }}
               onBlur={(e) => {
@@ -234,7 +223,7 @@ const AdminLogin = () => {
               padding: '18px',
               background: loading 
                 ? '#9ca3af' 
-                : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                : '#F29E2E',
               color: '#fff',
               border: 'none',
               borderRadius: '14px',

@@ -59,21 +59,21 @@ const AdminDashboard = () => {
       title: 'Tổng khách hàng',
       value: stats.totalCustomers,
       icon: '👥',
-      color: '#1a5ca2',
+      color: '#1E4A8B',
       change: '+12%'
     },
     {
       title: 'Tổng đơn hàng',
       value: stats.totalOrders,
       icon: '📦',
-      color: '#3eb4a8',
+      color: '#FBC93D',
       change: '+8%'
     },
     {
       title: 'Doanh thu',
       value: `${(stats.totalRevenue / 1000000).toFixed(1)}M`,
       icon: '💰',
-      color: '#e5aa42',
+      color: '#F29E2E',
       change: '+15%'
     },
     {
@@ -198,7 +198,7 @@ const AdminDashboard = () => {
                   onClick={() => navigate(action.path)}
                   style={{
                     padding: isMobile ? '14px' : '16px',
-                    background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                    background: '#F29E2E',
                     border: 'none',
                     borderRadius: isMobile ? '10px' : '12px',
                     color: '#fff',
@@ -338,7 +338,7 @@ const AdminDashboard = () => {
                   width: '40px',
                   height: '40px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                  background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

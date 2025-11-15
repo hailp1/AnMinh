@@ -347,7 +347,7 @@ const CreatePharmacy = () => {
   return (
     <div className="create-station-container" style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: '#1E4A8B',
       padding: '20px'
     }}>
       <div style={{
@@ -366,7 +366,7 @@ const CreatePharmacy = () => {
               background: 'none',
               border: 'none',
               fontSize: '18px',
-              color: '#1a5ca2',
+              color: '#1E4A8B',
               cursor: 'pointer',
               marginBottom: '1rem',
               display: 'flex',
@@ -379,7 +379,7 @@ const CreatePharmacy = () => {
           <h2 style={{ 
             fontSize: '24px', 
             fontWeight: 'bold', 
-            color: '#1a5ca2',
+            color: '#1E4A8B',
             margin: 0
           }}>
             {isEditMode ? '✏️ Cập nhật nhà thuốc' : '🏥 Thêm nhà thuốc mới'}
@@ -423,7 +423,7 @@ const CreatePharmacy = () => {
                 disabled={gettingLocation}
                 style={{
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                  background: '#F29E2E',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
@@ -517,7 +517,7 @@ const CreatePharmacy = () => {
                   fontSize: '18px', 
                   fontWeight: '600', 
                   marginBottom: '1rem',
-                  color: '#1a5ca2'
+                  color: '#1E4A8B'
                 }}>
                   📍 Bước 2: Thông tin địa chỉ
                 </h3>
@@ -633,7 +633,7 @@ const CreatePharmacy = () => {
                   fontSize: '18px', 
                   fontWeight: '600', 
                   marginBottom: '1rem',
-                  color: '#1a5ca2'
+                  color: '#1E4A8B'
                 }}>
                   🏥 Bước 3: Thông tin nhà thuốc
                 </h3>
@@ -731,7 +731,7 @@ const CreatePharmacy = () => {
                         onClick={() => setFormData({ ...formData, hub })}
                         style={{
                           padding: '1rem',
-                          border: `2px solid ${formData.hub === hub ? '#1a5ca2' : '#e5e7eb'}`,
+                          border: `2px solid ${formData.hub === hub ? '#1E4A8B' : '#e5e7eb'}`,
                           borderRadius: '12px',
                           cursor: 'pointer',
                           background: formData.hub === hub 
@@ -744,11 +744,11 @@ const CreatePharmacy = () => {
                         <div style={{ fontSize: '24px', marginBottom: '8px' }}>
                           {hub === 'Trung tâm' ? '🏢' : hub === 'Củ Chi' ? '🌾' : '🏭'}
                         </div>
-                        <div style={{ fontWeight: '600', color: formData.hub === hub ? '#1a5ca2' : '#666' }}>
+                        <div style={{ fontWeight: '600', color: formData.hub === hub ? '#1E4A8B' : '#666' }}>
                           {hub}
                         </div>
                         {formData.hub === hub && (
-                          <div style={{ marginTop: '8px', color: '#1a5ca2', fontSize: '20px' }}>✓</div>
+                          <div style={{ marginTop: '8px', color: '#1E4A8B', fontSize: '20px' }}>✓</div>
                         )}
                       </div>
                     ))}
@@ -762,7 +762,7 @@ const CreatePharmacy = () => {
                   fontSize: '18px', 
                   fontWeight: '600', 
                   marginBottom: '1rem',
-                  color: '#1a5ca2'
+                  color: '#1E4A8B'
                 }}>
                   📸 Hình ảnh nhà thuốc (tùy chọn)
                 </h3>
@@ -844,7 +844,7 @@ const CreatePharmacy = () => {
                 style={{
                   width: '100%',
                   padding: '16px',
-                  background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                  background: '#F29E2E',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '12px',

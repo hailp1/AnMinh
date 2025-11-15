@@ -121,62 +121,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (phone, password) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+  const login = async (employeeCode, password) => {
     try {
-      // Lấy danh sách users từ localStorage
-      const users = getFromLocalStorage('users', []);
-      const user = users.find(u => u.phone === phone);
-      
-      // Kiểm tra số điện thoại có tồn tại không
-      if (!user) {
-        return { 
-          success: false, 
-          message: 'Số điện thoại chưa được đăng ký',
-          phoneNotExists: true,
-          phone: phone
-        };
-      }
-      
-      // Kiểm tra mật khẩu
-      if (user.password !== password) {
-        return { 
-          success: false, 
-          message: 'Mật khẩu không đúng' 
-        };
-      }
-      
-      // Cập nhật thời gian đăng nhập cuối
-      user.lastLogin = new Date().toISOString();
-      
-      // Cập nhật user trong danh sách users
-      const userIndex = users.findIndex(u => u.id === user.id || u.phone === user.phone);
-      if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], lastLogin: user.lastLogin };
-        saveToLocalStorage('users', users);
-      }
-      
-      // Lưu user hiện tại
-      saveToLocalStorage('currentUser', user);
-      setUser(user);
-      
-      // Lưu thông tin đăng nhập để tự động login lại
-      saveToLocalStorage('savedLoginInfo', {
-        phone: phone,
-        password: password,
-        savedAt: new Date().toISOString()
+      const API_BASE = process.env.REACT_APP_API_URL || '/api';
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ employeeCode, password }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Đăng nhập thất bại'
+        };
+      }
+
+      // Lưu token và user info
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      setUser(data.user);
       
       // Redirect dựa trên role
-      const redirectPath = user.role === 'ADMIN' ? '/admin' : '/home';
+      const redirectPath = data.user.role === 'ADMIN' ? '/admin' : '/home';
       
       return { success: true, redirect: redirectPath };
     } catch (error) {
+      console.error('Login error:', error);
       return { 
         success: false, 
-        message: 'Đăng nhập thất bại' 
+        message: 'Đăng nhập thất bại. Vui lòng kiểm tra kết nối mạng.' 
       };
     }
   };

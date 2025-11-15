@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
+import TerritoryManagement from '../../components/TerritoryManagement';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
-    systemName: 'Sapharco Sales DMS',
+    systemName: 'An Minh Business System',
     systemVersion: '1.0.0',
-    companyName: 'Sapharco',
+    companyName: 'An Minh',
     companyAddress: '123 Đường ABC, Quận 1, TP.HCM',
     companyPhone: '02812345678',
-    companyEmail: 'info@sapharco.com',
+    companyEmail: 'info@anminh.com',
     taxCode: '1234567890',
     currency: 'VND',
     timezone: 'Asia/Ho_Chi_Minh',
@@ -69,6 +70,7 @@ const AdminSettings = () => {
   const tabs = [
     { id: 'general', label: '⚙️ Chung', icon: '⚙️' },
     { id: 'company', label: '🏢 Công ty', icon: '🏢' },
+    { id: 'territory', label: '🗺️ Quản lý địa bàn', icon: '🗺️' },
     { id: 'notifications', label: '🔔 Thông báo', icon: '🔔' },
     { id: 'security', label: '🔒 Bảo mật', icon: '🔒' },
     { id: 'advanced', label: '🔧 Nâng cao', icon: '🔧' }
@@ -127,7 +129,7 @@ const AdminSettings = () => {
               padding: isMobile ? '10px 16px' : '12px 24px',
               background: saved 
                 ? '#10b981' 
-                : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                : 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
               border: 'none',
               borderRadius: '12px',
               color: '#fff',
@@ -161,7 +163,7 @@ const AdminSettings = () => {
             style={{
               padding: isMobile ? '10px 16px' : '12px 20px',
               background: activeTab === tab.id 
-                ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)' 
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
                 : '#f3f4f6',
               border: 'none',
               borderRadius: '8px',
@@ -221,7 +223,9 @@ const AdminSettings = () => {
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    color: '#1a1a2e',
+                    background: '#fff'
                   }}
                 />
               </div>
@@ -398,6 +402,11 @@ const AdminSettings = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Territory Management */}
+        {activeTab === 'territory' && (
+          <TerritoryManagement isMobile={isMobile} />
         )}
 
         {/* Company Settings */}

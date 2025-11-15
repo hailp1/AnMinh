@@ -33,8 +33,8 @@ const createCustomIcon = (color, iconText) => {
   });
 };
 
-const hubIcon = createCustomIcon('#e5aa42', '🏢');
-const pharmacyIcon = createCustomIcon('#1a5ca2', '💊');
+const hubIcon = createCustomIcon('#F29E2E', '🏢');
+const pharmacyIcon = createCustomIcon('#1E4A8B', '💊');
 
 // Hub locations
 const hubs = [
@@ -146,7 +146,7 @@ const AdminMap = () => {
           style={{
             padding: isMobile ? '8px 14px' : '10px 20px',
             background: selectedHub === 'all' 
-              ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)' 
+              ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
               : '#f3f4f6',
             border: 'none',
             borderRadius: isMobile ? '6px' : '8px',
@@ -166,9 +166,9 @@ const AdminMap = () => {
             style={{
               padding: isMobile ? '8px 14px' : '10px 20px',
               background: selectedHub === hub.id 
-                ? '#e5aa42' 
+                ? '#F29E2E' 
                 : '#fff',
-              border: `2px solid ${selectedHub === hub.id ? '#e5aa42' : '#e5e7eb'}`,
+              border: `2px solid ${selectedHub === hub.id ? '#F29E2E' : '#e5e7eb'}`,
               borderRadius: isMobile ? '6px' : '8px',
               color: selectedHub === hub.id ? '#fff' : '#1a1a2e',
               fontSize: isMobile ? '12px' : '14px',
@@ -331,7 +331,7 @@ const AdminMap = () => {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                background: '#e5aa42',
+                background: '#F29E2E',
                 border: '2px solid #fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -351,7 +351,7 @@ const AdminMap = () => {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                background: '#1a5ca2',
+                background: '#1E4A8B',
                 border: '2px solid #fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -383,7 +383,7 @@ const AdminMap = () => {
                 borderRadius: isMobile ? '10px' : '12px',
                 padding: isMobile ? '16px' : '20px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: '2px solid #e5aa42'
+                border: '2px solid #F29E2E'
               }}
             >
               <div style={{
@@ -401,7 +401,7 @@ const AdminMap = () => {
               <div style={{
                 fontSize: isMobile ? '24px' : '32px',
                 fontWeight: 'bold',
-                color: '#e5aa42',
+                color: '#F29E2E',
                 marginBottom: '4px'
               }}>
                 {hubCustomers.length}

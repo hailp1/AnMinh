@@ -6,7 +6,7 @@ import { usePageTransition } from '../hooks/usePageTransition';
 const Login = () => {
   const [currentTime, setCurrentTime] = useState('');
   const [formData, setFormData] = useState({
-    phone: '',
+    employeeCode: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -48,9 +48,9 @@ const Login = () => {
   const handleChange = (e) => {
     let value = e.target.value;
     
-    // Format phone number if it's phone field
-    if (e.target.name === 'phone') {
-      value = formatPhoneNumber(value);
+    // Format employee code - chuyển thành chữ hoa và loại bỏ khoảng trắng
+    if (e.target.name === 'employeeCode') {
+      value = value.toUpperCase().trim();
     }
     
     setFormData({
@@ -61,22 +61,24 @@ const Login = () => {
     if (error) setError('');
   };
 
-  // Format phone number
-  const formatPhoneNumber = (value) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 10) {
-      return cleaned.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
-    }
-    return cleaned.slice(0, 10).replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const cleanPhone = formData.phone.replace(/\s/g, '');
-    const result = await login(cleanPhone, formData.password);
+    if (!formData.employeeCode.trim()) {
+      setError('Vui lòng nhập Mã NV');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.password) {
+      setError('Vui lòng nhập mật khẩu');
+      setLoading(false);
+      return;
+    }
+
+    const result = await login(formData.employeeCode.trim(), formData.password);
     
     if (result.success) {
       setShowSuccess(true);
@@ -84,26 +86,7 @@ const Login = () => {
         navigateWithTransition(result.redirect || '/home');
       }, 1000);
     } else {
-      // Nếu số điện thoại chưa tồn tại, tự động chuyển sang đăng ký
-      if (result.phoneNotExists) {
-        // Hiển thị thông báo chuyển hướng
-        setError('Số điện thoại chưa được đăng ký. Đang chuyển đến trang đăng ký...');
-        
-        // Chuyển hướng sau 2 giây
-        setTimeout(() => {
-          setLoading(false);
-          navigateWithTransition('/register', { 
-            state: { 
-              phone: cleanPhone,
-              fromLogin: true,
-              message: 'Số điện thoại chưa được đăng ký. Chúng tôi sẽ giúp bạn tạo tài khoản mới! 🎉'
-            }
-          });
-        }, 2000);
-        return;
-      }
-      
-      setError(result.message);
+      setError(result.message || 'Đăng nhập thất bại');
       setLoading(false);
     }
   };
@@ -115,7 +98,7 @@ const Login = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: '#1E4A8B',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -161,7 +144,7 @@ const Login = () => {
               justifyContent: 'center',
               cursor: 'pointer',
               fontSize: '22px',
-              color: '#1a5ca2',
+              color: '#1E4A8B',
               fontWeight: 'bold',
               transition: 'all 0.2s',
               boxShadow: '0 2px 8px rgba(26, 92, 162, 0.2)'
@@ -194,8 +177,8 @@ const Login = () => {
             boxSizing: 'border-box'
           }}>
             <img 
-              src="/image/logo.png" 
-              alt="Sapharco Sales" 
+              src="/image/logo.webp" 
+              alt="An Minh Business System" 
               style={{
                 width: '100%',
                 height: '100%',
@@ -211,7 +194,7 @@ const Login = () => {
             margin: '0 0 12px 0',
             textShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
-            Sapharco Sales
+            An Minh Business System
           </h1>
           <p style={{
             fontSize: isMobile ? '16px' : '18px',
@@ -254,15 +237,15 @@ const Login = () => {
                   color: '#1a1a2e',
                   marginBottom: '10px'
                 }}>
-                  <span style={{ marginRight: '10px' }}>📱</span>
-                  Số điện thoại
+                  <span style={{ marginRight: '10px' }}>👤</span>
+                  Mã nhân viên
                 </label>
                 <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  type="text"
+                  name="employeeCode"
+                  value={formData.employeeCode}
                   onChange={handleChange}
-                  placeholder="0901 234 567"
+                  placeholder="NV001"
                   style={{
                     width: '100%',
                     padding: '16px 18px',
@@ -272,17 +255,17 @@ const Login = () => {
                     transition: 'all 0.2s',
                     boxSizing: 'border-box',
                     color: '#1a1a2e',
-                    background: '#fff'
+                    background: '#fff',
+                    textTransform: 'uppercase'
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#1a5ca2';
-                    e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
+                    e.target.style.borderColor = '#1E4A8B';
+                    e.target.style.boxShadow = '0 0 0 4px rgba(30, 74, 139, 0.1)';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#d1d5db';
                     e.target.style.boxShadow = 'none';
                   }}
-                  maxLength={12}
                   required
                 />
               </div>
@@ -316,7 +299,7 @@ const Login = () => {
                     background: '#fff'
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#1a5ca2';
+                    e.target.style.borderColor = '#1E4A8B';
                     e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
                   }}
                   onBlur={(e) => {
@@ -336,7 +319,7 @@ const Login = () => {
                     padding: '18px',
                     background: loading 
                       ? '#9ca3af' 
-                      : 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                      : '#F29E2E',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '14px',
@@ -391,7 +374,7 @@ const Login = () => {
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#1a5ca2',
+                      color: '#1E4A8B',
                       fontSize: '15px',
                       cursor: 'pointer',
                       textDecoration: 'underline',
@@ -420,8 +403,8 @@ const Login = () => {
                     onClick={() => navigateWithTransition('/register')}
                     style={{
                       background: 'rgba(26, 92, 162, 0.1)',
-                      border: '2px solid #1a5ca2',
-                      color: '#1a5ca2',
+                      border: '2px solid #1E4A8B',
+                      color: '#1E4A8B',
                       padding: '14px 28px',
                       borderRadius: '14px',
                       fontSize: '16px',

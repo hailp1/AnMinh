@@ -8,9 +8,9 @@ const InviteFriends = () => {
   const [isSharing, setIsSharing] = useState(false);
 
   const appConfig = {
-    name: 'Sapharco Sales',
+    name: 'An Minh Business System',
     tagline: 'Sales Management System',
-    url: 'https://sapharcosales.app',
+    url: 'https://anminh.app',
     description: 'Quản lý đơn hàng cho Trình dược viên tại các nhà thuốc'
   };
   
@@ -199,7 +199,7 @@ const InviteFriends = () => {
                 <div className="modal-icon">🎁</div>
                 <div className="modal-title-text">
                   <h3>Invite Friends</h3>
-                  <p>Share Sapharco Sales and earn rewards</p>
+                  <p>Share An Minh Business System and earn rewards</p>
                 </div>
               </div>
               <button 

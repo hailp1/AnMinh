@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import productsData from '../../data/products.json';
-import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminProducts = () => {
   const [productGroups, setProductGroups] = useState([]);
@@ -11,6 +11,8 @@ const AdminProducts = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
+  const [modalType, setModalType] = useState('product'); // 'product' or 'group'
+  const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -23,10 +25,11 @@ const AdminProducts = () => {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
-    unit: 'Vĩ',
+    description: '',
+    unit: 'hộp',
     price: '',
     groupId: '',
-    groupName: ''
+    order: 0
   });
 
   useEffect(() => {
@@ -37,26 +40,29 @@ const AdminProducts = () => {
     filterProducts();
   }, [searchTerm, selectedGroup, products]);
 
-  const loadProducts = () => {
-    const stored = getFromLocalStorage('adminProducts', null);
-    if (stored) {
-      setProductGroups(stored.productGroups || []);
-      setProducts(stored.products || []);
-    } else {
-      // Initialize from products.json
-      const groups = productsData.productGroups || [];
-      const allProducts = groups.flatMap(g => g.products.map(p => ({
-        ...p,
-        groupId: g.id,
-        groupName: g.name
-      })));
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      // Load groups
+      const groupsResponse = await fetch(`${API_BASE}/products/groups`);
+      if (groupsResponse.ok) {
+        const groups = await groupsResponse.json();
+        setProductGroups(Array.isArray(groups) ? groups : []);
+      }
       
-      setProductGroups(groups);
-      setProducts(allProducts);
-      saveToLocalStorage('adminProducts', {
-        productGroups: groups,
-        products: allProducts
-      });
+      // Load products
+      const productsResponse = await fetch(`${API_BASE}/products`);
+      if (productsResponse.ok) {
+        const productsData = await productsResponse.json();
+        setProducts(Array.isArray(productsData) ? productsData : []);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      alert(`Lỗi khi tải danh sách sản phẩm: ${error.message}`);
+      setProductGroups([]);
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,7 +77,7 @@ const AdminProducts = () => {
     }
 
     if (selectedGroup !== 'all') {
-      filtered = filtered.filter(p => p.groupId === selectedGroup);
+      filtered = filtered.filter(p => p.groupId === selectedGroup || p.group?.id === selectedGroup);
     }
 
     setFilteredProducts(filtered);
@@ -80,13 +86,15 @@ const AdminProducts = () => {
   const handleAddProduct = () => {
     setEditingProduct(null);
     setEditingGroup(null);
+    setModalType('product');
     setFormData({
       code: '',
       name: '',
-      unit: 'Vĩ',
+      description: '',
+      unit: 'hộp',
       price: '',
       groupId: productGroups.length > 0 ? productGroups[0].id : '',
-      groupName: productGroups.length > 0 ? productGroups[0].name : ''
+      order: 0
     });
     setShowModal(true);
   };
@@ -94,13 +102,15 @@ const AdminProducts = () => {
   const handleEditProduct = (product) => {
     setEditingProduct(product);
     setEditingGroup(null);
+    setModalType('product');
     setFormData({
-      code: product.code,
-      name: product.name,
-      unit: product.unit || 'Vĩ',
+      code: product.code || '',
+      name: product.name || '',
+      description: product.description || '',
+      unit: product.unit || 'hộp',
       price: product.price?.toString() || '',
-      groupId: product.groupId,
-      groupName: product.groupName
+      groupId: product.groupId || product.group?.id || '',
+      order: product.order || 0
     });
     setShowModal(true);
   };
@@ -108,13 +118,15 @@ const AdminProducts = () => {
   const handleAddGroup = () => {
     setEditingProduct(null);
     setEditingGroup(null);
+    setModalType('group');
     setFormData({
-      code: '',
       name: '',
-      unit: 'Vĩ',
+      description: '',
+      order: 0,
+      code: '',
+      unit: 'hộp',
       price: '',
-      groupId: '',
-      groupName: ''
+      groupId: ''
     });
     setShowModal(true);
   };
@@ -122,98 +134,173 @@ const AdminProducts = () => {
   const handleEditGroup = (group) => {
     setEditingProduct(null);
     setEditingGroup(group);
+    setModalType('group');
     setFormData({
+      name: group.name || '',
+      description: group.description || '',
+      order: group.order || 0,
       code: '',
-      name: group.name,
-      unit: 'Vĩ',
+      unit: 'hộp',
       price: '',
-      groupId: group.id,
-      groupName: group.name
+      groupId: group.id || ''
     });
     setShowModal(true);
   };
 
-  const handleDeleteProduct = (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
-      const updated = products.filter(p => p.id !== id);
-      setProducts(updated);
-      saveProducts(updated);
+  const handleDeleteGroup = async (id) => {
+    if (!window.confirm('Xóa danh mục sẽ xóa tất cả sản phẩm trong danh mục. Bạn có chắc chắn?')) return;
+
+    try {
+      setLoading(true);
+      // First, delete all products in this group
+      const productsInGroup = products.filter(p => p.groupId === id);
+      for (const product of productsInGroup) {
+        await fetch(`${API_BASE}/products/admin/products/${product.id}`, {
+          method: 'DELETE',
+        });
+      }
+
+      // Then delete the group
+      const response = await fetch(`${API_BASE}/products/admin/groups/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: false }),
+      });
+
+      if (response.ok) {
+        alert('Xóa danh mục thành công!');
+        loadProducts();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Lỗi khi xóa danh mục');
+      }
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      alert('Lỗi khi xóa danh mục');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteGroup = (id) => {
-    if (window.confirm('Xóa danh mục sẽ xóa tất cả sản phẩm trong danh mục. Bạn có chắc chắn?')) {
-      const updatedGroups = productGroups.filter(g => g.id !== id);
-      const updatedProducts = products.filter(p => p.groupId !== id);
-      setProductGroups(updatedGroups);
-      setProducts(updatedProducts);
-      saveProducts(updatedProducts, updatedGroups);
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE}/products/admin/products/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('Xóa sản phẩm thành công!');
+        loadProducts();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Lỗi khi xóa sản phẩm');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Lỗi khi xóa sản phẩm');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const saveProducts = (updatedProducts, updatedGroups) => {
-    const data = {
-      productGroups: updatedGroups || productGroups,
-      products: updatedProducts || products
-    };
-    saveToLocalStorage('adminProducts', data);
-    if (updatedGroups) setProductGroups(updatedGroups);
-    if (updatedProducts) setProducts(updatedProducts);
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editingGroup) {
       // Save group
       if (!formData.name) {
         alert('Vui lòng nhập tên danh mục');
         return;
       }
-      const updated = productGroups.map(g => 
-        g.id === editingGroup.id 
-          ? { ...g, name: formData.name }
-          : g
-      );
-      setProductGroups(updated);
-      saveProducts(products, updated);
+
+      try {
+        setLoading(true);
+        const payload = {
+          name: formData.name,
+          description: formData.description || null,
+          order: formData.order || 0,
+        };
+
+        const url = editingGroup.id
+          ? `${API_BASE}/products/admin/groups/${editingGroup.id}`
+          : `${API_BASE}/products/admin/groups`;
+        const method = editingGroup.id ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          alert(editingGroup.id ? 'Cập nhật danh mục thành công!' : 'Tạo danh mục thành công!');
+          setShowModal(false);
+          setEditingGroup(null);
+          setModalType('product');
+          loadProducts();
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Lỗi khi lưu danh mục');
+        }
+      } catch (error) {
+        console.error('Error saving group:', error);
+        alert('Lỗi khi lưu danh mục');
+      } finally {
+        setLoading(false);
+      }
     } else {
       // Save product
-      if (!formData.name || !formData.code || !formData.price || !formData.groupId) {
+      if (!formData.name || !formData.price || !formData.groupId) {
         alert('Vui lòng điền đầy đủ thông tin');
         return;
       }
-      let updated;
-      if (editingProduct) {
-        updated = products.map(p => 
-          p.id === editingProduct.id 
-            ? { 
-                ...p, 
-                code: formData.code,
-                name: formData.name,
-                unit: formData.unit,
-                price: parseFloat(formData.price),
-                groupId: formData.groupId,
-                groupName: productGroups.find(g => g.id === formData.groupId)?.name || ''
-              }
-            : p
-        );
-      } else {
-        const newProduct = {
-          id: `p${String(products.length + 1).padStart(3, '0')}`,
-          code: formData.code,
+
+      try {
+        setLoading(true);
+        const payload = {
           name: formData.name,
-          unit: formData.unit,
-          price: parseFloat(formData.price),
+          code: formData.code || null,
+          description: formData.description || null,
           groupId: formData.groupId,
-          groupName: productGroups.find(g => g.id === formData.groupId)?.name || ''
+          unit: formData.unit || 'hộp',
+          price: parseFloat(formData.price),
         };
-        updated = [...products, newProduct];
+
+        const url = editingProduct?.id
+          ? `${API_BASE}/products/admin/products/${editingProduct.id}`
+          : `${API_BASE}/products/admin/products`;
+        const method = editingProduct?.id ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          alert(editingProduct?.id ? 'Cập nhật sản phẩm thành công!' : 'Tạo sản phẩm thành công!');
+          setShowModal(false);
+          setEditingProduct(null);
+          setModalType('product');
+          loadProducts();
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Lỗi khi lưu sản phẩm');
+        }
+      } catch (error) {
+        console.error('Error saving product:', error);
+        alert('Lỗi khi lưu sản phẩm');
+      } finally {
+        setLoading(false);
       }
-      setProducts(updated);
-      saveProducts(updated);
     }
-    setShowModal(false);
-    setEditingProduct(null);
-    setEditingGroup(null);
   };
 
   const formatCurrency = (amount) => {
@@ -258,7 +345,7 @@ const AdminProducts = () => {
             onClick={handleAddGroup}
             style={{
               padding: '12px 24px',
-              background: '#3eb4a8',
+              background: '#F29E2E',
               border: 'none',
               borderRadius: '12px',
               color: '#fff',
@@ -277,7 +364,7 @@ const AdminProducts = () => {
             onClick={handleAddProduct}
             style={{
               padding: '12px 24px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               border: 'none',
               borderRadius: '12px',
               color: '#fff',
@@ -346,7 +433,7 @@ const AdminProducts = () => {
         marginBottom: '32px'
       }}>
         {productGroups.map(group => {
-          const groupProducts = products.filter(p => p.groupId === group.id);
+          const groupProducts = products.filter(p => p.groupId === group.id || p.group?.id === group.id);
           const totalRevenue = groupProducts.reduce((sum, p) => sum + (p.price || 0), 0);
           
           return (
@@ -390,10 +477,10 @@ const AdminProducts = () => {
                     onClick={() => handleEditGroup(group)}
                     style={{
                       padding: '6px 12px',
-                      background: '#3eb4a815',
-                      border: '1px solid #3eb4a8',
+                      background: '#FBC93D15',
+                      border: '1px solid #FBC93D',
                       borderRadius: '6px',
-                      color: '#3eb4a8',
+                      color: '#FBC93D',
                       fontSize: '12px',
                       cursor: 'pointer'
                     }}
@@ -477,14 +564,14 @@ const AdminProducts = () => {
               }}
             >
               <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a5ca2' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>
                 {product.code}
               </div>
               <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
                 {product.name}
               </div>
               <div style={{ fontSize: '13px', color: '#666' }}>
-                {product.groupName}
+                {product.group?.name || product.groupName || 'Chưa phân loại'}
               </div>
               <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
                 {product.unit}
@@ -500,10 +587,10 @@ const AdminProducts = () => {
                   onClick={() => handleEditProduct(product)}
                   style={{
                     padding: '6px 12px',
-                    background: '#3eb4a815',
-                    border: '1px solid #3eb4a8',
+                    background: '#FBC93D15',
+                    border: '1px solid #FBC93D',
                     borderRadius: '6px',
-                    color: '#3eb4a8',
+                    color: '#FBC93D',
                     fontSize: '12px',
                     cursor: 'pointer'
                   }}
@@ -563,13 +650,13 @@ const AdminProducts = () => {
               fontWeight: '600',
               marginBottom: '24px'
             }}>
-              {editingGroup 
+              {modalType === 'group'
                 ? (editingGroup ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới')
                 : (editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới')
               }
             </h2>
 
-            {editingGroup !== null ? (
+            {modalType === 'group' ? (
               // Group Form
               <div>
                 <div style={{ marginBottom: '16px' }}>
@@ -700,11 +787,9 @@ const AdminProducts = () => {
                     <select
                       value={formData.groupId}
                       onChange={(e) => {
-                        const group = productGroups.find(g => g.id === e.target.value);
                         setFormData({ 
                           ...formData, 
-                          groupId: e.target.value,
-                          groupName: group?.name || ''
+                          groupId: e.target.value
                         });
                       }}
                       style={{
@@ -772,7 +857,7 @@ const AdminProducts = () => {
                 onClick={handleSave}
                 style={{
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                  background: '#F29E2E',
                   border: 'none',
                   borderRadius: '8px',
                   color: '#fff',

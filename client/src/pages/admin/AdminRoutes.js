@@ -150,7 +150,7 @@ const AdminRoutes = () => {
           onClick={handleAdd}
           style={{
             padding: '12px 24px',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+            background: '#F29E2E',
             border: 'none',
             borderRadius: '12px',
             color: '#fff',
@@ -270,10 +270,10 @@ const AdminRoutes = () => {
                   style={{
                     flex: 1,
                     padding: '10px',
-                    background: '#3eb4a815',
-                    border: '1px solid #3eb4a8',
+                    background: '#FBC93D15',
+                    border: '1px solid #FBC93D',
                     borderRadius: '8px',
-                    color: '#3eb4a8',
+                    color: '#FBC93D',
                     fontSize: '14px',
                     cursor: 'pointer',
                     fontWeight: '600'
@@ -329,7 +329,7 @@ const AdminRoutes = () => {
             onClick={handleAdd}
             style={{
               padding: '12px 24px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               border: 'none',
               borderRadius: '12px',
               color: '#fff',
@@ -511,7 +511,7 @@ const AdminRoutes = () => {
                       cursor: 'pointer',
                       borderRadius: '6px',
                       background: formData.customerIds.includes(customer.id) 
-                        ? '#3eb4a815' 
+                        ? '#FBC93D15' 
                         : 'transparent'
                     }}
                   >
@@ -568,7 +568,7 @@ const AdminRoutes = () => {
                 onClick={handleSave}
                 style={{
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                  background: '#F29E2E',
                   border: 'none',
                   borderRadius: '8px',
                   color: '#fff',

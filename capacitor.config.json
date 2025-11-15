@@ -1,0 +1,27 @@
+{
+  "appId": "com.ammedtech.anminh",
+  "appName": "An Minh",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://sales.ammedtech.com",
+    "cleartext": false
+  },
+  "ios": {
+    "scheme": "anminh",
+    "contentInset": "automatic"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#1E4A8B",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#F29E2E"
+    }
+  }
+}
+

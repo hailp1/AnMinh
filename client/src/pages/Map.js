@@ -153,7 +153,7 @@ const Map = () => {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+        background: '#1E4A8B',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -169,12 +169,12 @@ const Map = () => {
             width: '50px',
             height: '50px',
             border: '4px solid #e5e7eb',
-            borderTop: '4px solid #1a5ca2',
+            borderTop: '4px solid #1E4A8B',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px'
           }}></div>
-          <p style={{ fontSize: '16px', color: '#1a5ca2', fontWeight: '600' }}>
+          <p style={{ fontSize: '16px', color: '#1E4A8B', fontWeight: '600' }}>
             Đang tải bản đồ...
           </p>
         </div>
@@ -185,7 +185,7 @@ const Map = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: 'linear-gradient(135deg, #1E4A8B 0%, #FBC93D 50%, #F29E2E 100%)',
       paddingBottom: '20px'
     }}>
       {/* Mobile Header */}
@@ -201,14 +201,14 @@ const Map = () => {
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1a5ca2' }}>
+        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1E4A8B' }}>
           ←
         </Link>
         <h1 style={{ 
           fontSize: '16px', 
           fontWeight: 'bold', 
           margin: 0,
-          color: '#1a5ca2',
+          color: '#1E4A8B',
           flex: 1,
           textAlign: 'center'
         }}>
@@ -234,9 +234,9 @@ const Map = () => {
               flex: 1,
               padding: '12px',
               background: activeTab === 'pharmacies' 
-                ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)' 
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
                 : 'transparent',
-              color: activeTab === 'pharmacies' ? '#fff' : '#1a5ca2',
+              color: activeTab === 'pharmacies' ? '#fff' : '#1E4A8B',
               border: 'none',
               borderRadius: '10px',
               fontSize: '13px',
@@ -253,9 +253,9 @@ const Map = () => {
               flex: 1,
               padding: '12px',
               background: activeTab === 'colleagues' 
-                ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)' 
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
                 : 'transparent',
-              color: activeTab === 'colleagues' ? '#fff' : '#1a5ca2',
+              color: activeTab === 'colleagues' ? '#fff' : '#1E4A8B',
               border: 'none',
               borderRadius: '10px',
               fontSize: '13px',
@@ -280,7 +280,7 @@ const Map = () => {
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
               <p style={{ 
-                color: '#1a5ca2', 
+                color: '#1E4A8B', 
                 fontSize: '14px', 
                 fontWeight: '600',
                 margin: 0
@@ -341,7 +341,7 @@ const Map = () => {
                           <strong>📞 SĐT:</strong> {pharmacy.phone}
                         </p>
                         {pharmacy.distance && (
-                          <p style={{ margin: '4px 0', fontSize: '12px', color: '#1a5ca2', fontWeight: '600' }}>
+                          <p style={{ margin: '4px 0', fontSize: '12px', color: '#1E4A8B', fontWeight: '600' }}>
                             📏 {formatDistance(pharmacy.distance)}
                           </p>
                         )}
@@ -351,7 +351,7 @@ const Map = () => {
                             display: 'block',
                             marginTop: '10px',
                             padding: '8px 12px',
-                            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                            background: '#F29E2E',
                             color: '#fff',
                             textAlign: 'center',
                             borderRadius: '8px',
@@ -426,7 +426,7 @@ const Map = () => {
                           <div style={{
                             display: 'inline-block',
                             background: 'rgba(26, 92, 162, 0.1)',
-                            color: '#1a5ca2',
+                            color: '#1E4A8B',
                             padding: '4px 10px',
                             borderRadius: '8px',
                             fontSize: '12px',
@@ -468,7 +468,7 @@ const Map = () => {
                           {pharmacy.hub}
                         </div>
                         {pharmacy.distance && (
-                          <div style={{ fontSize: '12px', color: '#1a5ca2', fontWeight: '600' }}>
+                          <div style={{ fontSize: '12px', color: '#1E4A8B', fontWeight: '600' }}>
                             <strong>📏 Khoảng cách:</strong><br />
                             {formatDistance(pharmacy.distance)}
                           </div>
@@ -480,7 +480,7 @@ const Map = () => {
                         style={{
                           display: 'block',
                           padding: '12px',
-                          background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                          background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
                           color: '#fff',
                           textAlign: 'center',
                           borderRadius: '12px',
@@ -510,7 +510,7 @@ const Map = () => {
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
               <p style={{ 
-                color: '#1a5ca2', 
+                color: '#1E4A8B', 
                 fontSize: '14px', 
                 fontWeight: '600',
                 margin: 0
@@ -557,7 +557,7 @@ const Map = () => {
                         width: '50px',
                         height: '50px',
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                        background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -591,7 +591,7 @@ const Map = () => {
                           <div>📍 Hub: {colleague.hub}</div>
                           <div>🆔 Mã: {colleague.id}</div>
                           {colleague.distance && (
-                            <div style={{ color: '#1a5ca2', fontWeight: '600' }}>
+                            <div style={{ color: '#1E4A8B', fontWeight: '600' }}>
                               📏 {formatDistance(colleague.distance)}
                             </div>
                           )}
@@ -616,7 +616,7 @@ const Map = () => {
                       style={{
                         display: 'block',
                         padding: '12px',
-                        background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                        background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
                         color: '#fff',
                         textAlign: 'center',
                         borderRadius: '12px',

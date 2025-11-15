@@ -6,7 +6,7 @@ const Footer = () => {
       <div className="footer-content">
         <div className="footer-brand">
           <span className="footer-logo">⚡</span>
-          <span className="footer-text">Sapharco Sales</span>
+          <span className="footer-text">An Minh Business System</span>
           <span className="footer-author">Sales Management System</span>
         </div>
         <div className="footer-links">

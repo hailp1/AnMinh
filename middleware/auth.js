@@ -11,7 +11,9 @@ export default function(req, res, next) {
 
   try {
     // Xác minh token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return res.status(500).json({ message: 'Thiếu JWT_SECRET' });
+    const decoded = jwt.verify(token, secret);
     req.user = decoded.user;
     next();
   } catch (error) {

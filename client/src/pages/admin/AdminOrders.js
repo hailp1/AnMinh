@@ -298,7 +298,7 @@ const AdminOrders = () => {
                     <span style={{
                       fontSize: '18px',
                       fontWeight: '600',
-                      color: '#1a5ca2'
+                      color: '#1E4A8B'
                     }}>
                       {order.id}
                     </span>
@@ -383,10 +383,10 @@ const AdminOrders = () => {
                       }}
                       style={{
                         padding: '8px 16px',
-                        background: '#3eb4a815',
-                        border: '1px solid #3eb4a8',
+                        background: '#FBC93D15',
+                        border: '1px solid #FBC93D',
                         borderRadius: '6px',
-                        color: '#3eb4a8',
+                        color: '#FBC93D',
                         fontSize: '13px',
                         fontWeight: '600',
                         cursor: 'pointer'
@@ -582,7 +582,7 @@ const AdminOrders = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Mã KH</div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a5ca2' }}>{selectedOrder.customerCode}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>{selectedOrder.customerCode}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Số điện thoại</div>
@@ -629,7 +629,7 @@ const AdminOrders = () => {
                   <tbody>
                     {selectedOrder.items.map((item, index) => (
                       <tr key={index} style={{ borderTop: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '12px', fontSize: '13px', color: '#1a5ca2', fontWeight: '600' }}>{item.productCode}</td>
+                        <td style={{ padding: '12px', fontSize: '13px', color: '#1E4A8B', fontWeight: '600' }}>{item.productCode}</td>
                         <td style={{ padding: '12px', fontSize: '13px', color: '#1a1a2e' }}>{item.productName}</td>
                         <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', color: '#1a1a2e' }}>{item.quantity} {item.unit}</td>
                         <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', color: '#666' }}>{formatCurrency(item.price)}</td>

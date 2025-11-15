@@ -204,7 +204,7 @@ const CreateOrder = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: '#1E4A8B',
       paddingBottom: orderItems.length > 0 ? '120px' : '20px'
     }}>
       {/* Mobile Header */}
@@ -220,14 +220,14 @@ const CreateOrder = () => {
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1a5ca2' }}>
+        <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1E4A8B' }}>
           ←
         </Link>
         <h1 style={{ 
           fontSize: '18px', 
           fontWeight: 'bold', 
           margin: 0,
-          color: '#1a5ca2',
+          color: '#1E4A8B',
           flex: 1,
           textAlign: 'center'
         }}>
@@ -272,7 +272,7 @@ const CreateOrder = () => {
               height: '40px',
               borderRadius: '50%',
               background: activeStep === step 
-                ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)' 
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
                 : '#e5e7eb',
               display: 'flex',
               alignItems: 'center',
@@ -286,7 +286,7 @@ const CreateOrder = () => {
             <span style={{ 
               fontSize: '11px', 
               textAlign: 'center',
-              color: activeStep === step ? '#1a5ca2' : '#666',
+              color: activeStep === step ? '#1E4A8B' : '#666',
               fontWeight: activeStep === step ? '600' : '400'
             }}>
               {label}
@@ -309,7 +309,7 @@ const CreateOrder = () => {
               fontSize: '18px', 
               marginBottom: '15px', 
               fontWeight: '600',
-              color: '#1a5ca2'
+              color: '#1E4A8B'
             }}>
               🏥 Chọn Nhà Thuốc
             </h2>
@@ -354,7 +354,7 @@ const CreateOrder = () => {
             {selectedCustomer && (
               <div style={{
                 background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
-                border: '2px solid #1a5ca2',
+                border: '2px solid #1E4A8B',
                 borderRadius: '12px',
                 padding: '15px',
                 marginBottom: '15px'
@@ -365,7 +365,7 @@ const CreateOrder = () => {
                   alignItems: 'center',
                   marginBottom: '10px'
                 }}>
-                  <div style={{ fontWeight: '600', fontSize: '16px', color: '#1a5ca2' }}>
+                  <div style={{ fontWeight: '600', fontSize: '16px', color: '#1E4A8B' }}>
                     ✅ {selectedCustomer.name}
                   </div>
                   <button
@@ -408,7 +408,7 @@ const CreateOrder = () => {
                     style={{
                       padding: '15px',
                       marginBottom: '12px',
-                      border: selectedCustomer?.id === customer.id ? '2px solid #1a5ca2' : '1px solid #e5e7eb',
+                      border: selectedCustomer?.id === customer.id ? '2px solid #1E4A8B' : '1px solid #e5e7eb',
                       borderRadius: '12px',
                       cursor: 'pointer',
                       background: selectedCustomer?.id === customer.id 
@@ -432,7 +432,7 @@ const CreateOrder = () => {
                       {customer.distance && (
                         <div style={{ 
                           fontSize: '12px', 
-                          color: '#1a5ca2', 
+                          color: '#1E4A8B', 
                           background: 'rgba(26, 92, 162, 0.1)',
                           padding: '4px 8px',
                           borderRadius: '8px',
@@ -454,7 +454,7 @@ const CreateOrder = () => {
                     </div>
                     <div style={{ 
                       fontSize: '12px', 
-                      color: '#1a5ca2',
+                      color: '#1E4A8B',
                       fontWeight: '600',
                       marginTop: '8px'
                     }}>
@@ -485,7 +485,7 @@ const CreateOrder = () => {
               <h2 style={{ 
                 fontSize: '18px', 
                 fontWeight: '600',
-                color: '#1a5ca2'
+                color: '#1E4A8B'
               }}>
                 💊 Chọn Sản Phẩm
               </h2>
@@ -495,7 +495,7 @@ const CreateOrder = () => {
                   background: 'none',
                   border: 'none',
                   fontSize: '14px',
-                  color: '#1a5ca2',
+                  color: '#1E4A8B',
                   cursor: 'pointer',
                   textDecoration: 'underline'
                 }}
@@ -512,7 +512,7 @@ const CreateOrder = () => {
               marginBottom: '20px',
               border: '1px solid rgba(26, 92, 162, 0.1)'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a5ca2', marginBottom: '5px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1E4A8B', marginBottom: '5px' }}>
                 🏥 {selectedCustomer.name}
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>
@@ -631,7 +631,7 @@ const CreateOrder = () => {
                         cursor: 'pointer',
                         fontSize: '24px',
                         fontWeight: 'bold',
-                        color: '#1a5ca2',
+                        color: '#1E4A8B',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -667,7 +667,7 @@ const CreateOrder = () => {
                         cursor: 'pointer',
                         fontSize: '24px',
                         fontWeight: 'bold',
-                        color: '#1a5ca2',
+                        color: '#1E4A8B',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -706,7 +706,7 @@ const CreateOrder = () => {
                         <div style={{ 
                           fontSize: '16px', 
                           fontWeight: 'bold', 
-                          color: '#1a5ca2'
+                          color: '#1E4A8B'
                         }}>
                           {product.price.toLocaleString('vi-VN')}đ
                         </div>
@@ -718,7 +718,7 @@ const CreateOrder = () => {
                         textAlign: 'center',
                         fontSize: '14px',
                         fontWeight: '600',
-                        color: '#1a5ca2'
+                        color: '#1E4A8B'
                       }}>
                         Thành tiền: {(product.price * quantity).toLocaleString('vi-VN')}đ
                       </div>
@@ -734,7 +734,7 @@ const CreateOrder = () => {
                     width: '100%',
                     padding: '16px',
                     background: selectedProduct && selectedCustomer
-                      ? 'linear-gradient(135deg, #1a5ca2, #3eb4a8)'
+                      ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)'
                       : '#e5e7eb',
                     color: '#fff',
                     border: 'none',
@@ -762,7 +762,7 @@ const CreateOrder = () => {
                     style={{
                       width: '100%',
                       padding: '14px',
-                      background: 'linear-gradient(135deg, #e5aa42, #f5c869)',
+                      background: 'linear-gradient(135deg, #F29E2E, #f5c869)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '12px',
@@ -799,7 +799,7 @@ const CreateOrder = () => {
               <h2 style={{ 
                 fontSize: '18px', 
                 fontWeight: '600',
-                color: '#1a5ca2'
+                color: '#1E4A8B'
               }}>
                 📋 Đơn Hàng ({orderItems.length} sản phẩm)
               </h2>
@@ -812,7 +812,7 @@ const CreateOrder = () => {
                   }}
                   style={{
                     padding: '8px 16px',
-                    background: 'linear-gradient(135deg, #e5aa42, #f5c869)',
+                    background: 'linear-gradient(135deg, #F29E2E, #f5c869)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '8px',
@@ -829,7 +829,7 @@ const CreateOrder = () => {
                     background: 'rgba(26, 92, 162, 0.1)',
                     borderRadius: '8px',
                     fontSize: '12px',
-                    color: '#1a5ca2',
+                    color: '#1E4A8B',
                     fontWeight: '600'
                   }}>
                     🏥 {selectedCustomer.name}
@@ -922,7 +922,7 @@ const CreateOrder = () => {
                             cursor: 'pointer',
                             fontSize: '20px',
                             fontWeight: 'bold',
-                            color: '#1a5ca2',
+                            color: '#1E4A8B',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -950,7 +950,7 @@ const CreateOrder = () => {
                             cursor: 'pointer',
                             fontSize: '20px',
                             fontWeight: 'bold',
-                            color: '#1a5ca2',
+                            color: '#1E4A8B',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -963,7 +963,7 @@ const CreateOrder = () => {
                       <div style={{ 
                         fontSize: '16px', 
                         fontWeight: 'bold', 
-                        color: '#1a5ca2',
+                        color: '#1E4A8B',
                         minWidth: '100px',
                         textAlign: 'right'
                       }}>
@@ -979,7 +979,7 @@ const CreateOrder = () => {
               padding: '15px',
               background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
               borderRadius: '12px',
-              border: '2px solid #1a5ca2',
+              border: '2px solid #1E4A8B',
               marginBottom: '15px'
             }}>
               <div style={{
@@ -990,7 +990,7 @@ const CreateOrder = () => {
                 <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e' }}>
                   Tổng cộng:
                 </div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1a5ca2' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1E4A8B' }}>
                   {totalAmount.toLocaleString('vi-VN')}đ
                 </div>
               </div>
@@ -1018,7 +1018,7 @@ const CreateOrder = () => {
               onClick={() => setActiveStep(1)}
               style={{
                 padding: '14px 28px',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '12px',
@@ -1056,7 +1056,7 @@ const CreateOrder = () => {
             <div style={{ fontSize: '14px', color: '#666' }}>
               {orderItems.length} sản phẩm
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a5ca2' }}>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>
               {totalAmount.toLocaleString('vi-VN')}đ
             </div>
           </div>
@@ -1065,7 +1065,7 @@ const CreateOrder = () => {
             style={{
               width: '100%',
               padding: '16px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
               color: '#fff',
               border: 'none',
               borderRadius: '12px',

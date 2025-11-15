@@ -134,7 +134,7 @@ const Chat = () => {
               background: 'rgba(26, 92, 162, 0.1)', 
               borderRadius: '8px',
               fontSize: '12px',
-              color: '#1a5ca2',
+              color: '#1E4A8B',
               marginRight: '10px'
             }}>
               {targetUser.hub}

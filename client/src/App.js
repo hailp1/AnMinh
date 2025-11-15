@@ -6,7 +6,6 @@ import Footer from './components/Footer';
 import PageTransition from './components/PageTransition';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
-import Login from './pages/Login';
 import QuickRegister from './pages/QuickRegister';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -32,12 +31,19 @@ import AdminOrders from './pages/admin/AdminOrders';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminReset from './pages/admin/AdminReset';
+import AdminPromotions from './pages/admin/AdminPromotions';
+import AdminLoyalty from './pages/admin/AdminLoyalty';
+import AdminCustomerSegments from './pages/admin/AdminCustomerSegments';
+import AdminTradeActivities from './pages/admin/AdminTradeActivities';
+import AdminKPI from './pages/admin/AdminKPI';
+import AdminApprovals from './pages/admin/AdminApprovals';
 import './styles-production.css';
 
 function AppContent() {
   const location = useLocation();
   const isOnboarding = location.pathname === '/';
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/quick-register' || location.pathname === '/forgot-password' || location.pathname === '/reset-password';
+  const isAuthPage = location.pathname === '/register' || location.pathname === '/quick-register' || location.pathname === '/forgot-password' || location.pathname === '/reset-password';
   const isAdminPage = location.pathname.startsWith('/admin');
 
   // Admin routes
@@ -55,6 +61,13 @@ function AppContent() {
         <Route path="/admin/products" element={<AdminWrapper><AdminProducts /></AdminWrapper>} />
         <Route path="/admin/users" element={<AdminWrapper><AdminUsers /></AdminWrapper>} />
         <Route path="/admin/settings" element={<AdminWrapper><AdminSettings /></AdminWrapper>} />
+        <Route path="/admin/reset" element={<AdminWrapper><AdminReset /></AdminWrapper>} />
+        <Route path="/admin/promotions" element={<AdminWrapper><AdminPromotions /></AdminWrapper>} />
+        <Route path="/admin/loyalty" element={<AdminWrapper><AdminLoyalty /></AdminWrapper>} />
+        <Route path="/admin/customer-segments" element={<AdminWrapper><AdminCustomerSegments /></AdminWrapper>} />
+        <Route path="/admin/trade-activities" element={<AdminWrapper><AdminTradeActivities /></AdminWrapper>} />
+        <Route path="/admin/kpi" element={<AdminWrapper><AdminKPI /></AdminWrapper>} />
+        <Route path="/admin/approvals" element={<AdminWrapper><AdminApprovals /></AdminWrapper>} />
       </Routes>
     );
   }
@@ -67,7 +80,6 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Onboarding />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/login" element={<Login />} />
             <Route path="/register" element={<QuickRegister />} />
             <Route path="/quick-register" element={<QuickRegister />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -126,7 +126,7 @@ const StationDetail = () => {
   return (
     <div className="station-detail-container">
       {/* Header */}
-      <div className="station-header-card" style={{ background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 100%)' }}>
+      <div className="station-header-card" style={{ background: '#1E4A8B' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div>
             <h1 className="station-title" style={{ color: '#fff' }}>
@@ -189,14 +189,14 @@ const StationDetail = () => {
               border: '1px solid rgba(26, 92, 162, 0.1)'
             }}>
               <div>
-                <div style={{ fontWeight: '600', color: '#1a5ca2', marginBottom: '0.25rem' }}>
+                <div style={{ fontWeight: '600', color: '#1E4A8B', marginBottom: '0.25rem' }}>
                   {month.month}
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>
                   {month.orderCount} đơn hàng
                 </div>
               </div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1a5ca2' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#1E4A8B' }}>
                 {formatCurrency(month.revenue)}
               </div>
             </div>
@@ -218,14 +218,14 @@ const StationDetail = () => {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                   <div>
-                    <div style={{ fontWeight: '600', color: '#1a5ca2' }}>
+                    <div style={{ fontWeight: '600', color: '#1E4A8B' }}>
                       Đơn hàng #{order.id?.slice(-6) || index + 1}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
                       {formatDate(order.createdAt || order.date)}
                     </div>
                   </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1a5ca2' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1E4A8B' }}>
                     {formatCurrency(
                       order.items?.reduce((sum, item) => 
                         sum + (item.price * item.quantity), 0) || 0
@@ -278,7 +278,7 @@ const StationDetail = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <div>
-                  <div style={{ fontWeight: '600', color: '#1a5ca2', marginBottom: '0.25rem' }}>
+                  <div style={{ fontWeight: '600', color: '#1E4A8B', marginBottom: '0.25rem' }}>
                     {product.name}
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#666' }}>
@@ -290,7 +290,7 @@ const StationDetail = () => {
                   background: 'rgba(26, 92, 162, 0.1)',
                   borderRadius: '6px',
                   fontSize: '0.75rem',
-                  color: '#1a5ca2',
+                  color: '#1E4A8B',
                   fontWeight: '600'
                 }}>
                   {product.code}
@@ -300,7 +300,7 @@ const StationDetail = () => {
                 <div style={{ fontSize: '0.85rem', color: '#666' }}>
                   Đơn vị: {product.unit}
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1a5ca2' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1E4A8B' }}>
                   {formatCurrency(product.price)}
                 </div>
               </div>
@@ -314,7 +314,7 @@ const StationDetail = () => {
             style={{
               display: 'inline-block',
               padding: '12px 24px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               color: '#fff',
               borderRadius: '8px',
               textDecoration: 'none',
@@ -337,7 +337,7 @@ const StationDetail = () => {
             textAlign: 'center',
             padding: '12px',
             background: '#f3f4f6',
-            color: '#1a5ca2',
+            color: '#1E4A8B',
             borderRadius: '8px',
             textDecoration: 'none',
             fontWeight: '600'
@@ -353,7 +353,7 @@ const StationDetail = () => {
             minWidth: '120px',
             textAlign: 'center',
             padding: '12px',
-            background: 'linear-gradient(135deg, #e5aa42, #f5c869)',
+            background: 'linear-gradient(135deg, #F29E2E, #f5c869)',
             color: '#fff',
             borderRadius: '8px',
             textDecoration: 'none',
@@ -370,7 +370,7 @@ const StationDetail = () => {
             minWidth: '120px',
             textAlign: 'center',
             padding: '12px',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+            background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
             color: '#fff',
             borderRadius: '8px',
             textDecoration: 'none',

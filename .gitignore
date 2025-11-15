@@ -60,4 +60,21 @@ uploads/
 Thumbs.db
 
 # Vercel
-.vercel
+.vercel# Secrets
+.env
+client/.env*
+*.env.local
+*.env.development.local
+uploads/
+# Dependencies
+node_modules/
+client/node_modules/
+# Build
+client/build/
+# Logs
+*.log
+client/npm-debug.log*
+# OS
+.DS_Store
+Thumbs.db
+

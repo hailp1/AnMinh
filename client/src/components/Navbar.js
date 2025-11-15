@@ -29,7 +29,7 @@ const Navbar = () => {
         <Link to="/" className="navbar-brand-enhanced">
           <div className="brand-icon">⚡</div>
           <div className="brand-text">
-            <span className="brand-name">Sapharco Sales</span>
+            <span className="brand-name">An Minh Business System</span>
             <span className="brand-tagline">Sales Management</span>
           </div>
         </Link>

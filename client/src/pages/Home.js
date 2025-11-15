@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import customersData from '../data/customers.json';
+import { pharmaciesAPI, ordersAPI } from '../services/api';
 
 const Home = () => {
   const { user } = useAuth();
@@ -24,29 +24,28 @@ const Home = () => {
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadUserStats = () => {
+  const loadUserStats = async () => {
     try {
-      const { getFromLocalStorage } = require('../utils/mockData');
-      const orders = getFromLocalStorage('orders', []);
+      // Load orders from API
+      const orders = await ordersAPI.getAll({ userId: user?.id });
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+      // Load pharmacies from API
+      const allPharmacies = await pharmaciesAPI.getAll();
       
-      // Tính stats từ orders của user
-      const userOrders = orders.filter(order => order.userId === user?.id);
-      const totalRevenue = userOrders.reduce((sum, order) => {
-        return sum + (order.items?.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0) || 0);
-      }, 0);
-
-      const allPharmacies = customersData?.customers || [];
-      const userPharmacies = user?.hub 
-        ? allPharmacies.filter(p => p.hub === user.hub)
-        : allPharmacies;
-
       setStats({
-        totalPharmacies: userPharmacies.length,
-        totalOrders: userOrders.length,
+        totalPharmacies: allPharmacies.length,
+        totalOrders: orders.length,
         totalRevenue: totalRevenue
       });
     } catch (error) {
       console.error('Error loading stats:', error);
+      // Fallback to 0 if API fails
+      setStats({
+        totalPharmacies: 0,
+        totalOrders: 0,
+        totalRevenue: 0
+      });
     }
   };
 
@@ -77,24 +76,33 @@ const Home = () => {
   };
 
   const fetchNearbyPharmacies = async (lat, lng) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Load pharmacies from API
+      const allPharmacies = await pharmaciesAPI.getAll();
+      
+      // Lọc theo Hub phụ trách nếu user là Trình dược viên
+      let filteredPharmacies = allPharmacies;
+      if (user && user.role === 'PHARMACY_REP') {
+        // API đã tự động filter theo user assignment
+        filteredPharmacies = allPharmacies;
+      }
     
-    const allPharmacies = customersData?.customers || [];
-    
-    // Lọc theo Hub phụ trách nếu user là Trình dược viên
-    let filteredPharmacies = allPharmacies;
-    if (user && user.hub) {
-      filteredPharmacies = allPharmacies.filter(pharmacy => pharmacy.hub === user.hub);
+      // Tính khoảng cách và sắp xếp
+      const pharmaciesWithDistance = filteredPharmacies
+        .filter(p => p.latitude && p.longitude)
+        .map(pharmacy => {
+          const distance = calculateDistance(lat, lng, pharmacy.latitude, pharmacy.longitude);
+          return { ...pharmacy, distance };
+        })
+        .sort((a, b) => a.distance - b.distance);
+      
+      setNearbyPharmacies(pharmaciesWithDistance.slice(0, 5)); // Top 5 closest
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching pharmacies:', error);
+      setNearbyPharmacies([]);
+      setLoading(false);
     }
-    
-    // Tính khoảng cách và sắp xếp
-    const pharmaciesWithDistance = filteredPharmacies.map(pharmacy => {
-      const distance = calculateDistance(lat, lng, pharmacy.latitude, pharmacy.longitude);
-      return { ...pharmacy, distance };
-    }).sort((a, b) => a.distance - b.distance);
-    
-    setNearbyPharmacies(pharmaciesWithDistance.slice(0, 5)); // Top 5 closest
-    setLoading(false);
   };
 
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
@@ -137,7 +145,7 @@ const Home = () => {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+        background: '#1E4A8B',
         padding: '20px'
       }}>
         {/* Hero Section */}
@@ -150,8 +158,8 @@ const Home = () => {
           boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
         }}>
           <img 
-            src="/image/logo.png" 
-            alt="Sapharco Sales" 
+            src="/image/logo.webp" 
+            alt="An Minh Business System" 
             style={{
               maxWidth: '150px',
               height: 'auto',
@@ -161,10 +169,10 @@ const Home = () => {
           <h1 style={{
             fontSize: '28px',
             fontWeight: 'bold',
-            color: '#1a5ca2',
+            color: '#1E4A8B',
             marginBottom: '10px'
           }}>
-            Sapharco Sales
+            An Minh Business System
           </h1>
           <p style={{
             fontSize: '16px',
@@ -187,8 +195,8 @@ const Home = () => {
               borderRadius: '12px'
             }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏥</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a5ca2' }}>
-                {customersData?.customers?.length || 0}+
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>
+                {nearbyPharmacies?.length || 0}+
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Nhà thuốc</div>
             </div>
@@ -199,7 +207,7 @@ const Home = () => {
               borderRadius: '12px'
             }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>👨‍⚕️</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a5ca2' }}>24/7</div>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>24/7</div>
               <div style={{ fontSize: '12px', color: '#666' }}>Hỗ trợ</div>
             </div>
             
@@ -209,7 +217,7 @@ const Home = () => {
               borderRadius: '12px'
             }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>📊</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a5ca2' }}>100%</div>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>100%</div>
               <div style={{ fontSize: '12px', color: '#666' }}>Hiệu quả</div>
             </div>
           </div>
@@ -226,7 +234,7 @@ const Home = () => {
           <h2 style={{
             fontSize: '20px',
             fontWeight: 'bold',
-            color: '#1a5ca2',
+            color: '#1E4A8B',
             marginBottom: '20px',
             textAlign: 'center'
           }}>
@@ -246,7 +254,7 @@ const Home = () => {
                 width: '50px',
                 height: '50px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -276,7 +284,7 @@ const Home = () => {
                 width: '50px',
                 height: '50px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -306,7 +314,7 @@ const Home = () => {
                 width: '50px',
                 height: '50px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -336,7 +344,7 @@ const Home = () => {
                 width: '50px',
                 height: '50px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                background: '#F29E2E',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -362,7 +370,7 @@ const Home = () => {
             to="/quick-register" 
             style={{
               padding: '16px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               color: '#fff',
               textAlign: 'center',
               borderRadius: '12px',
@@ -376,17 +384,17 @@ const Home = () => {
           </Link>
           
           <Link 
-            to="/login" 
+            to="/" 
             style={{
               padding: '16px',
               background: 'rgba(255, 255, 255, 0.95)',
-              color: '#1a5ca2',
+              color: '#1E4A8B',
               textAlign: 'center',
               borderRadius: '12px',
               textDecoration: 'none',
               fontSize: '16px',
               fontWeight: '600',
-              border: '2px solid #1a5ca2'
+              border: '2px solid #1E4A8B'
             }}
           >
             🔐 Đăng nhập
@@ -400,7 +408,7 @@ const Home = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a5ca2 0%, #3eb4a8 50%, #e5aa42 100%)',
+      background: '#1E4A8B',
       paddingBottom: '100px'
     }}>
       {/* Header */}
@@ -421,7 +429,7 @@ const Home = () => {
             <h1 style={{
               fontSize: '24px',
               fontWeight: 'bold',
-              color: '#1a5ca2',
+              color: '#1E4A8B',
               margin: '0 0 5px 0'
             }}>
               Xin chào, {user.name}! 👋
@@ -431,7 +439,7 @@ const Home = () => {
               color: '#666',
               margin: 0
             }}>
-              {user.hub ? `📍 Hub ${user.hub}` : '📍 Sapharco Sales'}
+              {user.hub ? `📍 Hub ${user.hub}` : '📍 An Minh Business System'}
               {locationError ? ' (Vị trí mặc định)' : ' • Đã xác định vị trí'}
             </p>
           </div>
@@ -439,7 +447,7 @@ const Home = () => {
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+            background: '#F29E2E',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -461,7 +469,7 @@ const Home = () => {
             borderRadius: '12px',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a5ca2' }}>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>
               {stats.totalPharmacies}
             </div>
             <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Nhà thuốc</div>
@@ -473,7 +481,7 @@ const Home = () => {
             borderRadius: '12px',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a5ca2' }}>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>
               {stats.totalOrders}
             </div>
             <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Đơn hàng</div>
@@ -485,7 +493,7 @@ const Home = () => {
             borderRadius: '12px',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1a5ca2' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1E4A8B' }}>
               {formatCurrency(stats.totalRevenue).replace('₫', '')}₫
             </div>
             <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Doanh thu</div>
@@ -526,7 +534,7 @@ const Home = () => {
               width: '50px',
               height: '50px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -562,7 +570,7 @@ const Home = () => {
               width: '50px',
               height: '50px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -622,7 +630,7 @@ const Home = () => {
               width: '40px',
               height: '40px',
               border: '4px solid #e5e7eb',
-              borderTop: '4px solid #1a5ca2',
+              borderTop: '4px solid #1E4A8B',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 15px'
@@ -661,7 +669,7 @@ const Home = () => {
                     <div style={{
                       display: 'inline-block',
                       background: 'rgba(26, 92, 162, 0.1)',
-                      color: '#1a5ca2',
+                      color: '#1E4A8B',
                       padding: '4px 10px',
                       borderRadius: '8px',
                       fontSize: '11px',
@@ -682,7 +690,7 @@ const Home = () => {
                   {pharmacy.distance && (
                     <div style={{
                       padding: '6px 12px',
-                      background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                      background: '#F29E2E',
                       color: '#fff',
                       borderRadius: '20px',
                       fontSize: '12px',
@@ -731,7 +739,7 @@ const Home = () => {
                     style={{
                       flex: 1,
                       padding: '10px',
-                      background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+                      background: '#F29E2E',
                       color: '#fff',
                       textAlign: 'center',
                       borderRadius: '10px',
@@ -790,7 +798,7 @@ const Home = () => {
           style={{
             flex: 1,
             padding: '12px',
-            background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+            background: '#F29E2E',
             color: '#fff',
             textAlign: 'center',
             borderRadius: '12px',

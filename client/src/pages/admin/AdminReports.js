@@ -329,21 +329,21 @@ const AdminReports = () => {
             label: 'Tổng doanh thu',
             value: formatCurrency(stats.totalRevenue),
             icon: '💰',
-            color: '#e5aa42',
+            color: '#F29E2E',
             change: '+15.2%'
           },
           {
             label: 'Tổng đơn hàng',
             value: formatNumber(stats.totalOrders),
             icon: '📦',
-            color: '#1a5ca2',
+            color: '#1E4A8B',
             change: '+8.5%'
           },
           {
             label: 'Khách hàng',
             value: formatNumber(stats.totalCustomers),
             icon: '👥',
-            color: '#3eb4a8',
+            color: '#FBC93D',
             change: '+12.3%'
           },
           {
@@ -464,7 +464,7 @@ const AdminReports = () => {
                     width: '100%',
                     maxWidth: isMobile ? '30px' : '40px',
                     height: `${height}px`,
-                    background: 'linear-gradient(180deg, #1a5ca2, #3eb4a8)',
+                    background: '#F29E2E',
                     borderRadius: '6px 6px 0 0',
                     transition: 'all 0.3s'
                   }}></div>
@@ -520,7 +520,7 @@ const AdminReports = () => {
               {coverageData.byProduct?.slice(0, 10).map((product, index) => (
                 <tr key={product.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>{index + 1}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#1a5ca2' }}>{product.code}</td>
+                  <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>{product.code}</td>
                   <td style={{ padding: '12px', fontSize: '14px', color: '#1a1a2e' }}>{product.name}</td>
                   <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', color: '#1a1a2e' }}>{formatNumber(product.orders)}</td>
                   <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', color: '#1a1a2e' }}>{formatNumber(product.quantity)}</td>
@@ -578,7 +578,7 @@ const AdminReports = () => {
                     <div style={{
                       height: '100%',
                       width: `${width}%`,
-                      background: 'linear-gradient(90deg, #1a5ca2, #3eb4a8)',
+                      background: '#F29E2E',
                       transition: 'width 0.3s'
                     }}></div>
                   </div>
@@ -633,11 +633,11 @@ const AdminReports = () => {
                 }}>
                   <div>
                     <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Số lượng</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#1a5ca2' }}>{formatNumber(type.count)}</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#1E4A8B' }}>{formatNumber(type.count)}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Đơn hàng</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#3eb4a8' }}>{formatNumber(type.orders)}</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#FBC93D' }}>{formatNumber(type.orders)}</div>
                   </div>
                   <div>
                     <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Doanh thu</div>
@@ -676,7 +676,7 @@ const AdminReports = () => {
               padding: '20px',
               background: 'linear-gradient(135deg, #f9fafb, #fff)',
               borderRadius: '12px',
-              border: '2px solid #e5aa42',
+              border: '2px solid #F29E2E',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
               <div style={{
@@ -698,11 +698,11 @@ const AdminReports = () => {
               }}>
                 <div>
                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Khách hàng</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1a5ca2' }}>{formatNumber(hub.customers)}</div>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1E4A8B' }}>{formatNumber(hub.customers)}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Đơn hàng</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3eb4a8' }}>{formatNumber(hub.orders)}</div>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FBC93D' }}>{formatNumber(hub.orders)}</div>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Doanh thu</div>
@@ -746,13 +746,13 @@ const AdminReports = () => {
               {performanceData.slice(0, 15).map((customer, index) => (
                 <tr key={customer.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>{index + 1}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#1a5ca2' }}>{customer.code}</td>
+                  <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>{customer.code}</td>
                   <td style={{ padding: '12px', fontSize: '14px', color: '#1a1a2e' }}>{customer.name}</td>
                   <td style={{ padding: '12px', fontSize: '14px' }}>
                     <span style={{
                       padding: '4px 10px',
-                      background: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#e5aa4215' : '#1a5ca215',
-                      color: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#e5aa42' : '#1a5ca2',
+                      background: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#F29E2E15' : '#1E4A8B15',
+                      color: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#F29E2E' : '#1E4A8B',
                       borderRadius: '6px',
                       fontSize: '12px',
                       fontWeight: '600'

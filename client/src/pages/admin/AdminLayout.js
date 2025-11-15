@@ -97,6 +97,42 @@ const AdminLayout = ({ children }) => {
       label: '⚙️ Cài đặt hệ thống',
       path: '/admin/settings',
       icon: '⚙️'
+    },
+    {
+      id: 'promotions',
+      label: '🎁 Quản lý khuyến mãi',
+      path: '/admin/promotions',
+      icon: '🎁'
+    },
+    {
+      id: 'loyalty',
+      label: '💎 Quản lý tích lũy',
+      path: '/admin/loyalty',
+      icon: '💎'
+    },
+    {
+      id: 'customer-segments',
+      label: '🏷️ Phân nhóm khách hàng',
+      path: '/admin/customer-segments',
+      icon: '🏷️'
+    },
+    {
+      id: 'trade-activities',
+      label: '🎯 Hoạt động thương mại',
+      path: '/admin/trade-activities',
+      icon: '🎯'
+    },
+    {
+      id: 'kpi',
+      label: '📊 KPI & Thưởng',
+      path: '/admin/kpi',
+      icon: '📊'
+    },
+    {
+      id: 'approvals',
+      label: '✅ Quản lý Phê duyệt',
+      path: '/admin/approvals',
+      icon: '✅'
     }
   ];
 
@@ -107,15 +143,16 @@ const AdminLayout = ({ children }) => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div style={{
+    <div className="admin-layout" style={{
       display: 'flex',
       minHeight: '100vh',
-      background: '#f5f7fa'
+      background: '#f5f7fa',
+      color: '#1a1a2e'
     }}>
       {/* Sidebar */}
       <div style={{
         width: sidebarOpen ? (isMobile ? '100%' : '280px') : (isMobile ? '0' : '80px'),
-        background: 'linear-gradient(180deg, #1a5ca2 0%, #1a1a2e 100%)',
+        background: '#1E4A8B',
         color: '#fff',
         transition: 'width 0.3s ease, transform 0.3s ease',
         position: isMobile ? 'fixed' : 'fixed',
@@ -124,7 +161,8 @@ const AdminLayout = ({ children }) => {
         zIndex: isMobile && sidebarOpen ? 1000 : 1000,
         boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
         transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
-        display: isMobile && !sidebarOpen ? 'none' : 'block'
+        display: isMobile && !sidebarOpen ? 'none' : 'block',
+        paddingBottom: sidebarOpen ? '72px' : '16px'
       }}>
         {/* Logo */}
         <div style={{
@@ -147,8 +185,8 @@ const AdminLayout = ({ children }) => {
             overflow: 'hidden'
           }}>
             <img 
-              src="/image/logo.png" 
-              alt="Sapharco" 
+              src="/image/logo.webp" 
+              alt="An Minh Business System" 
               style={{
                 width: '100%',
                 height: '100%',
@@ -164,7 +202,7 @@ const AdminLayout = ({ children }) => {
                 marginBottom: '4px',
                 color: '#fff'
               }}>
-                Sapharco DMS
+                An Minh Business System
               </div>
               <div style={{
                 fontSize: '12px',
@@ -192,7 +230,7 @@ const AdminLayout = ({ children }) => {
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1a5ca2, #3eb4a8)',
+              background: '#F29E2E',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -239,7 +277,7 @@ const AdminLayout = ({ children }) => {
                   ? 'rgba(62, 180, 168, 0.3)' 
                   : 'transparent',
                 borderLeft: isActive(item.path) 
-                  ? '3px solid #3eb4a8' 
+                  ? '3px solid #FBC93D' 
                   : '3px solid transparent',
                 transition: 'all 0.2s',
                 color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.8)'
@@ -270,37 +308,39 @@ const AdminLayout = ({ children }) => {
           ))}
         </nav>
 
-        {/* Toggle Sidebar */}
-        <div style={{
-          padding: '16px',
-          borderTop: '1px solid rgba(255,255,255,0.1)',
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: '#1a1a2e'
-        }}>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            <span>{sidebarOpen ? '◀' : '▶'}</span>
-            {sidebarOpen && <span>Thu gọn</span>}
-          </button>
-        </div>
+        {/* Toggle Sidebar (footer) - only show when expanded on desktop */}
+        {!isMobile && sidebarOpen && (
+          <div style={{
+            padding: '16px',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: '#1a1a2e'
+          }}>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>◀</span>
+              <span>Thu gọn</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Overlay */}
@@ -323,8 +363,32 @@ const AdminLayout = ({ children }) => {
       <div style={{
         flex: 1,
         marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'),
-        transition: 'margin-left 0.3s ease'
+        transition: 'margin-left 0.3s ease',
+        background: '#f5f7fa'
       }}>
+        {/* Floating toggle when collapsed (desktop) */}
+        {!isMobile && !sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              position: 'fixed',
+              left: '88px',
+              top: '80px',
+              zIndex: 1100,
+              padding: '10px',
+              background: '#1E4A8B',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              cursor: 'pointer'
+            }}
+            aria-label="Mở thanh bên"
+            title="Mở thanh bên"
+          >
+            ▶
+          </button>
+        )}
         {/* Top Bar */}
         <div style={{
           background: '#fff',
@@ -336,7 +400,8 @@ const AdminLayout = ({ children }) => {
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           position: 'sticky',
           top: 0,
-          zIndex: 100
+          zIndex: 100,
+          color: '#1a1a2e'
         }}>
           <div style={{
             display: 'flex',

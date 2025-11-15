@@ -1,8 +1,8 @@
-# 🏥 Sapharco Sales - Hệ thống quản lý bán hàng cho Trình dược viên
+# 🏥 An Minh Business System - Hệ thống quản lý bán hàng cho Trình dược viên
 
 ## 📱 Giới thiệu
 
-**Sapharco Sales** là ứng dụng web quản lý bán hàng chuyên nghiệp dành cho Trình dược viên (Pharmaceutical Representatives) tại các nhà thuốc. Ứng dụng giúp quản lý khách hàng, đặt đơn hàng, theo dõi doanh thu và tối ưu hóa quy trình bán hàng.
+**An Minh Business System** là ứng dụng web quản lý bán hàng chuyên nghiệp dành cho Trình dược viên (Pharmaceutical Representatives) tại các nhà thuốc. Ứng dụng giúp quản lý khách hàng, đặt đơn hàng, theo dõi doanh thu và tối ưu hóa quy trình bán hàng.
 
 ## ✨ Tính năng chính
 
@@ -25,13 +25,16 @@
 - 📦 **Quản lý đơn hàng**: Xem và xử lý đơn hàng cần giao
 - 🗺️ **Tối ưu tuyến đường**: Xem vị trí khách hàng trên bản đồ
 
-## 🎨 Bảng màu
+## 🎨 Bảng màu - Tông màu nhận diện An Minh Business System
 
-Dự án sử dụng bảng màu chuyên nghiệp:
+Dự án sử dụng bảng màu nhận diện thương hiệu chuyên nghiệp:
 
-- **Xanh bích (Primary)**: `#1a5ca2` - Màu chủ đạo
-- **Xanh ngọc (Secondary)**: `#3eb4a8` - Màu phụ
-- **Vàng (Accent)**: `#e5aa42` - Màu nhấn
+- **Xanh dương đậm (Primary)**: `#1E4A8B` - Màu nền chính - rgb(30, 74, 139)
+- **Vàng sáng (Secondary)**: `#FBC93D` - rgb(251, 201, 61)
+- **Cam đậm (Accent)**: `#F29E2E` - rgb(242, 158, 46)
+- **Trắng (Text)**: `#FFFFFF` - Màu chữ viết - rgb(255, 255, 255)
+
+*Designed by AMMedtech Team*
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -63,8 +66,8 @@ Dự án sử dụng bảng màu chuyên nghiệp:
 
 ```bash
 # Clone repository
-git clone https://github.com/Sacvui/sapharco.git
-cd sapharco
+git clone https://github.com/hailp1/AnMinh.git
+cd AnMinh
 
 # Cài đặt dependencies cho root
 npm install
@@ -90,12 +93,12 @@ npm start
 
 ### Truy cập ứng dụng:
 - **Local**: http://localhost:3000 (hoặc port được cấu hình)
-- **Production**: https://sapharco.vercel.app
+- **Production**: https://anminh.vercel.app
 
 ## 📁 Cấu trúc dự án
 
 ```
-sapharco/
+an-minh-business-system/
 ├── client/                 # React frontend
 │   ├── public/            # Static files
 │   │   └── image/         # Images (logo, etc.)
@@ -235,7 +238,7 @@ REACT_APP_MAPS_API_KEY=your_maps_key
 1. **Kết nối GitHub repository**:
    - Vào Vercel Dashboard
    - Import project từ GitHub
-   - Chọn repository: `Sacvui/sapharco`
+   - Chọn repository: `hailp1/AnMinh`
 
 2. **Cấu hình Build Settings**:
    ```
@@ -302,14 +305,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-- **Sapharco Sales Team** - Development Team
-- **Contact**: [GitHub Issues](https://github.com/Sacvui/sapharco/issues)
+- **AMMedtech Team** - Development Team
+- **Project**: An Minh Business System
+- **Contact**: [GitHub Issues](https://github.com/hailp1/AnMinh/issues)
+- **Email**: info@anminh.com
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/Sacvui/sapharco
-- **Issues**: https://github.com/Sacvui/sapharco/issues
-- **Vercel Deployment**: https://sapharco.vercel.app
+- **Repository**: https://github.com/hailp1/AnMinh
+- **Issues**: https://github.com/hailp1/AnMinh/issues
+- **Vercel Deployment**: https://anminh.vercel.app
 
 ## 📚 Documentation
 
@@ -319,4 +324,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**🏥 Sapharco Sales - Quản lý đơn hàng - Hiệu quả tối ưu!**
+**🏥 An Minh Business System - Quản lý đơn hàng - Hiệu quả tối ưu!**
