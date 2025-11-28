@@ -46,7 +46,7 @@ async function main() {
   } catch (error) {
     console.log('⚠️  Một số bảng chưa tồn tại, bỏ qua...', error.message);
   }
-  
+
   // Đảm bảo xóa hết dữ liệu bằng cách thử lại
   try {
     await prisma.user.deleteMany();
@@ -60,82 +60,96 @@ async function main() {
   // 1. Tạo Users
   console.log('👥 Tạo users...');
   const users = [];
-  
-  // Admin
-  const admin = await prisma.user.create({
-    data: {
-      name: 'Administrator',
-      employeeCode: 'ADMIN001',
-      routeCode: null,
-      email: 'admin@anminh.com',
-      phone: '0900000000',
-      password: hashedPassword,
-      role: 'ADMIN',
-      isActive: true,
-    },
-  });
-  users.push(admin);
 
-  // Trình dược viên (TDV)
-  const tdvNames = ['Nguyễn Văn An', 'Trần Thị Bình', 'Lê Văn Cường', 'Phạm Thị Dung', 'Hoàng Văn Em', 
-                     'Võ Thị Phương', 'Đặng Văn Giang', 'Bùi Thị Hoa', 'Đỗ Văn Hùng', 'Ngô Thị Lan',
-                     'Lý Văn Minh', 'Vũ Thị Nga', 'Đinh Văn Phúc', 'Trương Thị Quỳnh', 'Nguyễn Văn Sơn',
-                     'Lê Thị Tuyết', 'Phạm Văn Uy', 'Hoàng Thị Vân', 'Võ Văn Xuân', 'Đặng Thị Yến'];
-  const routeCodes = ['T001', 'T002', 'T003', 'T004', 'T005', 'T006', 'T007', 'T008', 'T009', 'T010'];
-  
-  for (let i = 0; i < 20; i++) {
-    const tdv = await prisma.user.create({
+  // Admin
+  const adminCode = 'ADMIN001';
+  let admin = await prisma.user.findUnique({ where: { employeeCode: adminCode } });
+  if (!admin) {
+    admin = await prisma.user.create({
       data: {
-        name: tdvNames[i],
-        employeeCode: `TDV${String(i + 1).padStart(3, '0')}`,
-        routeCode: routeCodes[i % routeCodes.length],
-        email: `tdv${i + 1}@anminh.com`,
-        phone: `09${String(i + 1).padStart(8, '0')}`,
+        name: 'Administrator',
+        employeeCode: adminCode,
+        routeCode: null,
+        email: 'admin@anminh.com',
+        phone: '0900000000',
         password: hashedPassword,
-        role: 'TDV',
+        role: 'ADMIN',
         isActive: true,
       },
     });
+  }
+  users.push(admin);
+
+  // Trình dược viên (TDV)
+  const tdvNames = ['Nguyễn Văn An', 'Trần Thị Bình', 'Lê Văn Cường', 'Phạm Thị Dung', 'Hoàng Văn Em',
+    'Võ Thị Phương', 'Đặng Văn Giang', 'Bùi Thị Hoa', 'Đỗ Văn Hùng', 'Ngô Thị Lan',
+    'Lý Văn Minh', 'Vũ Thị Nga', 'Đinh Văn Phúc', 'Trương Thị Quỳnh', 'Nguyễn Văn Sơn',
+    'Lê Thị Tuyết', 'Phạm Văn Uy', 'Hoàng Thị Vân', 'Võ Văn Xuân', 'Đặng Thị Yến'];
+  const routeCodes = ['T001', 'T002', 'T003', 'T004', 'T005', 'T006', 'T007', 'T008', 'T009', 'T010'];
+
+  for (let i = 0; i < 20; i++) {
+    const code = `TDV${String(i + 1).padStart(3, '0')}`;
+    let tdv = await prisma.user.findUnique({ where: { employeeCode: code } });
+    if (!tdv) {
+      tdv = await prisma.user.create({
+        data: {
+          name: tdvNames[i],
+          employeeCode: code,
+          routeCode: routeCodes[i % routeCodes.length],
+          email: `tdv${i + 1}@anminh.com`,
+          phone: `09${String(i + 1).padStart(8, '0')}`,
+          password: hashedPassword,
+          role: 'TDV',
+          isActive: true,
+        },
+      });
+    }
     users.push(tdv);
   }
 
   // Quản lý (QL)
   const qlNames = ['Nguyễn Văn Quản', 'Trần Thị Lý', 'Lê Văn Đức'];
   for (let i = 0; i < 3; i++) {
-    const ql = await prisma.user.create({
-      data: {
-        name: qlNames[i] || `Quản lý ${i + 1}`,
-        employeeCode: `QL${String(i + 1).padStart(3, '0')}`,
-        routeCode: null,
-        email: `ql${i + 1}@anminh.com`,
-        phone: `08${String(i + 1).padStart(8, '0')}`,
-        password: hashedPassword,
-        role: 'QL',
-        isActive: true,
-      },
-    });
+    const code = `QL${String(i + 1).padStart(3, '0')}`;
+    let ql = await prisma.user.findUnique({ where: { employeeCode: code } });
+    if (!ql) {
+      ql = await prisma.user.create({
+        data: {
+          name: qlNames[i] || `Quản lý ${i + 1}`,
+          employeeCode: code,
+          routeCode: null,
+          email: `ql${i + 1}@anminh.com`,
+          phone: `08${String(i + 1).padStart(8, '0')}`,
+          password: hashedPassword,
+          role: 'QL',
+          isActive: true,
+        },
+      });
+    }
     users.push(ql);
   }
 
   // Kế toán (KT)
   for (let i = 0; i < 2; i++) {
-    const kt = await prisma.user.create({
-      data: {
-        name: `Kế toán ${i + 1}`,
-        employeeCode: `KT${String(i + 1).padStart(3, '0')}`,
-        routeCode: null,
-        email: `kt${i + 1}@anminh.com`,
-        phone: `07${String(i + 1).padStart(8, '0')}`,
-        password: hashedPassword,
-        role: 'KT',
-        isActive: true,
-      },
-    });
+    const code = `KT${String(i + 1).padStart(3, '0')}`;
+    let kt = await prisma.user.findUnique({ where: { employeeCode: code } });
+    if (!kt) {
+      kt = await prisma.user.create({
+        data: {
+          name: `Kế toán ${i + 1}`,
+          employeeCode: code,
+          routeCode: null,
+          email: `kt${i + 1}@anminh.com`,
+          phone: `07${String(i + 1).padStart(8, '0')}`,
+          password: hashedPassword,
+          role: 'KT',
+          isActive: true,
+        },
+      });
+    }
     users.push(kt);
   }
 
-  // 2. Tạo Regions (Vùng)
-  console.log('🌍 Tạo regions...');
   const regions = [];
   const regionData = [
     { code: 'HCM', name: 'Thành phố Hồ Chí Minh', description: 'TP.HCM và các quận huyện' },
@@ -144,6 +158,13 @@ async function main() {
   ];
 
   for (const reg of regionData) {
+    // Check if region code exists
+    const existing = await prisma.region.findUnique({ where: { code: reg.code } });
+    if (existing) {
+      console.log(`Skipping duplicate region code: ${reg.code}`);
+      regions.push(existing);
+      continue;
+    }
     const region = await prisma.region.create({
       data: reg,
     });
@@ -161,6 +182,13 @@ async function main() {
   ];
 
   for (const bu of buData) {
+    // Check if BU code exists
+    const existing = await prisma.businessUnit.findUnique({ where: { code: bu.code } });
+    if (existing) {
+      console.log(`Skipping duplicate BU code: ${bu.code}`);
+      businessUnits.push(existing);
+      continue;
+    }
     const businessUnit = await prisma.businessUnit.create({
       data: bu,
     });
@@ -170,7 +198,7 @@ async function main() {
   // 4. Tạo Territories (Địa bàn - các quận/huyện)
   console.log('📍 Tạo territories...');
   const territories = [];
-  
+
   // HCM Quận
   const hcmDistricts = [
     { code: 'Q1', name: 'Quận 1', buIndex: 0 },
@@ -213,19 +241,26 @@ async function main() {
 
   // Bình Dương
   const bdDistricts = [
-    { code: 'TD', name: 'Thủ Dầu Một', buIndex: 3 },
+    { code: 'TDM', name: 'Thủ Dầu Một', buIndex: 3 },
     { code: 'DM', name: 'Dầu Tiếng', buIndex: 3 },
-    { code: 'BT', name: 'Bến Cát', buIndex: 3 },
-    { code: 'TB', name: 'Tân Uyên', buIndex: 3 },
+    { code: 'BCT', name: 'Bến Cát', buIndex: 3 },
+    { code: 'TUY', name: 'Tân Uyên', buIndex: 3 },
     { code: 'DU', name: 'Dĩ An', buIndex: 3 },
     { code: 'TA', name: 'Tân An', buIndex: 3 },
     { code: 'PH', name: 'Phú Giáo', buIndex: 3 },
     { code: 'BC', name: 'Bàu Bàng', buIndex: 3 },
-    { code: 'BH', name: 'Bắc Tân Uyên', buIndex: 3 },
+    { code: 'BTU', name: 'Bắc Tân Uyên', buIndex: 3 },
   ];
 
   // Tạo territories cho HCM
   for (const dist of hcmDistricts) {
+    // Check if territory code exists
+    const existing = await prisma.territory.findUnique({ where: { code: dist.code } });
+    if (existing) {
+      console.log(`Skipping duplicate territory code: ${dist.code}`);
+      territories.push(existing);
+      continue;
+    }
     const territory = await prisma.territory.create({
       data: {
         code: dist.code,
@@ -240,6 +275,13 @@ async function main() {
 
   // Tạo territories cho Đồng Nai
   for (const dist of dnDistricts) {
+    // Check if territory code exists
+    const existing = await prisma.territory.findUnique({ where: { code: dist.code } });
+    if (existing) {
+      console.log(`Skipping duplicate territory code: ${dist.code}`);
+      territories.push(existing);
+      continue;
+    }
     const territory = await prisma.territory.create({
       data: {
         code: dist.code,
@@ -254,6 +296,14 @@ async function main() {
 
   // Tạo territories cho Bình Dương
   for (const dist of bdDistricts) {
+    // Check if territory code exists
+    const existing = await prisma.territory.findUnique({ where: { code: dist.code } });
+    if (existing) {
+      console.log(`Skipping duplicate territory code: ${dist.code}`);
+      territories.push(existing);
+      continue;
+    }
+
     const territory = await prisma.territory.create({
       data: {
         code: dist.code,
@@ -269,7 +319,7 @@ async function main() {
   // 5. Tạo Product Groups
   console.log('📦 Tạo product groups...');
   const productGroups = [];
-  
+
   const groups = [
     { name: 'Thuốc kê đơn', description: 'Các loại thuốc cần kê đơn', order: 1 },
     { name: 'Thuốc không kê đơn', description: 'Thuốc OTC', order: 2 },
@@ -288,7 +338,7 @@ async function main() {
   // 7. Tạo Products
   console.log('💊 Tạo products...');
   const products = [];
-  
+
   const productData = [
     // Thuốc kê đơn
     { code: 'PAR500', name: 'Paracetamol 500mg', unit: 'Vĩ', price: 5000, groupId: productGroups[0].id },
@@ -299,31 +349,38 @@ async function main() {
     { code: 'ATV20', name: 'Atorvastatin 20mg', unit: 'Vĩ', price: 25000, groupId: productGroups[0].id },
     { code: 'AML5', name: 'Amlodipine 5mg', unit: 'Vĩ', price: 10000, groupId: productGroups[0].id },
     { code: 'LOS50', name: 'Losartan 50mg', unit: 'Vĩ', price: 12000, groupId: productGroups[0].id },
-    
+
     // Thuốc không kê đơn
     { code: 'PANEXT', name: 'Panadol Extra', unit: 'Hộp', price: 45000, groupId: productGroups[1].id },
     { code: 'TUSSIN', name: 'Tussin Cough', unit: 'Chai', price: 35000, groupId: productGroups[1].id },
     { code: 'DECOL', name: 'Decolgen', unit: 'Vỉ', price: 25000, groupId: productGroups[1].id },
     { code: 'BETADIN', name: 'Betadine', unit: 'Chai', price: 55000, groupId: productGroups[1].id },
     { code: 'BAND', name: 'Băng dán y tế', unit: 'Cuộn', price: 15000, groupId: productGroups[1].id },
-    
+
     // Thực phẩm chức năng
     { code: 'VITC', name: 'Vitamin C 1000mg', unit: 'Hộp', price: 120000, groupId: productGroups[2].id },
     { code: 'VITD', name: 'Vitamin D3 2000IU', unit: 'Hộp', price: 150000, groupId: productGroups[2].id },
     { code: 'OMEGA3', name: 'Omega 3', unit: 'Hộp', price: 200000, groupId: productGroups[2].id },
     { code: 'GLUCOS', name: 'Glucosamine', unit: 'Hộp', price: 180000, groupId: productGroups[2].id },
-    
+
     // Dụng cụ y tế
     { code: 'THERM', name: 'Nhiệt kế điện tử', unit: 'Cái', price: 150000, groupId: productGroups[3].id },
     { code: 'MASK', name: 'Khẩu trang y tế', unit: 'Hộp', price: 50000, groupId: productGroups[3].id },
     { code: 'SYRING', name: 'Ống tiêm', unit: 'Hộp', price: 30000, groupId: productGroups[3].id },
-    
+
     // Chăm sóc sức khỏe
     { code: 'SOAP', name: 'Xà phòng diệt khuẩn', unit: 'Chai', price: 45000, groupId: productGroups[4].id },
     { code: 'HAND', name: 'Nước rửa tay', unit: 'Chai', price: 35000, groupId: productGroups[4].id },
   ];
 
   for (const prod of productData) {
+    // Check if product code exists
+    const existing = await prisma.product.findUnique({ where: { code: prod.code } });
+    if (existing) {
+      console.log(`Skipping duplicate product code: ${prod.code}`);
+      products.push(existing);
+      continue;
+    }
     const product = await prisma.product.create({
       data: prod,
     });
@@ -333,7 +390,7 @@ async function main() {
   // 6. Tạo Pharmacies (Nhà thuốc)
   console.log('🏥 Tạo pharmacies...');
   const pharmacies = [];
-  
+
   // Tạo pharmacies cho từng territory
   const pharmacyNames = [
     'Long Hưng', 'Minh Đức', 'An Khang', 'Phước Thành', 'Thành Đạt', 'Hương Lan', 'Đức Hòa', 'Mai Linh',
@@ -400,15 +457,15 @@ async function main() {
 
   // Tọa độ mẫu cho Bình Dương
   const bdCoordinates = {
-    'TD': { lat: 10.9667, lng: 106.6500, base: 4000 },
+    'TDM': { lat: 10.9667, lng: 106.6500, base: 4000 },
     'DM': { lat: 11.2667, lng: 106.3667, base: 4100 },
-    'BT': { lat: 11.3667, lng: 106.5833, base: 4200 },
-    'TB': { lat: 11.0833, lng: 106.8000, base: 4300 },
+    'BCT': { lat: 11.3667, lng: 106.5833, base: 4200 },
+    'TUY': { lat: 11.0833, lng: 106.8000, base: 4300 },
     'DU': { lat: 10.9167, lng: 106.7667, base: 4400 },
     'TA': { lat: 11.1500, lng: 106.7000, base: 4500 },
     'PH': { lat: 11.3333, lng: 106.7500, base: 4600 },
     'BC': { lat: 11.4167, lng: 106.6667, base: 4700 },
-    'BH': { lat: 11.2000, lng: 106.8500, base: 4800 },
+    'BTU': { lat: 11.2000, lng: 106.8500, base: 4800 },
   };
 
   // Tạo pharmacies cho từng territory
@@ -419,21 +476,33 @@ async function main() {
 
     // Mỗi territory có 5-10 nhà thuốc
     const pharmacyCount = 5 + Math.floor(Math.random() * 6);
-    
+
     for (let i = 0; i < pharmacyCount; i++) {
       const ownerIndex = Math.floor(Math.random() * ownerNames.length);
       const lastNameIndex = Math.floor(Math.random() * lastNames.length);
       const nameIndex = Math.floor(Math.random() * pharmacyNames.length);
-      
+
       const ownerName = `${ownerNames[ownerIndex]} ${lastNames[lastNameIndex]}`;
       const pharmacyName = `Nhà thuốc ${pharmacyNames[nameIndex]} ${territory.name}`;
-      
+
       // Tọa độ ngẫu nhiên trong khu vực
       const lat = coords.lat + (Math.random() - 0.5) * 0.05;
       const lng = coords.lng + (Math.random() - 0.5) * 0.05;
-      
+
       const phone = `0${28 + Math.floor(Math.random() * 3)}${String(coords.base + i).padStart(7, '0')}`;
-      
+
+      // Check if pharmacy code exists
+      const existingPharmacy = await prisma.pharmacy.findUnique({
+        where: { code: `NT${String(pharmacyCounter).padStart(4, '0')}` }
+      });
+
+      if (existingPharmacy) {
+        console.log(`Skipping duplicate pharmacy code: NT${String(pharmacyCounter).padStart(4, '0')}`);
+        pharmacies.push(existingPharmacy);
+        pharmacyCounter++;
+        continue;
+      }
+
       const pharmacy = await prisma.pharmacy.create({
         data: {
           code: `NT${String(pharmacyCounter).padStart(4, '0')}`,
@@ -469,6 +538,13 @@ async function main() {
   ];
 
   for (const seg of segmentData) {
+    // Check if segment code exists
+    const existing = await prisma.customerSegment.findUnique({ where: { code: seg.code } });
+    if (existing) {
+      console.log(`Skipping duplicate segment code: ${seg.code}`);
+      segments.push(existing);
+      continue;
+    }
     const segment = await prisma.customerSegment.create({
       data: seg,
     });
@@ -492,14 +568,14 @@ async function main() {
   // 7. Tạo Customer Assignments (Gán khách hàng cho TDV theo địa bàn)
   console.log('🔗 Gán khách hàng cho trình dược viên...');
   const reps = users.filter(u => u.role === 'TDV');
-  
+
   // Phân bổ territories cho các TDV (mỗi TDV phụ trách 1-2 territories)
   const territoryAssignments = [];
   for (let i = 0; i < reps.length; i++) {
     const territoriesPerRep = Math.ceil(territories.length / reps.length);
     const startIndex = i * territoriesPerRep;
     const endIndex = Math.min(startIndex + territoriesPerRep, territories.length);
-    
+
     for (let j = startIndex; j < endIndex; j++) {
       if (territories[j]) {
         territoryAssignments.push({
@@ -513,27 +589,47 @@ async function main() {
   // Gán pharmacies cho TDV dựa trên territory
   for (const pharmacy of pharmacies) {
     if (!pharmacy.territoryId) continue;
-    
+
     // Tìm TDV được gán cho territory này
     const assignment = territoryAssignments.find(ta => ta.territory.id === pharmacy.territoryId);
     if (assignment) {
-      await prisma.customerAssignment.create({
-        data: {
+      // Check if assignment exists
+      const existingAssignment = await prisma.customerAssignment.findFirst({
+        where: {
           userId: assignment.tdv.id,
-          pharmacyId: pharmacy.id,
-          territoryId: pharmacy.territoryId,
-          assignedBy: admin.id,
-          notes: `Tự động gán theo địa bàn ${assignment.territory.name}`,
-        },
+          pharmacyId: pharmacy.id
+        }
       });
-      
-      // Tạo PharmacyRepPharmacy để tương thích
-      await prisma.pharmacyRepPharmacy.create({
-        data: {
+
+      if (!existingAssignment) {
+        await prisma.customerAssignment.create({
+          data: {
+            userId: assignment.tdv.id,
+            pharmacyId: pharmacy.id,
+            territoryId: pharmacy.territoryId,
+            assignedBy: admin.id,
+            notes: `Tự động gán theo địa bàn ${assignment.territory.name}`,
+          },
+        });
+      }
+
+      // Check if PharmacyRepPharmacy exists
+      const existingRepPharmacy = await prisma.pharmacyRepPharmacy.findFirst({
+        where: {
           userId: assignment.tdv.id,
-          pharmacyId: pharmacy.id,
-        },
+          pharmacyId: pharmacy.id
+        }
       });
+
+      if (!existingRepPharmacy) {
+        // Tạo PharmacyRepPharmacy để tương thích
+        await prisma.pharmacyRepPharmacy.create({
+          data: {
+            userId: assignment.tdv.id,
+            pharmacyId: pharmacy.id,
+          },
+        });
+      }
     }
   }
 
@@ -554,43 +650,54 @@ async function main() {
   // Tạo visit plans cho 4 tuần tới
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   for (const assignment of territoryAssignments) {
     const tdv = assignment.tdv;
     const territory = assignment.territory;
-    
+
     // Lấy tất cả pharmacies trong territory này
     const territoryPharmacies = pharmacies.filter(p => p.territoryId === territory.id);
-    
+
     for (const pharmacy of territoryPharmacies) {
       // Chọn frequency ngẫu nhiên
       const frequency = frequencies[Math.floor(Math.random() * frequencies.length)];
       const dayOfWeek = daysOfWeek[Math.floor(Math.random() * daysOfWeek.length)];
       const visitTime = visitTimes[Math.floor(Math.random() * visitTimes.length)];
       const purpose = purposes[Math.floor(Math.random() * purposes.length)];
-      
+
       // Tính số lần viếng thăm dựa trên frequency
       let visitCount = 0;
       if (frequency === 'F1') visitCount = 4; // Hàng tuần = 4 lần/tháng
       else if (frequency === 'F2') visitCount = 2; // 2 tuần/lần = 2 lần/tháng
       else if (frequency === 'F4') visitCount = 1; // Hàng tháng = 1 lần/tháng
       else if (frequency === 'F8') visitCount = 0.5; // 2 tháng/lần = 0.5 lần/tháng
-      
+
       // Tạo visit plans cho 4 tuần tới
       for (let week = 0; week < 4; week++) {
         if (frequency === 'F8' && week % 2 !== 0) continue; // F8 chỉ mỗi 2 tuần
-        
+
         // Tính ngày viếng thăm
         const visitDate = new Date(today);
         visitDate.setDate(today.getDate() + (week * 7) + (dayOfWeek - today.getDay()));
         if (visitDate < today) {
           visitDate.setDate(visitDate.getDate() + 7);
         }
-        
+
         // Bỏ qua nếu không phải F1 và không đúng tuần
         if (frequency === 'F2' && week % 2 !== 0) continue;
         if (frequency === 'F4' && week !== 0) continue;
-        
+
+        // Check if visit plan exists
+        const existingPlan = await prisma.visitPlan.findFirst({
+          where: {
+            userId: tdv.id,
+            pharmacyId: pharmacy.id,
+            visitDate: visitDate
+          }
+        });
+
+        if (existingPlan) continue;
+
         await prisma.visitPlan.create({
           data: {
             userId: tdv.id,
@@ -657,6 +764,13 @@ async function main() {
   ];
 
   for (const promo of promotionData) {
+    // Check if promotion code exists
+    const existing = await prisma.promotion.findUnique({ where: { code: promo.code } });
+    if (existing) {
+      console.log(`Skipping duplicate promotion code: ${promo.code}`);
+      promotions.push(existing);
+      continue;
+    }
     const promotion = await prisma.promotion.create({
       data: {
         ...promo,
@@ -745,6 +859,13 @@ async function main() {
   ];
 
   for (const act of activityData) {
+    // Check if activity code exists
+    const existing = await prisma.tradeActivity.findUnique({ where: { code: act.code } });
+    if (existing) {
+      console.log(`Skipping duplicate activity code: ${act.code}`);
+      activities.push(existing);
+      continue;
+    }
     const activity = await prisma.tradeActivity.create({
       data: act,
     });
@@ -758,17 +879,41 @@ async function main() {
   const period = `${kpiCurrentYear}-${String(kpiCurrentMonth).padStart(2, '0')}`;
 
   for (const rep of reps) {
-    const target = await prisma.kpiTarget.create({
-      data: {
-        userId: rep.id,
-        period: period,
-        periodType: 'MONTH',
-        targetSales: 50000000 + Math.floor(Math.random() * 50000000),
-        targetOrders: 20 + Math.floor(Math.random() * 30),
-        targetVisits: 15 + Math.floor(Math.random() * 20),
-        targetNewCustomers: 2 + Math.floor(Math.random() * 5),
-      },
-    });
+    if (!rep || !rep.id) {
+      console.log('Invalid rep:', rep);
+      continue;
+    }
+    // Check if target exists
+    let existingTarget;
+    try {
+      existingTarget = await prisma.kpiTarget.findFirst({
+        where: {
+          userId: rep.id,
+          period: period,
+        }
+      });
+    } catch (e) {
+      console.error('Error finding KPI target:', e);
+      continue;
+    }
+
+    let target;
+    if (existingTarget) {
+      console.log(`Skipping duplicate KPI target for user: ${rep.employeeCode}`);
+      target = existingTarget;
+    } else {
+      target = await prisma.kpiTarget.create({
+        data: {
+          userId: rep.id,
+          period: period,
+          periodType: 'MONTH',
+          targetSales: 50000000 + Math.floor(Math.random() * 50000000),
+          targetOrders: 20 + Math.floor(Math.random() * 30),
+          targetVisits: 15 + Math.floor(Math.random() * 20),
+          targetNewCustomers: 2 + Math.floor(Math.random() * 5),
+        },
+      });
+    }
 
     // Tạo KPI Result
     const actualSales = target.targetSales * (0.7 + Math.random() * 0.4); // 70-110% mục tiêu
@@ -776,6 +921,16 @@ async function main() {
     const actualVisits = Math.floor(target.targetVisits * (0.8 + Math.random() * 0.3));
     const actualNewCustomers = Math.floor(target.targetNewCustomers * (0.5 + Math.random() * 0.8));
     const achievementRate = (actualSales / target.targetSales) * 100;
+
+    // Check if KPI result exists
+    const existingResult = await prisma.kpiResult.findUnique({
+      where: { targetId: target.id }
+    });
+
+    if (existingResult) {
+      console.log(`Skipping duplicate KPI result for target: ${target.id}`);
+      continue;
+    }
 
     const result = await prisma.kpiResult.create({
       data: {
@@ -823,10 +978,23 @@ async function main() {
   // 12. Tạo Inventory Items
   console.log('📦 Tạo inventory items...');
   for (const pharmacy of pharmacies) {
-    for (let i = 0; i < 5; i++) {
-      const product = products[Math.floor(Math.random() * products.length)];
+    // Shuffle products to pick unique ones
+    const shuffledProducts = [...products].sort(() => 0.5 - Math.random());
+    const selectedProducts = shuffledProducts.slice(0, 5);
+
+    for (const product of selectedProducts) {
       const quantity = Math.floor(Math.random() * 100) + 10;
-      
+
+      // Check if inventory item exists
+      const existingItem = await prisma.inventoryItem.findFirst({
+        where: {
+          pharmacyId: pharmacy.id,
+          productId: product.id
+        }
+      });
+
+      if (existingItem) continue;
+
       await prisma.inventoryItem.create({
         data: {
           pharmacyId: pharmacy.id,
@@ -843,12 +1011,12 @@ async function main() {
   console.log('📋 Tạo orders...');
   const orders = [];
   const orderStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPING', 'DELIVERED'];
-  
+
   for (let i = 0; i < 30; i++) {
     const rep = reps[Math.floor(Math.random() * reps.length)];
     const pharmacy = pharmacies[Math.floor(Math.random() * pharmacies.length)];
     const status = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
-    
+
     const orderNumber = `ORD${String(i + 1).padStart(6, '0')}`;
     const orderItems = [];
     const numItems = Math.floor(Math.random() * 5) + 1;
@@ -867,6 +1035,14 @@ async function main() {
         price,
         subtotal,
       });
+    }
+
+    // Check if order exists
+    const existingOrder = await prisma.order.findUnique({ where: { orderNumber } });
+    if (existingOrder) {
+      console.log(`Skipping duplicate order: ${orderNumber}`);
+      orders.push(existingOrder);
+      continue;
     }
 
     const order = await prisma.order.create({
@@ -914,22 +1090,33 @@ async function main() {
 
   for (let month = revenueCurrentMonth - 2; month <= revenueCurrentMonth; month++) {
     if (month < 1) continue;
-    
+
     for (const rep of reps) {
       const repOrders = orders.filter(o => o.userId === rep.id);
       const monthOrders = repOrders.filter(o => {
         const orderDate = new Date(o.createdAt);
         return orderDate.getMonth() + 1 === month && orderDate.getFullYear() === revenueCurrentYear;
       });
-      
+
       const totalAmount = monthOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-      
+
       if (monthOrders.length > 0) {
+        // Check if revenue stat exists
+        const existingStat = await prisma.revenueStat.findFirst({
+          where: {
+            userId: rep.id,
+            month: month,
+            year: revenueCurrentYear
+          }
+        });
+
+        if (existingStat) continue;
+
         await prisma.revenueStat.create({
           data: {
             userId: rep.id,
             month,
-            year: currentYear,
+            year: revenueCurrentYear,
             totalAmount,
             orderCount: monthOrders.length,
           },

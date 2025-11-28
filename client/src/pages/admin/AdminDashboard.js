@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import customersData from '../../data/customers.json';
-import { getFromLocalStorage } from '../../utils/mockData';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -11,6 +11,7 @@ const AdminDashboard = () => {
     activeReps: 0
   });
   const [recentOrders, setRecentOrders] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
 
@@ -26,32 +27,27 @@ const AdminDashboard = () => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    const customers = customersData.customers || [];
-    const orders = getFromLocalStorage('orders', []);
-    const users = getFromLocalStorage('users', []);
-    
-    const totalRevenue = orders.reduce((sum, order) => {
-      return sum + (order.totalAmount || 0);
-    }, 0);
+  const loadDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/dashboard/stats`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+      });
 
-    const activeReps = users.filter(u => 
-      u.role === 'PHARMACY_REP' && 
-      u.isOnline
-    ).length;
-
-    setStats({
-      totalCustomers: customers.length,
-      totalOrders: orders.length,
-      totalRevenue: totalRevenue,
-      activeReps: activeReps
-    });
-
-    // Recent orders
-    const recent = orders
-      .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
-      .slice(0, 5);
-    setRecentOrders(recent);
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats);
+        setRecentOrders(data.recentOrders);
+        setRecentActivities(data.recentActivities || []);
+      } else {
+        console.warn('Failed to load dashboard stats');
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    }
   };
 
   const statCards = [
@@ -195,34 +191,34 @@ const AdminDashboard = () => {
           ].map((action, index) => (
             <button
               key={index}
-                  onClick={() => navigate(action.path)}
-                  style={{
-                    padding: isMobile ? '14px' : '16px',
-                    background: '#F29E2E',
-                    border: 'none',
-                    borderRadius: isMobile ? '10px' : '12px',
-                    color: '#fff',
-                    fontSize: isMobile ? '13px' : '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: isMobile ? '10px' : '12px',
-                    transition: 'all 0.2s',
-                    minHeight: isMobile ? '48px' : 'auto'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isMobile) {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isMobile) {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }
-                  }}
+              onClick={() => navigate(action.path)}
+              style={{
+                padding: isMobile ? '14px' : '16px',
+                background: '#F29E2E',
+                border: 'none',
+                borderRadius: isMobile ? '10px' : '12px',
+                color: '#fff',
+                fontSize: isMobile ? '13px' : '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: isMobile ? '10px' : '12px',
+                transition: 'all 0.2s',
+                minHeight: isMobile ? '48px' : 'auto'
+              }}
+              onMouseEnter={(e) => {
+                if (!isMobile) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isMobile) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }
+              }}
             >
               <span style={{ fontSize: '20px' }}>{action.icon}</span>
               <span>{action.label}</span>
@@ -318,52 +314,53 @@ const AdminDashboard = () => {
             Hoạt động hệ thống
           </h2>
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {[
-              { action: 'Đăng nhập hệ thống', user: 'admin', time: '2 phút trước' },
-              { action: 'Cập nhật khách hàng', user: 'ketoan', time: '15 phút trước' },
-              { action: 'Tạo đơn hàng mới', user: 'Trình dược viên A', time: '30 phút trước' },
-              { action: 'Xuất báo cáo', user: 'admin', time: '1 giờ trước' }
-            ].map((activity, index) => (
-              <div
-                key={index}
-                style={{
-                  padding: '12px',
-                  borderBottom: index < 3 ? '1px solid #e5e7eb' : 'none',
-                  display: 'flex',
-                  gap: '12px',
-                  alignItems: 'center'
-                }}
-              >
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  flexShrink: 0
-                }}>
-                  📝
-                </div>
-                <div style={{ flex: 1 }}>
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: '12px',
+                    borderBottom: index < recentActivities.length - 1 ? '1px solid #e5e7eb' : 'none',
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'center'
+                  }}
+                >
                   <div style={{
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    marginBottom: '4px'
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    flexShrink: 0
                   }}>
-                    {activity.action}
+                    {activity.type === 'order' ? '📦' : '📝'}
                   </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#666'
-                  }}>
-                    {activity.user} • {activity.time}
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#1a1a2e',
+                      marginBottom: '4px'
+                    }}>
+                      {activity.action}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#666'
+                    }}>
+                      {activity.user} • {new Date(activity.time).toLocaleString('vi-VN')}
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                Chưa có hoạt động nào
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
-import customersData from '../../data/customers.json';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminRoutes = () => {
   const [routes, setRoutes] = useState([]);
@@ -10,12 +10,11 @@ const AdminRoutes = () => {
     name: '',
     repId: '',
     customerIds: [],
-    startDate: '',
-    endDate: '',
-    status: 'active'
+    territoryId: ''
   });
   const [customers, setCustomers] = useState([]);
   const [reps, setReps] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -30,16 +29,53 @@ const AdminRoutes = () => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const storedRoutes = getFromLocalStorage('adminRoutes', []);
-    setRoutes(storedRoutes);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
 
-    const allCustomers = customersData.customers || [];
-    setCustomers(allCustomers);
+      // Load routes
+      const routesRes = await fetch(`${API_BASE}/routes`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+      });
+      if (routesRes.ok) {
+        const routesData = await routesRes.json();
+        setRoutes(routesData);
+      }
 
-    const allUsers = getFromLocalStorage('users', []);
-    const pharmacyReps = allUsers.filter(u => u.role === 'PHARMACY_REP');
-    setReps(pharmacyReps);
+      // Load customers (pharmacies)
+      const customersRes = await fetch(`${API_BASE}/pharmacies`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+      });
+      if (customersRes.ok) {
+        const customersData = await customersRes.json();
+        setCustomers(customersData);
+      }
+
+      // Load reps (TDV users)
+      const usersRes = await fetch(`${API_BASE}/users/admin/users`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+      });
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        const tdvUsers = usersData.filter(u => u.role === 'TDV');
+        setReps(tdvUsers);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      alert('Lỗi khi tải dữ liệu');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAdd = () => {
@@ -48,9 +84,7 @@ const AdminRoutes = () => {
       name: '',
       repId: '',
       customerIds: [],
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: '',
-      status: 'active'
+      territoryId: ''
     });
     setShowModal(true);
   };
@@ -58,50 +92,80 @@ const AdminRoutes = () => {
   const handleEdit = (route) => {
     setEditingRoute(route);
     setFormData({
-      name: route.name,
-      repId: route.repId,
+      name: route.name || '',
+      repId: route.repId || route.id,
       customerIds: route.customerIds || [],
-      startDate: route.startDate || new Date().toISOString().split('T')[0],
-      endDate: route.endDate || '',
-      status: route.status || 'active'
+      territoryId: route.territoryId || ''
     });
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa lộ trình này?')) {
-      const updated = routes.filter(r => r.id !== id);
-      setRoutes(updated);
-      saveToLocalStorage('adminRoutes', updated);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn xóa lộ trình này?')) return;
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/routes/${id}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+      });
+
+      if (response.ok) {
+        alert('Xóa lộ trình thành công!');
+        loadData();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Lỗi khi xóa lộ trình');
+      }
+    } catch (error) {
+      console.error('Error deleting route:', error);
+      alert('Lỗi khi xóa lộ trình');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSave = () => {
-    if (!formData.name || !formData.repId || formData.customerIds.length === 0) {
-      alert('Vui lòng điền đầy đủ thông tin');
+  const handleSave = async () => {
+    if (!formData.repId || formData.customerIds.length === 0) {
+      alert('Vui lòng chọn trình dược viên và ít nhất một khách hàng');
       return;
     }
 
-    let updated;
-    if (editingRoute) {
-      updated = routes.map(r => 
-        r.id === editingRoute.id 
-          ? { ...r, ...formData }
-          : r
-      );
-    } else {
-      const newRoute = {
-        id: `route_${Date.now()}`,
-        ...formData,
-        createdAt: new Date().toISOString()
-      };
-      updated = [...routes, newRoute];
-    }
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const url = editingRoute
+        ? `${API_BASE}/routes/${editingRoute.id}`
+        : `${API_BASE}/routes`;
+      const method = editingRoute ? 'PUT' : 'POST';
 
-    setRoutes(updated);
-    saveToLocalStorage('adminRoutes', updated);
-    setShowModal(false);
-    setEditingRoute(null);
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        alert(editingRoute ? 'Cập nhật lộ trình thành công!' : 'Tạo lộ trình thành công!');
+        setShowModal(false);
+        setEditingRoute(null);
+        loadData();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Lỗi khi lưu lộ trình');
+      }
+    } catch (error) {
+      console.error('Error saving route:', error);
+      alert('Lỗi khi lưu lộ trình');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleCustomer = (customerId) => {
@@ -148,22 +212,23 @@ const AdminRoutes = () => {
         </div>
         <button
           onClick={handleAdd}
+          disabled={loading}
           style={{
             padding: '12px 24px',
-            background: '#F29E2E',
+            background: loading ? '#ccc' : '#F29E2E',
             border: 'none',
             borderRadius: '12px',
             color: '#fff',
             fontSize: '14px',
             fontWeight: '600',
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
           }}
         >
           <span>➕</span>
-          <span>Tạo lộ trình</span>
+          <span>{loading ? 'Đang tải...' : 'Tạo lộ trình'}</span>
         </button>
       </div>
 
@@ -174,9 +239,8 @@ const AdminRoutes = () => {
         gap: '24px'
       }}>
         {routes.map(route => {
-          const rep = reps.find(r => r.id === route.repId);
-          const routeCustomers = customers.filter(c => route.customerIds?.includes(c.id));
-          
+          const routeCustomers = route.customers || [];
+
           return (
             <div
               key={route.id}
@@ -208,13 +272,13 @@ const AdminRoutes = () => {
                     color: '#666',
                     marginBottom: '4px'
                   }}>
-                    👨‍⚕️ {rep?.name || 'Chưa chọn'}
+                    👨‍⚕️ {route.repName || 'Chưa chọn'}
                   </div>
                   <div style={{
                     fontSize: '12px',
                     color: '#999'
                   }}>
-                    📅 {route.startDate} {route.endDate ? `- ${route.endDate}` : ''}
+                    📋 {route.repCode || route.routeCode || 'N/A'}
                   </div>
                 </div>
                 <span style={{
@@ -267,6 +331,7 @@ const AdminRoutes = () => {
               }}>
                 <button
                   onClick={() => handleEdit(route)}
+                  disabled={loading}
                   style={{
                     flex: 1,
                     padding: '10px',
@@ -275,7 +340,7 @@ const AdminRoutes = () => {
                     borderRadius: '8px',
                     color: '#FBC93D',
                     fontSize: '14px',
-                    cursor: 'pointer',
+                    cursor: loading ? 'not-allowed' : 'pointer',
                     fontWeight: '600'
                   }}
                 >
@@ -283,6 +348,7 @@ const AdminRoutes = () => {
                 </button>
                 <button
                   onClick={() => handleDelete(route.id)}
+                  disabled={loading}
                   style={{
                     padding: '10px 16px',
                     background: '#fee2e2',
@@ -290,7 +356,7 @@ const AdminRoutes = () => {
                     borderRadius: '8px',
                     color: '#dc2626',
                     fontSize: '14px',
-                    cursor: 'pointer'
+                    cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
                   🗑️
@@ -301,7 +367,7 @@ const AdminRoutes = () => {
         })}
       </div>
 
-      {routes.length === 0 && (
+      {routes.length === 0 && !loading && (
         <div style={{
           textAlign: 'center',
           padding: '60px 20px',
@@ -357,7 +423,7 @@ const AdminRoutes = () => {
           justifyContent: 'center',
           zIndex: 1000
         }}
-        onClick={() => setShowModal(false)}
+          onClick={() => setShowModal(false)}
         >
           <div
             style={{
@@ -386,7 +452,7 @@ const AdminRoutes = () => {
                 fontWeight: '600',
                 marginBottom: '8px'
               }}>
-                Tên lộ trình *
+                Tên lộ trình
               </label>
               <input
                 type="text"
@@ -426,62 +492,10 @@ const AdminRoutes = () => {
                 <option value="">Chọn trình dược viên</option>
                 {reps.map(rep => (
                   <option key={rep.id} value={rep.id}>
-                    {rep.name} - {rep.hub}
+                    {rep.name} - {rep.employeeCode}
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '16px'
-            }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px'
-                }}>
-                  Ngày bắt đầu
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px'
-                }}>
-                  Ngày kết thúc
-                </label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
@@ -510,8 +524,8 @@ const AdminRoutes = () => {
                       padding: '8px',
                       cursor: 'pointer',
                       borderRadius: '6px',
-                      background: formData.customerIds.includes(customer.id) 
-                        ? '#FBC93D15' 
+                      background: formData.customerIds.includes(customer.id)
+                        ? '#FBC93D15'
                         : 'transparent'
                     }}
                   >
@@ -537,7 +551,7 @@ const AdminRoutes = () => {
                         fontSize: '12px',
                         color: '#666'
                       }}>
-                        {customer.code} - {customer.hub}
+                        {customer.code} - {customer.address}
                       </div>
                     </div>
                   </label>
@@ -552,6 +566,7 @@ const AdminRoutes = () => {
             }}>
               <button
                 onClick={() => setShowModal(false)}
+                disabled={loading}
                 style={{
                   padding: '12px 24px',
                   background: '#f3f4f6',
@@ -559,25 +574,26 @@ const AdminRoutes = () => {
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: loading ? 'not-allowed' : 'pointer'
                 }}
               >
                 Hủy
               </button>
               <button
                 onClick={handleSave}
+                disabled={loading}
                 style={{
                   padding: '12px 24px',
-                  background: '#F29E2E',
+                  background: loading ? '#ccc' : '#F29E2E',
                   border: 'none',
                   borderRadius: '8px',
                   color: '#fff',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: loading ? 'not-allowed' : 'pointer'
                 }}
               >
-                Lưu
+                {loading ? 'Đang lưu...' : 'Lưu'}
               </button>
             </div>
           </div>
@@ -588,4 +604,3 @@ const AdminRoutes = () => {
 };
 
 export default AdminRoutes;
-

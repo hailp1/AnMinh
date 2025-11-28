@@ -1,17 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const OrderSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const { orders = [], totalAmount = 0 } = location.state || {};
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   // Tính tổng số đơn hàng
   const totalOrders = orders.length;
-  
+
   // Tính tổng số sản phẩm
   const totalItems = useMemo(() => {
     return orders.reduce((sum, order) => sum + order.items.length, 0);
@@ -25,6 +29,64 @@ const OrderSummary = () => {
     }).format(amount);
   };
 
+  // Submit order to database
+  const handleSubmitOrder = async () => {
+    if (submitting || submitted) return;
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('token');
+
+      // Submit each order
+      const submitPromises = orders.map(async (order) => {
+        const orderData = {
+          pharmacyId: order.customer.id,
+          items: order.items.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          totalAmount: order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          status: 'PENDING',
+          notes: `Đơn hàng từ ${user?.name || 'TDV'}`
+        };
+
+        const response = await fetch(`${API_BASE}/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'x-auth-token': token } : {})
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to submit order for ${order.customer.name}`);
+        }
+
+        return await response.json();
+      });
+
+      const results = await Promise.all(submitPromises);
+
+      setSubmitted(true);
+      setSubmitting(false);
+
+      // Show success message
+      alert(`✅ Đã tạo thành công ${results.length} đơn hàng!\n\n${results.map(r => `• ${r.orderNumber || r.id}`).join('\n')}`);
+
+      // Navigate to home after 1 second
+      setTimeout(() => {
+        navigate('/home');
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error submitting orders:', error);
+      alert('❌ Lỗi khi tạo đơn hàng: ' + error.message);
+      setSubmitting(false);
+    }
+  };
+
   // In đơn hàng
   const handlePrint = () => {
     window.print();
@@ -35,7 +97,7 @@ const OrderSummary = () => {
     // Lấy customer từ đơn hàng đầu tiên để truyền lại
     const firstOrder = orders[0];
     const customer = firstOrder?.customer;
-    
+
     navigate('/create-order', {
       state: {
         customer: customer,
@@ -43,12 +105,12 @@ const OrderSummary = () => {
       }
     });
   };
-  
+
   // Tạo đơn hàng mới cho cùng khách hàng
   const handleNewOrder = () => {
     const firstOrder = orders[0];
     const customer = firstOrder?.customer;
-    
+
     navigate('/create-order', {
       state: {
         customer: customer,
@@ -80,8 +142,8 @@ const OrderSummary = () => {
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', color: '#1a1a2e' }}>
             Không có đơn hàng nào
           </h2>
-          <button 
-            onClick={handleBack} 
+          <button
+            onClick={handleBack}
             style={{
               padding: '14px 28px',
               background: '#F29E2E',
@@ -123,9 +185,9 @@ const OrderSummary = () => {
         <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1E4A8B' }}>
           ←
         </Link>
-        <h1 style={{ 
-          fontSize: '16px', 
-          fontWeight: 'bold', 
+        <h1 style={{
+          fontSize: '16px',
+          fontWeight: 'bold',
           margin: 0,
           color: '#1E4A8B',
           flex: 1,
@@ -136,32 +198,32 @@ const OrderSummary = () => {
         <div style={{ width: '24px' }}></div>
       </div>
 
-      <div className="order-summary-container" style={{ 
+      <div className="order-summary-container" style={{
         padding: '15px',
-        maxWidth: '800px', 
+        maxWidth: '800px',
         margin: '0 auto'
       }}>
         {/* Header với Logo - Mobile Optimized */}
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           marginBottom: '20px',
           background: '#fff',
           borderRadius: '16px',
           padding: '20px 15px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
-          <img 
-            src="/image/logo.webp" 
-            alt="Logo" 
+          <img
+            src="/image/logo.webp"
+            alt="Logo"
             style={{
               maxWidth: '120px',
               height: 'auto',
               marginBottom: '12px'
             }}
           />
-          <h1 style={{ 
-            fontSize: '20px', 
-            fontWeight: 'bold', 
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
             margin: '8px 0',
             color: '#1E4A8B'
           }}>
@@ -170,8 +232,8 @@ const OrderSummary = () => {
           <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>
             HÓA ĐƠN BÁN HÀNG
           </p>
-          <div style={{ 
-            fontSize: '11px', 
+          <div style={{
+            fontSize: '11px',
             color: '#666',
             lineHeight: '1.6'
           }}>
@@ -192,7 +254,7 @@ const OrderSummary = () => {
           const orderTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
           return (
-            <div 
+            <div
               key={orderIndex}
               style={{
                 marginBottom: '20px',
@@ -208,16 +270,16 @@ const OrderSummary = () => {
                 color: '#fff',
                 padding: '16px'
               }}>
-                <h2 style={{ 
-                  margin: '0 0 10px 0', 
+                <h2 style={{
+                  margin: '0 0 10px 0',
                   fontSize: '18px',
                   fontWeight: 'bold'
                 }}>
                   🏥 {customer.name}
                   {customer.code && (
-                    <span style={{ 
-                      fontSize: '12px', 
-                      marginLeft: '8px', 
+                    <span style={{
+                      fontSize: '12px',
+                      marginLeft: '8px',
                       opacity: 0.9,
                       display: 'block',
                       marginTop: '4px'
@@ -298,7 +360,7 @@ const OrderSummary = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -342,9 +404,9 @@ const OrderSummary = () => {
                     <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a2e' }}>
                       Tổng tiền đơn hàng:
                     </div>
-                    <div style={{ 
-                      fontSize: '20px', 
-                      fontWeight: 'bold', 
+                    <div style={{
+                      fontSize: '20px',
+                      fontWeight: 'bold',
                       color: '#1E4A8B'
                     }}>
                       {formatCurrency(orderTotal)}
@@ -366,9 +428,9 @@ const OrderSummary = () => {
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <div style={{ marginBottom: '15px' }}>
-            <div style={{ 
-              fontSize: '14px', 
-              color: '#666', 
+            <div style={{
+              fontSize: '14px',
+              color: '#666',
               marginBottom: '8px',
               display: 'flex',
               justifyContent: 'space-between'
@@ -376,8 +438,8 @@ const OrderSummary = () => {
               <span>Tổng số đơn hàng:</span>
               <strong style={{ color: '#1E4A8B' }}>{totalOrders}</strong>
             </div>
-            <div style={{ 
-              fontSize: '14px', 
+            <div style={{
+              fontSize: '14px',
               color: '#666',
               display: 'flex',
               justifyContent: 'space-between'
@@ -396,9 +458,9 @@ const OrderSummary = () => {
             <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e' }}>
               Tổng giá trị:
             </div>
-            <div style={{ 
-              fontSize: '24px', 
-              fontWeight: 'bold', 
+            <div style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
               color: '#1E4A8B'
             }}>
               {formatCurrency(totalAmount)}
@@ -419,24 +481,24 @@ const OrderSummary = () => {
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>
             🙏
           </div>
-          <h3 style={{ 
-            fontSize: '18px', 
-            fontWeight: 'bold', 
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
             color: '#1E4A8B',
             marginBottom: '10px'
           }}>
             Cảm ơn Quý Khách Hàng!
           </h3>
-          <p style={{ 
-            fontSize: '14px', 
+          <p style={{
+            fontSize: '14px',
             color: '#666',
             lineHeight: '1.6',
             marginBottom: '8px'
           }}>
             Chúng tôi chân thành cảm ơn Quý khách đã tin tưởng và sử dụng dịch vụ của An Minh Business System.
           </p>
-          <p style={{ 
-            fontSize: '14px', 
+          <p style={{
+            fontSize: '14px',
             color: '#666',
             lineHeight: '1.6'
           }}>
@@ -470,63 +532,93 @@ const OrderSummary = () => {
         padding: '12px 15px',
         boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
         zIndex: 100,
-        borderTop: '1px solid #e5e7eb',
-        display: 'flex',
-        gap: '10px'
+        borderTop: '1px solid #e5e7eb'
       }}>
-        <button
-          onClick={handlePrint}
-          style={{
-            flex: 1,
-            padding: '14px',
-            background: 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
-            color: '#fff',
-            border: 'none',
+        {!submitted ? (
+          <>
+            {/* Main submit button */}
+            <button
+              onClick={handleSubmitOrder}
+              disabled={submitting}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: submitting
+                  ? '#ccc'
+                  : 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                touchAction: 'manipulation',
+                boxShadow: submitting ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.4)',
+                marginBottom: '10px'
+              }}
+            >
+              {submitting ? '⏳ Đang xử lý...' : '✅ Xác Nhận Đơn Hàng'}
+            </button>
+
+            {/* Secondary buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handlePrint}
+                disabled={submitting}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#1E4A8B',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  touchAction: 'manipulation',
+                  opacity: submitting ? 0.5 : 1
+                }}
+              >
+                🖨️ In
+              </button>
+              <button
+                onClick={handleBack}
+                disabled={submitting}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: '#f3f4f6',
+                  color: '#1a1a2e',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  touchAction: 'manipulation',
+                  opacity: submitting ? 0.5 : 1
+                }}
+              >
+                ← Quay lại
+              </button>
+            </div>
+          </>
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '20px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
             borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            touchAction: 'manipulation',
-            boxShadow: '0 2px 8px rgba(26, 92, 162, 0.3)'
-          }}
-        >
-          🖨️ In
-        </button>
-        <button
-          onClick={handleNewOrder}
-          style={{
-            flex: 1,
-            padding: '14px',
-            background: '#F29E2E',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            touchAction: 'manipulation',
-            boxShadow: '0 2px 8px rgba(62, 180, 168, 0.3)'
-          }}
-        >
-          ➕ Đơn Mới
-        </button>
-        <button
-          onClick={handleBack}
-          style={{
-            flex: 1,
-            padding: '14px',
-            background: '#f3f4f6',
-            color: '#1a1a2e',
-            border: 'none',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            touchAction: 'manipulation'
-          }}
-        >
-          ← Về
-        </button>
+            color: '#fff'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
+            <div style={{ fontSize: '18px', fontWeight: '600' }}>
+              Đơn hàng đã được tạo thành công!
+            </div>
+            <div style={{ fontSize: '14px', marginTop: '8px', opacity: 0.9 }}>
+              Đang chuyển về trang chủ...
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Print Styles */}

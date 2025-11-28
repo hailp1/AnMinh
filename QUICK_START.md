@@ -1,82 +1,110 @@
-# Quick Start Guide - Docker Deployment
+# 🚀 QUICK START - An Minh Business System
 
-## 🚀 Deploy nhanh với Docker
+## ⚡ Khởi động nhanh
 
-### 1. Tạo Cloudflare Tunnel (Bắt buộc)
+### Cách 1: Tự động khởi động cả Backend và Frontend (Khuyến nghị)
 
-Xem file **`SETUP_COMPLETE_GUIDE.md`** để biết cách tạo Cloudflare Tunnel và lấy token.
-
-### 2. Tạo file .env
-
+**Windows:**
 ```bash
-# Copy file mẫu
-cp .env.example .env
+# Double-click file hoặc chạy trong PowerShell:
+.\scripts\start-all.bat
 
-# Hoặc tạo thủ công
-cat > .env << EOF
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=change_this_secure_password
-POSTGRES_DB=anminh_db
-JWT_SECRET=change_this_jwt_secret_min_32_chars
-NODE_ENV=production
-CLOUDFLARE_TUNNEL_TOKEN=your_tunnel_token_from_cloudflare
-EOF
+# Hoặc PowerShell:
+.\scripts\start-all.ps1
 ```
 
-**⚠️ QUAN TRỌNG:** 
-- Đổi mật khẩu và JWT secret
-- Thêm `CLOUDFLARE_TUNNEL_TOKEN` từ Cloudflare Dashboard
+**Sau khi khởi động:**
+1. Đợi Backend khởi động (vài giây)
+2. Đợi Frontend compile xong (~30 giây)
+3. Tìm dòng: `Compiled successfully!`
+4. Mở browser: http://localhost:3099
+5. Đăng nhập: AM01 / admin123
 
-### 2. Build và Start
+---
 
-```bash
-# Build và start tất cả services
-docker-compose up -d --build
+### Cách 2: Khởi động riêng lẻ
 
-# Xem logs
-docker-compose logs -f
-```
-
-### 3. Chạy Database Migrations
+#### 1. Backend (Port 5000)
 
 ```bash
-# Chờ database sẵn sàng (khoảng 10 giây)
-sleep 10
+# Cách 1: Double-click
+start-backend.bat
 
-# Chạy migrations
-docker-compose exec backend npx prisma migrate deploy
+# Cách 2: PowerShell
+.\start-backend.ps1
 
-# Seed database (tùy chọn)
-docker-compose exec backend npm run db:seed
+# Cách 3: Manual
+node server.js
 ```
 
-### 4. Kiểm tra
+**Kiểm tra Backend:**
+- Mở: http://localhost:5000/api
+- Sẽ thấy danh sách API endpoints
 
-- Frontend: http://localhost
-- Backend API: http://localhost:5000/api
-- Database: localhost:5432
-
-## 📋 Cấu hình Cloudflare
-
-Xem file `CLOUDFLARE_SETUP.md` để cấu hình domain `sales.ammedtech.com`
-
-## 🔧 Troubleshooting
+#### 2. Frontend (Port 3099)
 
 ```bash
-# Xem logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f postgres
-
-# Restart services
-docker-compose restart
-
-# Rebuild
-docker-compose up -d --build --force-recreate
+cd client
+npm start
 ```
 
-## 📚 Tài liệu chi tiết
+**Kiểm tra Frontend:**
+- Mở: http://localhost:3099
+- Đợi compile xong
 
-- `DOCKER_DEPLOYMENT.md` - Hướng dẫn deploy chi tiết
-- `CLOUDFLARE_SETUP.md` - Cấu hình Cloudflare DNS
+---
+
+## 🔍 Kiểm tra hệ thống
+
+### Kiểm tra Backend health:
+```bash
+npm run check:backend
+```
+
+### Kiểm tra User AM01:
+```bash
+npm run check:user
+```
+
+### Kiểm tra toàn bộ hệ thống:
+```bash
+npm run check
+```
+
+---
+
+## 🔑 Đăng nhập
+
+**Thông tin đăng nhập:**
+- Employee Code: `AM01`
+- Password: `admin123`
+
+---
+
+## ❌ Troubleshooting
+
+### Lỗi 504 Gateway Timeout
+- **Nguyên nhân:** Backend không chạy
+- **Giải pháp:** Khởi động backend bằng `start-backend.bat` hoặc `node server.js`
+
+### Lỗi Proxy 404
+- **Nguyên nhân:** setupProxy.js chưa được load
+- **Giải pháp:** Restart frontend (Ctrl+C rồi `npm start` lại)
+
+### Lỗi "Route không tìm thấy"
+- **Nguyên nhân:** Backend chưa khởi động hoặc route chưa được đăng ký
+- **Giải pháp:** Khởi động lại backend
+
+---
+
+## 📝 Scripts có sẵn
+
+- `start-backend.bat` / `start-backend.ps1` - Khởi động backend
+- `start-all.bat` / `start-all.ps1` - Khởi động cả backend và frontend
+- `scripts/check-backend-health.js` - Kiểm tra backend health
+- `scripts/check-user-am01.js` - Kiểm tra user AM01 trong database
+
+---
+
+✅ **Sau khi khởi động xong, bạn có thể login với AM01 / admin123!**
 

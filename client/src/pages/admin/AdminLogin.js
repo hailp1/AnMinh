@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -9,8 +10,6 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
   const handleChange = (e) => {
     setFormData({
@@ -93,9 +92,9 @@ const AdminLogin = () => {
             padding: '20px',
             boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
           }}>
-            <img 
-              src="/image/logo.webp" 
-              alt="An Minh Business System Admin" 
+            <img
+              src="/image/logo.webp"
+              alt="An Minh Business System Admin"
               style={{
                 width: '100%',
                 height: '100%',
@@ -221,8 +220,8 @@ const AdminLogin = () => {
             style={{
               width: '100%',
               padding: '18px',
-              background: loading 
-                ? '#9ca3af' 
+              background: loading
+                ? '#9ca3af'
                 : '#F29E2E',
               color: '#fff',
               border: 'none',
@@ -231,8 +230,8 @@ const AdminLogin = () => {
               fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
-              boxShadow: loading 
-                ? 'none' 
+              boxShadow: loading
+                ? 'none'
                 : '0 8px 24px rgba(26, 92, 162, 0.4)',
               marginBottom: '20px'
             }}
@@ -240,19 +239,7 @@ const AdminLogin = () => {
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
 
-          {/* Demo Users Info */}
-          <div style={{
-            padding: '16px',
-            background: '#f3f4f6',
-            borderRadius: '12px',
-            fontSize: '13px',
-            color: '#666',
-            textAlign: 'center'
-          }}>
-            <strong>Demo Users:</strong><br />
-            admin / admin<br />
-            ketoan / ketoan
-          </div>
+
         </form>
       </div>
     </div>

@@ -68,7 +68,7 @@ const AdminCustomers = () => {
     let filtered = [...customers];
 
     if (searchTerm) {
-      filtered = filtered.filter(c => 
+      filtered = filtered.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.phone.includes(searchTerm) ||
@@ -222,7 +222,7 @@ const AdminCustomers = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách khách hàng');
-    
+
     // Auto-size columns
     const colWidths = [
       { wch: 10 }, // Mã
@@ -261,7 +261,7 @@ const AdminCustomers = () => {
         const importedCustomers = jsonData.map((row, index) => {
           const code = (row['Mã'] || row['Code'] || '').toString().trim();
           const name = (row['Tên'] || row['Tên nhà thuốc'] || row['Name'] || '').toString().trim();
-          
+
           if (!name) {
             throw new Error(`Dòng ${index + 2}: Thiếu Tên khách hàng`);
           }
@@ -285,7 +285,7 @@ const AdminCustomers = () => {
         // Import customers via API
         let successCount = 0;
         let errorCount = 0;
-        
+
         for (const importedCustomer of importedCustomers) {
           try {
             const response = await fetch(`${API_BASE}/pharmacies`, {
@@ -342,10 +342,10 @@ const AdminCustomers = () => {
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    
+
     const colWidths = [
-      { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 40 }, { wch: 15 }, 
-      { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, 
+      { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 40 }, { wch: 15 },
+      { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
       { wch: 12 }, { wch: 12 }
     ];
     ws['!cols'] = colWidths;
@@ -689,10 +689,10 @@ const AdminCustomers = () => {
                 <div>
                   <span style={{
                     padding: '4px 12px',
-                    background: customer.hub === 'Củ Chi' ? '#F29E2E15' : 
-                               customer.hub === 'Đồng Nai' ? '#F29E2E15' : '#1E4A8B15',
-                    color: customer.hub === 'Củ Chi' ? '#F29E2E' : 
-                           customer.hub === 'Đồng Nai' ? '#F29E2E' : '#1E4A8B',
+                    background: customer.hub === 'Củ Chi' ? '#F29E2E15' :
+                      customer.hub === 'Đồng Nai' ? '#F29E2E15' : '#1E4A8B15',
+                    color: customer.hub === 'Củ Chi' ? '#F29E2E' :
+                      customer.hub === 'Đồng Nai' ? '#F29E2E' : '#1E4A8B',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: '600'
@@ -753,7 +753,7 @@ const AdminCustomers = () => {
           justifyContent: 'center',
           zIndex: 1000
         }}
-        onClick={() => setShowModal(false)}
+          onClick={() => setShowModal(false)}
         >
           <div
             style={{

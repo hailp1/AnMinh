@@ -25,6 +25,27 @@
 - 📦 **Quản lý đơn hàng**: Xem và xử lý đơn hàng cần giao
 - 🗺️ **Tối ưu tuyến đường**: Xem vị trí khách hàng trên bản đồ
 
+## 🚀 Quick Start
+
+### Khởi động nhanh (Tự động):
+```bash
+# Windows - Double click:
+scripts\start-all.bat
+
+# Hoặc PowerShell:
+.\scripts\start-all.ps1
+```
+
+Sau đó đợi compile xong và mở: http://localhost:3099
+
+**Đăng nhập:**
+- Employee Code: `AM01`
+- Password: `admin123`
+
+Xem thêm: [QUICK_START.md](QUICK_START.md)
+
+---
+
 ## 🎨 Bảng màu - Tông màu nhận diện An Minh Business System
 
 Dự án sử dụng bảng màu nhận diện thương hiệu chuyên nghiệp:

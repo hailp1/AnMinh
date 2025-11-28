@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
-import customersData from '../../data/customers.json';
-import productsData from '../../data/products.json';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -29,82 +27,59 @@ const AdminOrders = () => {
     filterOrders();
   }, [searchTerm, filterStatus, filterHub, orders]);
 
-  const loadOrders = () => {
-    // Generate mock orders if none exist
-    let storedOrders = getFromLocalStorage('adminOrders', []);
-    
-    if (storedOrders.length === 0) {
-      storedOrders = generateMockOrders();
-      saveToLocalStorage('adminOrders', storedOrders);
-    }
-    
-    setOrders(storedOrders);
-  };
-
-  const generateMockOrders = () => {
-    const customers = customersData.customers || [];
-    const allProducts = productsData.productGroups?.flatMap(g => g.products) || [];
-    const statuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-    const mockOrders = [];
-
-    for (let i = 0; i < 50; i++) {
-      const customer = customers[Math.floor(Math.random() * customers.length)];
-      const itemCount = Math.floor(Math.random() * 5) + 1;
-      const items = [];
-      let subtotal = 0;
-
-      for (let j = 0; j < itemCount; j++) {
-        const product = allProducts[Math.floor(Math.random() * allProducts.length)];
-        const quantity = Math.floor(Math.random() * 10) + 1;
-        const price = product.price || Math.floor(Math.random() * 50000) + 10000;
-        const itemTotal = price * quantity;
-        subtotal += itemTotal;
-
-        items.push({
-          productId: product.id,
-          productCode: product.code,
-          productName: product.name,
-          quantity: quantity,
-          unit: product.unit || 'Vĩ',
-          price: price,
-          total: itemTotal
-        });
-      }
-
-      const discount = Math.random() > 0.7 ? Math.floor(subtotal * 0.1) : 0;
-      const totalAmount = subtotal - discount;
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const createdAt = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-
-      mockOrders.push({
-        id: `ORD${String(i + 1).padStart(5, '0')}`,
-        customerId: customer.id,
-        customerCode: customer.code,
-        customerName: customer.name,
-        customerAddress: customer.address,
-        customerPhone: customer.phone,
-        customerHub: customer.hub,
-        items: items,
-        subtotal: subtotal,
-        discount: discount,
-        totalAmount: totalAmount,
-        status: status,
-        createdAt: createdAt.toISOString(),
-        updatedAt: createdAt.toISOString(),
-        repId: `rep${String(Math.floor(Math.random() * 10) + 1).padStart(3, '0')}`,
-        repName: `Trình dược viên ${String.fromCharCode(65 + Math.floor(Math.random() * 10))}`,
-        notes: Math.random() > 0.8 ? 'Giao hàng trong giờ hành chính' : ''
+  const loadOrders = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/orders`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
       });
-    }
 
-    return mockOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      if (response.ok) {
+        const data = await response.json();
+        // Transform data to match UI expectations if necessary
+        const formattedOrders = data.map(order => ({
+          originalId: order.id,
+          id: order.orderNumber || order.id,
+          customerId: order.pharmacyId,
+          customerCode: order.pharmacy?.code || 'N/A',
+          customerName: order.pharmacy?.name || 'Khách lẻ',
+          customerAddress: order.pharmacy?.address || '',
+          customerPhone: order.pharmacy?.phone || '',
+          customerHub: order.pharmacy?.hub || 'N/A',
+          items: order.items.map(item => ({
+            productCode: item.product?.code,
+            productName: item.product?.name,
+            quantity: item.quantity,
+            unit: item.product?.unit,
+            price: item.price,
+            total: item.subtotal
+          })),
+          subtotal: order.totalAmount, // Assuming no discount logic in backend yet
+          discount: 0,
+          totalAmount: order.totalAmount,
+          status: order.status.toLowerCase(),
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          repName: order.user?.name || 'N/A',
+          notes: order.notes
+        }));
+        setOrders(formattedOrders);
+      } else {
+        console.warn('Failed to load orders');
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    }
   };
 
   const filterOrders = () => {
     let filtered = [...orders];
 
     if (searchTerm) {
-      filtered = filtered.filter(o => 
+      filtered = filtered.filter(o =>
         o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         o.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         o.customerCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,14 +98,50 @@ const AdminOrders = () => {
     setFilteredOrders(filtered);
   };
 
-  const handleStatusChange = (orderId, newStatus) => {
-    const updated = orders.map(o => 
-      o.id === orderId 
-        ? { ...o, status: newStatus, updatedAt: new Date().toISOString() }
-        : o
-    );
-    setOrders(updated);
-    saveToLocalStorage('adminOrders', updated);
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      // Find the original ID (UUID) from the orderNumber if needed, but here we mapped ID to orderNumber. 
+      // Wait, the API expects UUID probably.
+      // Let's check if we have the UUID. The API returns `id` as UUID and `orderNumber` as readable ID.
+      // I should store UUID in a separate field or use it for API calls.
+      // Let's re-map: id -> UUID, displayId -> orderNumber.
+
+      // Actually, let's look at `loadOrders` again.
+      // I mapped `id: order.orderNumber || order.id`.
+      // If I want to call API, I need the UUID.
+      // Let's adjust `loadOrders` to keep `originalId` or similar.
+
+      // Re-doing the mapping in `loadOrders` below.
+
+      const orderToUpdate = orders.find(o => o.id === orderId);
+      if (!orderToUpdate) return;
+
+      const response = await fetch(`${API_BASE}/orders/${orderToUpdate.originalId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'x-auth-token': token } : {}),
+        },
+        body: JSON.stringify({ status: newStatus.toUpperCase() })
+      });
+
+      if (response.ok) {
+        const updatedOrder = await response.json();
+        const updated = orders.map(o =>
+          o.id === orderId
+            ? { ...o, status: newStatus, updatedAt: new Date().toISOString() }
+            : o
+        );
+        setOrders(updated);
+        alert('Cập nhật trạng thái thành công!');
+      } else {
+        alert('Lỗi khi cập nhật trạng thái');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Lỗi khi cập nhật trạng thái');
+    }
   };
 
   const handleViewDetails = (order) => {
@@ -514,7 +525,7 @@ const AdminOrders = () => {
           zIndex: 1000,
           padding: '20px'
         }}
-        onClick={() => setShowModal(false)}
+          onClick={() => setShowModal(false)}
         >
           <div
             style={{

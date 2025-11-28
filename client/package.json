@@ -2,6 +2,7 @@
   "name": "an-minh-business-system-client",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:5000",
   "dependencies": {
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
@@ -11,6 +12,7 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.4.0",
     "customize-cra": "^1.0.0",
+    "http-proxy-middleware": "^3.0.5",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-app-rewired": "^2.2.1",
@@ -44,6 +46,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "proxy": "http://localhost:5000"
+  }
 }

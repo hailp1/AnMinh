@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import PageTransition from './components/PageTransition';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
+import LoginSimple from './pages/LoginSimple';
 import QuickRegister from './pages/QuickRegister';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -79,6 +80,7 @@ function AppContent() {
         <PageTransition>
           <Routes>
             <Route path="/" element={<Onboarding />} />
+            <Route path="/login-simple" element={<LoginSimple />} />
             <Route path="/home" element={<Home />} />
             <Route path="/register" element={<QuickRegister />} />
             <Route path="/quick-register" element={<QuickRegister />} />

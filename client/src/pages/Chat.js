@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getUserById, getChatMessages, sendChatMessage } from '../utils/mockData';
+import api from '../services/api';
 
 const Chat = () => {
   const { userId } = useParams();
@@ -15,11 +15,14 @@ const Chat = () => {
 
   const loadChatData = async () => {
     try {
-      const userData = getUserById(userId);
-      const chatMessages = getChatMessages(userId);
-      
-      setTargetUser(userData);
-      setMessages(chatMessages);
+      // Load user info and messages in parallel
+      const [userResponse, messagesResponse] = await Promise.all([
+        api.users.getById(userId),
+        api.messages.getMessages(userId)
+      ]);
+
+      setTargetUser(userResponse);
+      setMessages(messagesResponse);
     } catch (error) {
       console.error('Error loading chat data:', error);
     } finally {
@@ -28,7 +31,9 @@ const Chat = () => {
   };
 
   useEffect(() => {
-    loadChatData();
+    if (userId) {
+      loadChatData();
+    }
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -37,28 +42,41 @@ const Chat = () => {
 
   // Auto refresh messages every 3 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (userId) {
-        const updatedMessages = getChatMessages(userId);
-        setMessages(updatedMessages);
+        try {
+          const updatedMessages = await api.messages.getMessages(userId);
+          // Only update if length changed to avoid flickering/scroll issues
+          // In a real app, you'd compare last message ID
+          if (updatedMessages.length !== messages.length) {
+            setMessages(updatedMessages);
+          }
+        } catch (error) {
+          console.error('Error refreshing messages:', error);
+        }
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [userId, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || !user) return;
 
-    const message = sendChatMessage(userId, newMessage.trim(), true);
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
+    try {
+      const message = await api.messages.sendMessage(userId, newMessage.trim());
+      setMessages(prev => [...prev, message]);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Không thể gửi tin nhắn. Vui lòng thử lại.');
+    }
   };
 
   const formatMessageTime = (timestamp) => {
@@ -100,46 +118,27 @@ const Chat = () => {
           </Link>
           <div className="chat-user-info">
             <div className="user-avatar">
-              <span className="avatar-emoji">{targetUser.avatar}</span>
-              {targetUser.isOnline && <div className="online-indicator"></div>}
+              <span className="avatar-emoji">{targetUser.avatar || '👤'}</span>
+              {targetUser.isActive && <div className="online-indicator"></div>}
             </div>
             <div className="user-details">
               <h2 className="user-name">{targetUser.name}</h2>
               <p className="user-status">
-                {targetUser.hub && <span>📍 Hub: {targetUser.hub}</span>}
-                {targetUser.id && <span style={{ marginLeft: '10px' }}>🆔 Mã: {targetUser.id}</span>}
-                {targetUser.distance && (
-                  <span style={{ marginLeft: '10px' }}>
-                    📏 {targetUser.distance < 1000 
-                      ? `${Math.round(targetUser.distance)}m` 
-                      : `${(targetUser.distance / 1000).toFixed(1)}km`}
-                  </span>
-                )}
+                {targetUser.role && <span>Role: {targetUser.role}</span>}
+                {targetUser.employeeCode && <span style={{ marginLeft: '10px' }}>MNV: {targetUser.employeeCode}</span>}
               </p>
               <p className="user-status">
-                {targetUser.isOnline ? (
-                  <><span className="status-dot online"></span>Đang online</>
+                {targetUser.isActive ? (
+                  <><span className="status-dot online"></span>Đang hoạt động</>
                 ) : (
-                  <><span className="status-dot offline"></span>Hoạt động {formatMessageTime(targetUser.lastSeen || targetUser.lastLogin)}</>
+                  <><span className="status-dot offline"></span>Ngoại tuyến</>
                 )}
               </p>
             </div>
           </div>
         </div>
-        
+
         <div className="chat-header-right">
-          {targetUser.hub && (
-            <div style={{ 
-              padding: '5px 10px', 
-              background: 'rgba(26, 92, 162, 0.1)', 
-              borderRadius: '8px',
-              fontSize: '12px',
-              color: '#1E4A8B',
-              marginRight: '10px'
-            }}>
-              {targetUser.hub}
-            </div>
-          )}
           <div className="chat-menu">
             <button className="menu-btn">⋮</button>
           </div>
@@ -148,35 +147,35 @@ const Chat = () => {
 
       {/* Chat Navigation Menu */}
       <div className="chat-nav-menu">
-        <button 
+        <button
           className={`nav-item ${activeTab === 'chat' ? 'active' : ''}`}
           onClick={() => setActiveTab('chat')}
         >
           <span className="nav-icon">💬</span>
           <span className="nav-text">Chat</span>
         </button>
-        <button 
+        <button
           className={`nav-item ${activeTab === 'location' ? 'active' : ''}`}
           onClick={() => setActiveTab('location')}
         >
           <span className="nav-icon">📍</span>
           <span className="nav-text">Vị trí</span>
         </button>
-        <button 
+        <button
           className={`nav-item ${activeTab === 'rating' ? 'active' : ''}`}
           onClick={() => setActiveTab('rating')}
         >
           <span className="nav-icon">⭐</span>
           <span className="nav-text">Đánh giá</span>
         </button>
-        <button 
+        <button
           className={`nav-item ${activeTab === 'contact' ? 'active' : ''}`}
           onClick={() => setActiveTab('contact')}
         >
           <span className="nav-icon">📞</span>
           <span className="nav-text">Liên hệ</span>
         </button>
-        <button 
+        <button
           className={`nav-item ${activeTab === 'share' ? 'active' : ''}`}
           onClick={() => setActiveTab('share')}
         >
@@ -195,19 +194,22 @@ const Chat = () => {
           </div>
         ) : (
           <div className="messages-list">
-            {messages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`message ${message.fromCurrentUser ? 'sent' : 'received'}`}
-              >
-                <div className="message-content">
-                  <p>{message.text}</p>
-                  <span className="message-time">
-                    {formatMessageTime(message.timestamp)}
-                  </span>
+            {messages.map((message) => {
+              const isMe = message.senderId === user.id;
+              return (
+                <div
+                  key={message.id}
+                  className={`message ${isMe ? 'sent' : 'received'}`}
+                >
+                  <div className="message-content">
+                    <p>{message.content}</p>
+                    <span className="message-time">
+                      {formatMessageTime(message.createdAt)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -224,8 +226,8 @@ const Chat = () => {
             className="message-input"
             maxLength={500}
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="send-btn"
             disabled={!newMessage.trim()}
           >
@@ -240,42 +242,42 @@ const Chat = () => {
           <span className="quick-title">Tin nhắn nhanh</span>
         </div>
         <div className="quick-messages-grid">
-          <button 
+          <button
             className="quick-msg-btn"
             onClick={() => setNewMessage('Chào bạn! 👋')}
           >
             <span className="quick-icon">👋</span>
             <span className="quick-text">Chào bạn</span>
           </button>
-          <button 
+          <button
             className="quick-msg-btn"
             onClick={() => setNewMessage('Bạn đang ở nhà thuốc nào vậy?')}
           >
             <span className="quick-icon">📍</span>
             <span className="quick-text">Hỏi vị trí</span>
           </button>
-          <button 
+          <button
             className="quick-msg-btn"
             onClick={() => setNewMessage('Trạm này sạc nhanh không bạn?')}
           >
             <span className="quick-icon">⚡</span>
             <span className="quick-text">Hỏi tốc độ</span>
           </button>
-          <button 
+          <button
             className="quick-msg-btn"
             onClick={() => setNewMessage('Cảm ơn bạn! 😊')}
           >
             <span className="quick-icon">😊</span>
             <span className="quick-text">Cảm ơn</span>
           </button>
-          <button 
+          <button
             className="quick-msg-btn"
             onClick={() => setNewMessage('Bạn có thể chia sẻ kinh nghiệm không?')}
           >
             <span className="quick-icon">💡</span>
             <span className="quick-text">Hỏi kinh nghiệm</span>
           </button>
-          <button 
+          <button
             className="quick-msg-btn"
             onClick={() => setNewMessage('Hẹn gặp lại! 👋')}
           >

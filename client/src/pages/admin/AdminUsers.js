@@ -68,7 +68,7 @@ const AdminUsers = () => {
     let filtered = [...users];
 
     if (searchTerm) {
-      filtered = filtered.filter(u => 
+      filtered = filtered.filter(u =>
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.employeeCode && u.employeeCode.toUpperCase().includes(searchTerm.toUpperCase())) ||
         (u.phone && u.phone.includes(searchTerm)) ||
@@ -228,7 +228,7 @@ const AdminUsers = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách nhân viên');
-    
+
     // Auto-size columns
     const colWidths = [
       { wch: 12 }, // Mã NV
@@ -264,7 +264,7 @@ const AdminUsers = () => {
           const employeeCode = (row['Mã NV'] || row['Mã nhân viên'] || '').toString().trim().toUpperCase();
           const name = (row['Tên'] || row['Họ tên'] || '').toString().trim();
           const role = (row['Vai trò'] || row['Role'] || 'TDV').toString().toUpperCase();
-          
+
           if (!employeeCode || !name) {
             throw new Error(`Dòng ${index + 2}: Thiếu Mã NV hoặc Tên`);
           }
@@ -283,7 +283,7 @@ const AdminUsers = () => {
         // Import users via API
         let successCount = 0;
         let errorCount = 0;
-        
+
         const token = localStorage.getItem('token');
         for (const importedUser of importedUsers) {
           try {
@@ -344,7 +344,7 @@ const AdminUsers = () => {
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    
+
     const colWidths = [
       { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 15 }
     ];
@@ -660,7 +660,7 @@ const AdminUsers = () => {
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '60px 1fr 150px 180px 120px 120px 150px 120px',
+            gridTemplateColumns: '60px 1fr 120px 120px 150px 180px 120px 120px 150px',
             gap: '16px',
             padding: '16px 20px',
             background: '#f9fafb',
@@ -671,7 +671,9 @@ const AdminUsers = () => {
           }}>
             <div>STT</div>
             <div>Tên</div>
-            <div>Số điện thoại</div>
+            <div>Mã NV</div>
+            <div>Mã LT</div>
+            <div>SĐT</div>
             <div>Email</div>
             <div>Vai trò</div>
             <div>Trạng thái</div>
@@ -787,7 +789,7 @@ const AdminUsers = () => {
           zIndex: 1000,
           padding: '20px'
         }}
-        onClick={() => setShowModal(false)}
+          onClick={() => setShowModal(false)}
         >
           <div
             style={{

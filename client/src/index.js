@@ -9,8 +9,8 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
+// Register Service Worker for PWA (only in production)
+if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/service-worker.js')
@@ -21,4 +21,12 @@ if ('serviceWorker' in navigator) {
         console.log('Service Worker registration failed:', error);
       });
   });
+}
+
+// Ensure no service worker controls dev build (prevents reload loops)
+if (process.env.NODE_ENV !== 'production' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
+  });
+  caches && caches.keys && caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }

@@ -73,7 +73,14 @@ const Onboarding = () => {
         navigateWithTransition(result.redirect || '/home');
       }, 1000);
     } else {
-      setError(result.message || 'Đăng nhập thất bại');
+      // Hiển thị error với hướng dẫn nếu backend down
+      let errorMessage = result.message || 'Đăng nhập thất bại';
+      
+      if (result.backendDown) {
+        errorMessage += '\n\n💡 Giải pháp:\n- Khởi động backend: node server.js\n- Hoặc double-click: start-backend.bat\n- Hoặc dùng script: .\\scripts\\start-all.bat';
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };
