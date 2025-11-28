@@ -6,29 +6,6 @@ import rateLimit from 'express-rate-limit';
 import { config } from 'dotenv';
 import logger from './lib/logger.js';
 
-// Routes
-import authRoutes from './routes/auth.js';
-import stationsRoutes from './routes/stations.js';
-import usersRoutes from './routes/users.js';
-import pharmaciesRoutes from './routes/pharmacies.js';
-import productsRoutes from './routes/products.js';
-import ordersRoutes from './routes/orders.js';
-import regionsRoutes from './routes/regions.js';
-import businessUnitsRoutes from './routes/businessUnits.js';
-import territoriesRoutes from './routes/territories.js';
-import customerAssignmentsRoutes from './routes/customerAssignments.js';
-import visitPlansRoutes from './routes/visitPlans.js';
-import promotionsRoutes from './routes/promotions.js';
-import loyaltyRoutes from './routes/loyalty.js';
-import customerSegmentsRoutes from './routes/customerSegments.js';
-import tradeActivitiesRoutes from './routes/tradeActivities.js';
-import kpiRoutes from './routes/kpi.js';
-import approvalsRoutes from './routes/approvals.js';
-import revenueRoutes from './routes/revenue.js';
-import messagesRoutes from './routes/messages.js';
-import dashboardRoutes from './routes/dashboard.js';
-import routesRoutes from './routes/routes.js';
-
 // Catch all errors immediately
 process.on('uncaughtException', (err) => {
   logger.error('UNCAUGHT EXCEPTION:', err);
@@ -108,8 +85,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'X-Requested-With', 'Origin', 'Accept'],
   exposedHeaders: ['x-auth-token'],
-  optionsSuccessStatus: 200,
-  preflightContinue: false,
+  optionsSuccessStatus: 200, // Support legacy browsers
+  preflightContinue: false, // Let cors handle preflight
 }));
 
 // Secure headers
@@ -123,22 +100,22 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", "http://localhost:*", "ws://localhost:*", "wss://localhost:*"],
     },
-  } : false,
+  } : false, // Tắt CSP strict trong development để tránh lỗi với DevTools
 }));
 
 // Body limit
 app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static('uploads'));
 
-// Handle .well-known requests
+// Handle .well-known requests (cho Chrome DevTools và các tools khác)
 app.get('/.well-known/*', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-// Trust proxy
+// Trust proxy (for Cloudflare)
 app.set('trust proxy', true);
 
-// Enforce HTTPS when behind proxy
+// Enforce HTTPS when behind proxy (optional via env)
 app.use((req, res, next) => {
   if (process.env.ENFORCE_HTTPS === 'true') {
     const proto = req.headers['x-forwarded-proto'];
@@ -150,7 +127,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limit - global
+// Rate limit - global (basic)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
@@ -159,19 +136,41 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// Rate limit - auth endpoints
+// Rate limit - auth endpoints (stricter)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Tăng giới hạn trong dev để test
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
+    // Skip rate limiting nếu là OPTIONS request
     return req.method === 'OPTIONS';
   },
 });
 app.use('/api/auth', authLimiter);
 
-// Register routes
+// Routes
+import authRoutes from './routes/auth.js';
+import stationsRoutes from './routes/stations.js';
+import usersRoutes from './routes/users.js';
+import pharmaciesRoutes from './routes/pharmacies.js';
+import productsRoutes from './routes/products.js';
+import ordersRoutes from './routes/orders.js';
+import regionsRoutes from './routes/regions.js';
+import businessUnitsRoutes from './routes/businessUnits.js';
+import territoriesRoutes from './routes/territories.js';
+import customerAssignmentsRoutes from './routes/customerAssignments.js';
+import visitPlansRoutes from './routes/visitPlans.js';
+import promotionsRoutes from './routes/promotions.js';
+import loyaltyRoutes from './routes/loyalty.js';
+import customerSegmentsRoutes from './routes/customerSegments.js';
+import tradeActivitiesRoutes from './routes/tradeActivities.js';
+import kpiRoutes from './routes/kpi.js';
+import approvalsRoutes from './routes/approvals.js';
+import revenueRoutes from './routes/revenue.js';
+import messagesRoutes from './routes/messages.js';
+
+// Register routes - ĐẢM BẢO routes được register TRƯỚC các middleware khác
 logger.info('Registering routes...');
 
 app.use('/api/auth', authRoutes);
@@ -193,10 +192,8 @@ app.use('/api/kpi', kpiRoutes);
 app.use('/api/approvals', approvalsRoutes);
 app.use('/api/revenue', revenueRoutes);
 app.use('/api/messages', messagesRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/routes', routesRoutes);
 
-// Debug: Log all requests
+// Debug: Log all requests AFTER routes are registered
 app.use((req, res, next) => {
   if (req.path.startsWith('/api')) {
     logger.debug('Incoming request:', {
@@ -209,7 +206,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// API info endpoint
+// API info endpoint - ĐẶT SAU routes để đảm bảo routes được ưu tiên
 app.get('/api', (req, res) => {
   res.json({
     message: 'An Minh Business System API',
@@ -233,9 +230,7 @@ app.get('/api', (req, res) => {
       kpi: '/api/kpi',
       approvals: '/api/approvals',
       revenue: '/api/revenue',
-      messages: '/api/messages',
-      dashboard: '/api/dashboard',
-      routes: '/api/routes'
+      messages: '/api/messages'
     }
   });
 });
@@ -250,6 +245,7 @@ app.use((err, req, res, next) => {
     status: err.status || 500
   });
 
+  // Don't leak error details in production
   const message = process.env.NODE_ENV === 'production'
     ? 'Lỗi server'
     : err.message;
@@ -287,7 +283,7 @@ const PORT = process.env.PORT || 5000;
 // Export app for Vercel
 export default app;
 
-// Start server
+// Start server (skip if running on Vercel)
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     logger.info(`Server đang chạy trên port ${PORT}`);

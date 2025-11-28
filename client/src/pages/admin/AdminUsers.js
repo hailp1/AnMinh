@@ -660,7 +660,7 @@ const AdminUsers = () => {
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '60px 1fr 120px 120px 150px 180px 120px 120px 150px',
+            gridTemplateColumns: '60px 1fr 150px 180px 120px 120px 150px 120px',
             gap: '16px',
             padding: '16px 20px',
             background: '#f9fafb',
@@ -671,9 +671,7 @@ const AdminUsers = () => {
           }}>
             <div>STT</div>
             <div>Tên</div>
-            <div>Mã NV</div>
-            <div>Mã LT</div>
-            <div>SĐT</div>
+            <div>Số điện thoại</div>
             <div>Email</div>
             <div>Vai trò</div>
             <div>Trạng thái</div>
@@ -771,277 +769,60 @@ const AdminUsers = () => {
               </div>
             ))}
           </div>
-        </div>
+        </div >
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '16px',
-              padding: isMobile ? '24px' : '32px',
-              width: '90%',
-              maxWidth: '600px',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
+      {
+        showModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+            Click={() => setShowModal(false)}
           >
-            <h2 style={{
-              fontSize: isMobile ? '18px' : '20px',
-              fontWeight: '600',
-              marginBottom: '24px'
-            }}>
-              {editingUser ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
-            </h2>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: '16px',
+                padding: isMobile ? '24px' : '32px',
+                width: '90%',
+                maxWidth: '600px',
+                maxHeight: '90vh',
+                overflowY: 'auto'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{
+                fontSize: isMobile ? '18px' : '20px',
                 fontWeight: '600',
-                marginBottom: '8px'
+                marginBottom: '24px'
               }}>
-                Tên người dùng *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  color: '#1a1a2e',
-                  background: '#fff'
-                }}
-              />
-            </div>
+                {editingUser ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
+              </h2>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-              gap: '16px',
-              marginBottom: '16px'
-            }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Mã nhân viên *
-                </label>
-                <input
-                  type="text"
-                  value={formData.employeeCode}
-                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value.toUpperCase() })}
-                  placeholder="TDV001"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    textTransform: 'uppercase',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Mã tuyến phụ trách
-                </label>
-                <input
-                  type="text"
-                  value={formData.routeCode}
-                  onChange={(e) => setFormData({ ...formData, routeCode: e.target.value.toUpperCase() })}
-                  placeholder="T001"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    textTransform: 'uppercase',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-              gap: '16px',
-              marginBottom: '16px'
-            }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Số điện thoại
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-              gap: '16px',
-              marginBottom: '16px'
-            }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Vai trò *
-                </label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                >
-                  <option value="TDV">👨‍⚕️ Trình dược viên</option>
-                  <option value="QL">👔 Quản lý</option>
-                  <option value="KT">📊 Kế toán</option>
-                  <option value="ADMIN">👑 Quản trị viên</option>
-                </select>
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
-                </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={editingUser ? "Để trống nếu không đổi" : "Nhập mật khẩu"}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-            </div>
-
-            {!editingUser && (
               <div style={{ marginBottom: '16px' }}>
                 <label style={{
                   display: 'block',
                   fontSize: '14px',
                   fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
+                  marginBottom: '8px'
                 }}>
-                  Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
+                  Tên người dùng *
                 </label>
                 <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder={editingUser ? 'Nhập mật khẩu mới' : 'Nhập mật khẩu'}
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -1054,51 +835,270 @@ const AdminUsers = () => {
                   }}
                 />
               </div>
-            )}
 
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end',
-              marginTop: '24px',
-              flexWrap: 'wrap'
-            }}>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  padding: '12px 24px',
-                  background: '#f3f4f6',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  flex: isMobile ? '1' : 'none'
-                }}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: '12px 24px',
-                  background: '#F29E2E',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  flex: isMobile ? '1' : 'none'
-                }}
-              >
-                Lưu
-              </button>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: '16px',
+                marginBottom: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Mã nhân viên *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.employeeCode}
+                    onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value.toUpperCase() })}
+                    placeholder="TDV001"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      textTransform: 'uppercase',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Mã tuyến phụ trách
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.routeCode}
+                    onChange={(e) => setFormData({ ...formData, routeCode: e.target.value.toUpperCase() })}
+                    placeholder="T001"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      textTransform: 'uppercase',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: '16px',
+                marginBottom: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: '16px',
+                marginBottom: '16px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Vai trò *
+                  </label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  >
+                    <option value="TDV">👨‍⚕️ Trình dược viên</option>
+                    <option value="QL">👔 Quản lý</option>
+                    <option value="KT">📊 Kế toán</option>
+                    <option value="ADMIN">👑 Quản trị viên</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={editingUser ? "Để trống nếu không đổi" : "Nhập mật khẩu"}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {!editingUser && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    marginBottom: '8px',
+                    color: '#1a1a2e'
+                  }}>
+                    Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={editingUser ? 'Nhập mật khẩu mới' : 'Nhập mật khẩu'}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      color: '#1a1a2e',
+                      background: '#fff'
+                    }}
+                  />
+                </div>
+              )}
+
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end',
+                marginTop: '24px',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#f3f4f6',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    flex: isMobile ? '1' : 'none'
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSave}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#F29E2E',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    flex: isMobile ? '1' : 'none'
+                  }}
+                >
+                  Lưu
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

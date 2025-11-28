@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const API_BASE = process.env.REACT_APP_API_URL || '/api';
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -239,7 +239,19 @@ const AdminLogin = () => {
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
 
-
+          {/* Demo Users Info */}
+          <div style={{
+            padding: '16px',
+            background: '#f3f4f6',
+            borderRadius: '12px',
+            fontSize: '13px',
+            color: '#666',
+            textAlign: 'center'
+          }}>
+            <strong>Demo Users:</strong><br />
+            admin / admin<br />
+            ketoan / ketoan
+          </div>
         </form>
       </div>
     </div>

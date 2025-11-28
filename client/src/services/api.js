@@ -1,10 +1,12 @@
 // API Service for An Minh Business System
+// Sử dụng proxy /api trong development (setupProxy.js sẽ proxy tới localhost:5000)
+// Hoặc REACT_APP_API_URL nếu được set trong production
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  return user.token || '';
+  // Token is saved directly in localStorage by Auth flows
+  return localStorage.getItem('token') || '';
 };
 
 // Helper function for API calls
@@ -12,11 +14,15 @@ const apiCall = async (endpoint, options = {}) => {
   const token = getAuthToken();
   const url = `${API_BASE_URL}${endpoint}`;
 
+  if (!token && !endpoint.includes('/auth/login')) {
+    console.warn(`[API] Warning: No token found for request to ${endpoint}`);
+  }
+
   const config = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(token && { 'x-auth-token': token }),
       ...options.headers,
     },
   };
@@ -36,46 +42,41 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-// Pharmacies API
-export const pharmaciesAPI = {
+// Generic CRUD generator
+const createCRUDEndpoints = (resource) => ({
   getAll: (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    return apiCall(`/pharmacies${query ? `?${query}` : ''}`);
+    return apiCall(`/${resource}${query ? `?${query}` : ''}`);
   },
-  getById: (id) => apiCall(`/pharmacies/${id}`),
-  create: (data) => apiCall('/pharmacies', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id, data) => apiCall(`/pharmacies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-};
+  getById: (id) => apiCall(`/${resource}/${id}`),
+  create: (data) => apiCall(`/${resource}`, { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiCall(`/${resource}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiCall(`/${resource}/${id}`, { method: 'DELETE' }),
+});
+
+// Pharmacies API
+export const pharmaciesAPI = createCRUDEndpoints('pharmacies');
 
 // Products API
 export const productsAPI = {
+  ...createCRUDEndpoints('products'),
   getGroups: () => apiCall('/products/groups'),
-  getAll: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    return apiCall(`/products${query ? `?${query}` : ''}`);
-  },
-  getById: (id) => apiCall(`/products/${id}`),
 };
 
 // Orders API
 export const ordersAPI = {
-  getAll: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    return apiCall(`/orders${query ? `?${query}` : ''}`);
-  },
-  getById: (id) => apiCall(`/orders/${id}`),
-  create: (data) => apiCall('/orders', { method: 'POST', body: JSON.stringify(data) }),
-  updateStatus: (id, status) => apiCall(`/orders/${id}/status`, { 
-    method: 'PUT', 
-    body: JSON.stringify({ status }) 
+  ...createCRUDEndpoints('orders'),
+  updateStatus: (id, status) => apiCall(`/orders/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
   }),
 };
 
 // Auth API
 export const authAPI = {
-  login: (phone, password) => apiCall('/auth/login', {
+  login: (employeeCode, password) => apiCall('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ phone, password }),
+    body: JSON.stringify({ employeeCode, password }),
   }),
   register: (data) => apiCall('/auth/register', {
     method: 'POST',
@@ -96,11 +97,62 @@ export const revenueAPI = {
   },
 };
 
+// Other APIs
+export const stationsAPI = createCRUDEndpoints('stations');
+export const regionsAPI = createCRUDEndpoints('regions');
+export const businessUnitsAPI = createCRUDEndpoints('business-units');
+export const territoriesAPI = createCRUDEndpoints('territories');
+export const customerAssignmentsAPI = createCRUDEndpoints('customer-assignments');
+export const visitPlansAPI = {
+  ...createCRUDEndpoints('visit-plans'),
+  generate: (data) => apiCall('/visit-plans/generate', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  importRoutes: (data) => apiCall('/visit-plans/import-routes', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+};
+export const promotionsAPI = {
+  ...createCRUDEndpoints('promotions'),
+  getAvailable: (pharmacyId) => apiCall(`/promotions/available/${pharmacyId}`),
+};
+export const loyaltyAPI = createCRUDEndpoints('loyalty');
+export const customerSegmentsAPI = createCRUDEndpoints('customer-segments');
+export const tradeActivitiesAPI = createCRUDEndpoints('trade-activities');
+export const kpiAPI = createCRUDEndpoints('kpi');
+export const approvalsAPI = createCRUDEndpoints('approvals');
+export const usersAPI = createCRUDEndpoints('users');
+
+// Messages API
+export const messagesAPI = {
+  getContacts: () => apiCall('/messages/contacts'),
+  getMessages: (userId) => apiCall(`/messages/${userId}`),
+  sendMessage: (receiverId, content) => apiCall('/messages', {
+    method: 'POST',
+    body: JSON.stringify({ receiverId, content }),
+  }),
+};
+
 export default {
   pharmacies: pharmaciesAPI,
   products: productsAPI,
   orders: ordersAPI,
   auth: authAPI,
   revenue: revenueAPI,
+  stations: stationsAPI,
+  regions: regionsAPI,
+  businessUnits: businessUnitsAPI,
+  territories: territoriesAPI,
+  customerAssignments: customerAssignmentsAPI,
+  visitPlans: visitPlansAPI,
+  promotions: promotionsAPI,
+  loyalty: loyaltyAPI,
+  customerSegments: customerSegmentsAPI,
+  tradeActivities: tradeActivitiesAPI,
+  kpi: kpiAPI,
+  approvals: approvalsAPI,
+  users: usersAPI,
+  messages: messagesAPI,
 };
-

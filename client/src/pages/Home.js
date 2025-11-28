@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { pharmaciesAPI, ordersAPI } from '../services/api';
+import { pharmaciesAPI, ordersAPI, visitPlansAPI } from '../services/api';
 
 const Home = () => {
   const { user } = useAuth();
-  const [nearbyPharmacies, setNearbyPharmacies] = useState([]);
+  const [visitPlans, setVisitPlans] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(false);
@@ -17,7 +17,7 @@ const Home = () => {
 
   useEffect(() => {
     if (user) {
-      getCurrentLocationAndPharmacies();
+      getCurrentLocationAndVisitPlans();
       loadUserStats();
     } else {
       setLoading(false);
@@ -32,7 +32,7 @@ const Home = () => {
 
       // Load pharmacies from API
       const allPharmacies = await pharmaciesAPI.getAll();
-      
+
       setStats({
         totalPharmacies: allPharmacies.length,
         totalOrders: orders.length,
@@ -49,15 +49,15 @@ const Home = () => {
     }
   };
 
-  const getCurrentLocationAndPharmacies = () => {
+  const getCurrentLocationAndVisitPlans = () => {
     setLoading(true);
-    
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude });
-          fetchNearbyPharmacies(latitude, longitude);
+          fetchVisitPlans(latitude, longitude);
           setLocationError(false);
         },
         (error) => {
@@ -65,42 +65,53 @@ const Home = () => {
           setLocationError(true);
           // Fallback to TP.HCM center
           setUserLocation({ lat: 10.7769, lng: 106.7009 });
-          fetchNearbyPharmacies(10.7769, 106.7009);
+          fetchVisitPlans(10.7769, 106.7009);
         }
       );
     } else {
       setLocationError(true);
       setUserLocation({ lat: 10.7769, lng: 106.7009 });
-      fetchNearbyPharmacies(10.7769, 106.7009);
+      fetchVisitPlans(10.7769, 106.7009);
     }
   };
 
-  const fetchNearbyPharmacies = async (lat, lng) => {
+  const fetchVisitPlans = async (lat, lng) => {
     try {
-      // Load pharmacies from API
-      const allPharmacies = await pharmaciesAPI.getAll();
-      
-      // Lọc theo Hub phụ trách nếu user là Trình dược viên
-      let filteredPharmacies = allPharmacies;
-      if (user && user.role === 'PHARMACY_REP') {
-        // API đã tự động filter theo user assignment
-        filteredPharmacies = allPharmacies;
-      }
-    
-      // Tính khoảng cách và sắp xếp
-      const pharmaciesWithDistance = filteredPharmacies
-        .filter(p => p.latitude && p.longitude)
-        .map(pharmacy => {
-          const distance = calculateDistance(lat, lng, pharmacy.latitude, pharmacy.longitude);
-          return { ...pharmacy, distance };
+      // Load visit plans for today
+      const today = new Date().toISOString();
+      const plans = await visitPlansAPI.getAll({ userId: user.id, visitDate: today });
+
+      // Extract pharmacies from plans and calculate distance
+      const pharmaciesWithDistance = plans
+        .map(plan => {
+          const pharmacy = plan.pharmacy;
+          if (!pharmacy) return null;
+
+          let distance = null;
+          if (pharmacy.latitude && pharmacy.longitude) {
+            distance = calculateDistance(lat, lng, pharmacy.latitude, pharmacy.longitude);
+          }
+
+          return {
+            ...pharmacy,
+            distance,
+            visitPlan: plan
+          };
         })
-        .sort((a, b) => a.distance - b.distance);
-      
-      setNearbyPharmacies(pharmaciesWithDistance.slice(0, 5)); // Top 5 closest
+        .filter(p => p !== null)
+        .sort((a, b) => {
+          // Sort by distance if available
+          if (a.distance !== null && b.distance !== null) return a.distance - b.distance;
+          if (a.distance !== null) return -1;
+          if (b.distance !== null) return 1;
+          return 0;
+        });
+
+      setVisitPlans(pharmaciesWithDistance);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching pharmacies:', error);
-      setNearbyPharmacies([]);
+      console.error('Error fetching visit plans:', error);
+      setVisitPlans([]);
       setLoading(false);
     }
   };
@@ -109,18 +120,18 @@ const Home = () => {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
   const getDistanceText = (pharmacy) => {
     if (!userLocation || !pharmacy.distance) return '';
     const distance = pharmacy.distance;
-    
+
     if (distance < 1000) {
       return `${Math.round(distance)}m`;
     } else {
@@ -157,9 +168,9 @@ const Home = () => {
           marginBottom: '20px',
           boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
         }}>
-          <img 
-            src="/image/logo.webp" 
-            alt="An Minh Business System" 
+          <img
+            src="/image/logo.webp"
+            alt="An Minh Business System"
             style={{
               maxWidth: '150px',
               height: 'auto',
@@ -182,7 +193,7 @@ const Home = () => {
           }}>
             Hệ thống quản lý bán hàng chuyên nghiệp cho Trình dược viên
           </p>
-          
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -196,11 +207,11 @@ const Home = () => {
             }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏥</div>
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>
-                {nearbyPharmacies?.length || 0}+
+                200+
               </div>
               <div style={{ fontSize: '12px', color: '#666' }}>Nhà thuốc</div>
             </div>
-            
+
             <div style={{
               padding: '15px',
               background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
@@ -210,7 +221,7 @@ const Home = () => {
               <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1E4A8B' }}>24/7</div>
               <div style={{ fontSize: '12px', color: '#666' }}>Hỗ trợ</div>
             </div>
-            
+
             <div style={{
               padding: '15px',
               background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
@@ -240,7 +251,7 @@ const Home = () => {
           }}>
             Tính năng nổi bật
           </h2>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{
               display: 'flex',
@@ -271,7 +282,7 @@ const Home = () => {
                 </p>
               </div>
             </div>
-            
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -301,7 +312,7 @@ const Home = () => {
                 </p>
               </div>
             </div>
-            
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -331,7 +342,7 @@ const Home = () => {
                 </p>
               </div>
             </div>
-            
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -366,8 +377,8 @@ const Home = () => {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Link 
-            to="/quick-register" 
+          <Link
+            to="/quick-register"
             style={{
               padding: '16px',
               background: '#F29E2E',
@@ -382,9 +393,9 @@ const Home = () => {
           >
             📱 Đăng ký nhanh
           </Link>
-          
-          <Link 
-            to="/" 
+
+          <Link
+            to="/"
             style={{
               padding: '16px',
               background: 'rgba(255, 255, 255, 0.95)',
@@ -409,7 +420,7 @@ const Home = () => {
     <div style={{
       minHeight: '100vh',
       background: '#1E4A8B',
-      paddingBottom: '100px'
+      paddingBottom: '20px'
     }}>
       {/* Header */}
       <div style={{
@@ -474,7 +485,7 @@ const Home = () => {
             </div>
             <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Nhà thuốc</div>
           </div>
-          
+
           <div style={{
             padding: '12px',
             background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
@@ -486,7 +497,7 @@ const Home = () => {
             </div>
             <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Đơn hàng</div>
           </div>
-          
+
           <div style={{
             padding: '12px',
             background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))',
@@ -516,8 +527,8 @@ const Home = () => {
           gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '12px'
         }}>
-          <Link 
-            to="/create-order"
+          <Link
+            to="/customers"
             style={{
               padding: '20px',
               background: 'rgba(255, 255, 255, 0.95)',
@@ -540,7 +551,7 @@ const Home = () => {
               justifyContent: 'center',
               fontSize: '24px'
             }}>
-              📋
+              👥
             </div>
             <div style={{
               fontSize: '14px',
@@ -548,11 +559,11 @@ const Home = () => {
               color: '#1a1a2e',
               textAlign: 'center'
             }}>
-              Tạo đơn hàng
+              Danh sách khách hàng
             </div>
           </Link>
-          
-          <Link 
+
+          <Link
             to="/map"
             style={{
               padding: '20px',
@@ -590,7 +601,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Nearby Pharmacies */}
+      {/* Visit Plan Today */}
       <div style={{ padding: '0 20px' }}>
         <div style={{
           display: 'flex',
@@ -604,9 +615,9 @@ const Home = () => {
             color: '#fff',
             margin: 0
           }}>
-            🏥 Nhà thuốc gần bạn
+            📅 Lịch viếng thăm hôm nay ({['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][new Date().getDay()]})
           </h2>
-          <Link 
+          <Link
             to="/map"
             style={{
               fontSize: '13px',
@@ -636,13 +647,13 @@ const Home = () => {
               margin: '0 auto 15px'
             }}></div>
             <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
-              Đang tìm nhà thuốc gần bạn...
+              Đang tải lịch viếng thăm...
             </p>
           </div>
-        ) : nearbyPharmacies.length > 0 ? (
+        ) : visitPlans.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {nearbyPharmacies.map((pharmacy) => (
-              <div 
+            {visitPlans.map((pharmacy) => (
+              <div
                 key={pharmacy.id}
                 style={{
                   background: 'rgba(255, 255, 255, 0.95)',
@@ -711,7 +722,7 @@ const Home = () => {
                   color: '#666'
                 }}>
                   <div>📞 {pharmacy.phone}</div>
-                  <div>📍 Hub: {pharmacy.hub}</div>
+                  <div>🕒 {pharmacy.visitPlan?.visitTime || 'Chưa đặt giờ'}</div>
                 </div>
 
                 <div style={{
@@ -735,7 +746,7 @@ const Home = () => {
                     🧭 Chỉ đường
                   </button>
                   <Link
-                    to={`/station/${pharmacy.id}`}
+                    to={`/visit/${pharmacy.id}`}
                     style={{
                       flex: 1,
                       padding: '10px',
@@ -749,7 +760,7 @@ const Home = () => {
                       display: 'block'
                     }}
                   >
-                    Chi tiết
+                    Ghé thăm
                   </Link>
                 </div>
               </div>
@@ -762,72 +773,23 @@ const Home = () => {
             padding: '40px 20px',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '15px' }}>🏥</div>
+            <div style={{ fontSize: '48px', marginBottom: '15px' }}>📅</div>
             <h3 style={{
               fontSize: '18px',
               fontWeight: '600',
               marginBottom: '10px',
               color: '#1a1a2e'
             }}>
-              Không tìm thấy nhà thuốc nào
+              Không có lịch viếng thăm hôm nay
             </h3>
             <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
-              Bạn chưa có nhà thuốc được phân công trong khu vực này
+              Bạn có thể xem danh sách khách hàng để lên kế hoạch
             </p>
           </div>
         )}
       </div>
 
-      {/* Bottom Actions - Sticky */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'rgba(255, 255, 255, 0.98)',
-        backdropFilter: 'blur(10px)',
-        padding: '12px 20px',
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
-        zIndex: 100,
-        borderTop: '1px solid #e5e7eb',
-        display: 'flex',
-        gap: '10px'
-      }}>
-        <Link 
-          to="/create-pharmacy"
-          style={{
-            flex: 1,
-            padding: '12px',
-            background: '#F29E2E',
-            color: '#fff',
-            textAlign: 'center',
-            borderRadius: '12px',
-            textDecoration: 'none',
-            fontSize: '13px',
-            fontWeight: '600',
-            boxShadow: '0 2px 8px rgba(26, 92, 162, 0.3)'
-          }}
-        >
-          ➕ Thêm nhà thuốc
-        </Link>
-        
-        <Link 
-          to="/profile"
-          style={{
-            flex: 1,
-            padding: '12px',
-            background: '#f3f4f6',
-            color: '#1a1a2e',
-            textAlign: 'center',
-            borderRadius: '12px',
-            textDecoration: 'none',
-            fontSize: '13px',
-            fontWeight: '600'
-          }}
-        >
-          👤 Profile
-        </Link>
-      </div>
+
 
       {/* CSS Animation */}
       <style>{`

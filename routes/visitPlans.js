@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const { userId, pharmacyId, visitDate, status } = req.query;
     const where = {};
-    
+
     if (userId) where.userId = userId;
     if (pharmacyId) where.pharmacyId = pharmacyId;
     if (visitDate) {
@@ -53,7 +53,7 @@ router.get('/daily/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { date } = req.query;
-    
+
     const visitDate = date ? new Date(date) : new Date();
     const startOfDay = new Date(visitDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(visitDate.setHours(23, 59, 59, 999));
@@ -114,7 +114,7 @@ router.get('/daily/:userId', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { userId, pharmacyId, territoryId, visitDate, visitTime, purpose, notes } = req.body;
-    
+
     const visitPlan = await prisma.visitPlan.create({
       data: {
         userId,
@@ -145,7 +145,7 @@ router.post('/', async (req, res) => {
 router.post('/bulk', async (req, res) => {
   try {
     const { plans } = req.body; // Array of { userId, pharmacyId, visitDate, visitTime, purpose, notes }
-    
+
     const created = await prisma.visitPlan.createMany({
       data: plans.map(plan => ({
         ...plan,
@@ -154,7 +154,7 @@ router.post('/bulk', async (req, res) => {
       }))
     });
 
-    res.json({ 
+    res.json({
       message: `Đã tạo ${created.count} kế hoạch viếng thăm`,
       count: created.count
     });
@@ -169,7 +169,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { visitDate, visitTime, purpose, notes, status } = req.body;
     const updateData = {};
-    
+
     if (visitDate) updateData.visitDate = new Date(visitDate);
     if (visitTime !== undefined) updateData.visitTime = visitTime;
     if (purpose !== undefined) updateData.purpose = purpose;
@@ -209,6 +209,129 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Đã hủy kế hoạch viếng thăm' });
   } catch (error) {
     console.error('Error deleting visit plan:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// Helper function to generate plans
+const generateVisitPlans = async ({ userId, pharmacyId, daysOfWeek, startDate, endDate, frequency }) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const plans = [];
+
+  // Xóa plan cũ chưa thực hiện
+  await prisma.visitPlan.deleteMany({
+    where: {
+      userId,
+      pharmacyId,
+      visitDate: { gte: start, lte: end },
+      status: 'PLANNED'
+    }
+  });
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const jsDay = d.getDay();
+    const schemaDay = jsDay === 0 ? 1 : jsDay + 1;
+
+    if (daysOfWeek.includes(schemaDay)) {
+      plans.push({
+        userId,
+        pharmacyId,
+        visitDate: new Date(d),
+        dayOfWeek: schemaDay,
+        status: 'PLANNED',
+        frequency: frequency || 'F4'
+      });
+    }
+  }
+
+  if (plans.length > 0) {
+    await prisma.visitPlan.createMany({ data: plans });
+  }
+  return plans.length;
+};
+
+// Sinh lịch tự động theo cấu hình (F và Thứ)
+router.post('/generate', async (req, res) => {
+  try {
+    const { userId, pharmacyIds, daysOfWeek, startDate, endDate, frequency } = req.body;
+    let totalCreated = 0;
+
+    for (const pharmacyId of pharmacyIds) {
+      const count = await generateVisitPlans({
+        userId,
+        pharmacyId,
+        daysOfWeek,
+        startDate,
+        endDate,
+        frequency
+      });
+      totalCreated += count;
+    }
+
+    res.json({
+      message: `Đã sinh ${totalCreated} lịch viếng thăm thành công`,
+      count: totalCreated
+    });
+
+  } catch (error) {
+    console.error('Error generating visit plans:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// Import tuyến từ Excel (JSON data)
+router.post('/import-routes', async (req, res) => {
+  try {
+    const { routes } = req.body; // Array of { employeeCode, customerCode, frequency, days, startDate, endDate }
+    let successCount = 0;
+    let errors = [];
+
+    for (const route of routes) {
+      try {
+        // 1. Find User
+        const user = await prisma.user.findUnique({ where: { employeeCode: route.employeeCode } });
+        if (!user) {
+          errors.push(`Không tìm thấy TDV mã ${route.employeeCode}`);
+          continue;
+        }
+
+        // 2. Find Pharmacy
+        // Note: Pharmacy code might not be unique globally in some systems, but assuming unique here or findFirst
+        const pharmacy = await prisma.pharmacy.findFirst({ where: { code: route.customerCode } });
+        if (!pharmacy) {
+          errors.push(`Không tìm thấy KH mã ${route.customerCode}`);
+          continue;
+        }
+
+        // 3. Parse days (e.g., "2,5" -> [2, 5])
+        const daysOfWeek = route.days.toString().split(',').map(d => parseInt(d.trim()));
+
+        // 4. Generate
+        const count = await generateVisitPlans({
+          userId: user.id,
+          pharmacyId: pharmacy.id,
+          daysOfWeek,
+          startDate: route.startDate, // Format YYYY-MM-DD expected
+          endDate: route.endDate,
+          frequency: route.frequency
+        });
+        successCount += count;
+
+      } catch (err) {
+        console.error(`Error processing route ${route.customerCode}:`, err);
+        errors.push(`Lỗi dòng KH ${route.customerCode}: ${err.message}`);
+      }
+    }
+
+    res.json({
+      message: `Đã xử lý xong. Sinh ${successCount} lịch.`,
+      errors: errors.length > 0 ? errors : null,
+      successCount
+    });
+
+  } catch (error) {
+    console.error('Error importing routes:', error);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
