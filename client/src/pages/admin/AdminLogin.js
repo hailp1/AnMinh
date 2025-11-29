@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
-  const API_BASE = process.env.REACT_APP_API_URL || '/api';
+  // Align with AuthContext: Use direct URL if env var is missing
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -25,8 +26,11 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
+      const url = `${API_BASE}/auth/login`;
+      console.log('Attempting login to:', url);
+
       // Treat username as employeeCode for admin login via API
-      const response = await fetch(`${API_BASE}/auth/login`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -37,7 +41,7 @@ const AdminLogin = () => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Đăng nhập thất bại');
+        throw new Error(data.message || `Lỗi ${response.status}: ${response.statusText}`);
       }
 
       if (!data.user || data.user.role !== 'ADMIN') {
@@ -52,6 +56,7 @@ const AdminLogin = () => {
       // Navigate to admin dashboard
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
     } finally {
       setLoading(false);

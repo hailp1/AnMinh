@@ -57,6 +57,27 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Admin: Lấy tất cả nhà thuốc (không filter)
+router.get('/admin/all', adminAuth, async (req, res) => {
+  try {
+    const pharmacies = await prisma.pharmacy.findMany({
+      include: {
+        territory: {
+          select: { id: true, name: true, code: true }
+        },
+        customerSegment: {
+          select: { id: true, name: true }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+    res.json(pharmacies);
+  } catch (error) {
+    console.error('Error fetching pharmacies:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 // Lấy chi tiết nhà thuốc
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -191,25 +212,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Admin: Lấy tất cả nhà thuốc (không filter)
-router.get('/admin/all', adminAuth, async (req, res) => {
-  try {
-    const pharmacies = await prisma.pharmacy.findMany({
-      include: {
-        territory: {
-          select: { id: true, name: true, code: true }
-        },
-        customerSegment: {
-          select: { id: true, name: true }
-        }
-      },
-      orderBy: { name: 'asc' }
-    });
-    res.json(pharmacies);
-  } catch (error) {
-    console.error('Error fetching pharmacies:', error);
-    res.status(500).json({ error: 'Lỗi server' });
-  }
-});
+
 
 // Admin: Xóa nhà thuốc
 router.delete('/:id', adminAuth, async (req, res) => {

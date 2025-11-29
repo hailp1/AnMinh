@@ -71,7 +71,7 @@ router.get('/', auth, async (req, res) => {
 // Tạo đơn hàng mới
 router.post('/', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'PHARMACY_REP') {
+    if (req.user.role !== 'PHARMACY_REP' && req.user.role !== 'TDV') {
       return res.status(403).json({ error: 'Chỉ trình dược viên mới có thể tạo đơn hàng' });
     }
 

@@ -43,15 +43,20 @@ const AdminProducts = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       // Load groups
-      const groupsResponse = await fetch(`${API_BASE}/products/groups`);
+      const groupsResponse = await fetch(`${API_BASE}/products/groups`, {
+        headers: { 'x-auth-token': token }
+      });
       if (groupsResponse.ok) {
         const groups = await groupsResponse.json();
         setProductGroups(Array.isArray(groups) ? groups : []);
       }
-      
+
       // Load products
-      const productsResponse = await fetch(`${API_BASE}/products`);
+      const productsResponse = await fetch(`${API_BASE}/products`, {
+        headers: { 'x-auth-token': token }
+      });
       if (productsResponse.ok) {
         const productsData = await productsResponse.json();
         setProducts(Array.isArray(productsData) ? productsData : []);
@@ -70,7 +75,7 @@ const AdminProducts = () => {
     let filtered = [...products];
 
     if (searchTerm) {
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.code.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -153,10 +158,12 @@ const AdminProducts = () => {
     try {
       setLoading(true);
       // First, delete all products in this group
+      const token = localStorage.getItem('token');
       const productsInGroup = products.filter(p => p.groupId === id);
       for (const product of productsInGroup) {
         await fetch(`${API_BASE}/products/admin/products/${product.id}`, {
           method: 'DELETE',
+          headers: { 'x-auth-token': token }
         });
       }
 
@@ -165,6 +172,7 @@ const AdminProducts = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-auth-token': token
         },
         body: JSON.stringify({ isActive: false }),
       });
@@ -189,8 +197,10 @@ const AdminProducts = () => {
 
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE}/products/admin/products/${id}`, {
         method: 'DELETE',
+        headers: { 'x-auth-token': token }
       });
 
       if (response.ok) {
@@ -229,10 +239,12 @@ const AdminProducts = () => {
           : `${API_BASE}/products/admin/groups`;
         const method = editingGroup.id ? 'PUT' : 'POST';
 
+        const token = localStorage.getItem('token');
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(payload),
         });
@@ -276,10 +288,12 @@ const AdminProducts = () => {
           : `${API_BASE}/products/admin/products`;
         const method = editingProduct?.id ? 'PUT' : 'POST';
 
+        const token = localStorage.getItem('token');
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(payload),
         });
@@ -435,7 +449,7 @@ const AdminProducts = () => {
         {productGroups.map(group => {
           const groupProducts = products.filter(p => p.groupId === group.id || p.group?.id === group.id);
           const totalRevenue = groupProducts.reduce((sum, p) => sum + (p.price || 0), 0);
-          
+
           return (
             <div
               key={group.id}
@@ -631,7 +645,7 @@ const AdminProducts = () => {
           justifyContent: 'center',
           zIndex: 1000
         }}
-        onClick={() => setShowModal(false)}
+          onClick={() => setShowModal(false)}
         >
           <div
             style={{
@@ -787,8 +801,8 @@ const AdminProducts = () => {
                     <select
                       value={formData.groupId}
                       onChange={(e) => {
-                        setFormData({ 
-                          ...formData, 
+                        setFormData({
+                          ...formData,
                           groupId: e.target.value
                         });
                       }}

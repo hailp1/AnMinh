@@ -21,41 +21,58 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Try find by employeeCode; create or update
-  const existing = await prisma.user.findUnique({
+  // Try find by employeeCode
+  let user = await prisma.user.findUnique({
     where: { employeeCode },
   });
 
-  let user;
-  if (existing) {
+  if (user) {
+    // Update existing user by employeeCode
     user = await prisma.user.update({
-      where: { id: existing.id },
+      where: { id: user.id },
       data: {
         name,
-        email,
+        email, // This might fail if email is taken by ANOTHER user
         phone,
         role: 'ADMIN',
         password: hashedPassword,
         isActive: true,
       },
-      select: { id: true, name: true, employeeCode: true, role: true, email: true, phone: true, isActive: true },
     });
-    console.log('Updated existing user to ADMIN:', user);
+    console.log('Updated existing user (by code) to ADMIN:', user);
   } else {
-    user = await prisma.user.create({
-      data: {
-        name,
-        employeeCode,
-        routeCode: null,
-        email,
-        phone,
-        role: 'ADMIN',
-        password: hashedPassword,
-        isActive: true,
-      },
-      select: { id: true, name: true, employeeCode: true, role: true, email: true, phone: true, isActive: true },
-    });
-    console.log('Created ADMIN user:', user);
+    // Check if email exists
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingEmail) {
+      // Update existing user by email
+      user = await prisma.user.update({
+        where: { id: existingEmail.id },
+        data: {
+          employeeCode, // Update code to HAILP
+          name,
+          phone,
+          role: 'ADMIN',
+          password: hashedPassword,
+          isActive: true,
+        },
+      });
+      console.log('Updated existing user (by email) to ADMIN:', user);
+    } else {
+      // Create new
+      user = await prisma.user.create({
+        data: {
+          name,
+          employeeCode,
+          routeCode: null,
+          email,
+          phone,
+          role: 'ADMIN',
+          password: hashedPassword,
+          isActive: true,
+        },
+      });
+      console.log('Created ADMIN user:', user);
+    }
   }
 
   console.log('\nLogin info:');

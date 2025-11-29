@@ -165,7 +165,7 @@ const Customers = () => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate('/create-order', { state: { selectedCustomer: customer } });
+                                            navigate(`/order/create/${customer.id}`);
                                         }}
                                         style={{
                                             background: '#F29E2E',

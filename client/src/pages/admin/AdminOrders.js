@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
-import customersData from '../../data/customers.json';
-import productsData from '../../data/products.json';
+const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -29,75 +27,51 @@ const AdminOrders = () => {
     filterOrders();
   }, [searchTerm, filterStatus, filterHub, orders]);
 
-  const loadOrders = () => {
-    // Generate mock orders if none exist
-    let storedOrders = getFromLocalStorage('adminOrders', []);
-
-    if (storedOrders.length === 0) {
-      storedOrders = generateMockOrders();
-      saveToLocalStorage('adminOrders', storedOrders);
-    }
-
-    setOrders(storedOrders);
-  };
-
-  const generateMockOrders = () => {
-    const customers = customersData.customers || [];
-    const allProducts = productsData.productGroups?.flatMap(g => g.products) || [];
-    const statuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-    const mockOrders = [];
-
-    for (let i = 0; i < 50; i++) {
-      const customer = customers[Math.floor(Math.random() * customers.length)];
-      const itemCount = Math.floor(Math.random() * 5) + 1;
-      const items = [];
-      let subtotal = 0;
-
-      for (let j = 0; j < itemCount; j++) {
-        const product = allProducts[Math.floor(Math.random() * allProducts.length)];
-        const quantity = Math.floor(Math.random() * 10) + 1;
-        const price = product.price || Math.floor(Math.random() * 50000) + 10000;
-        const itemTotal = price * quantity;
-        subtotal += itemTotal;
-
-        items.push({
-          productId: product.id,
-          productCode: product.code,
-          productName: product.name,
-          quantity: quantity,
-          unit: product.unit || 'Vĩ',
-          price: price,
-          total: itemTotal
-        });
-      }
-
-      const discount = Math.random() > 0.7 ? Math.floor(subtotal * 0.1) : 0;
-      const totalAmount = subtotal - discount;
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const createdAt = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-
-      mockOrders.push({
-        id: `ORD${String(i + 1).padStart(5, '0')}`,
-        customerId: customer.id,
-        customerCode: customer.code,
-        customerName: customer.name,
-        customerAddress: customer.address,
-        customerPhone: customer.phone,
-        customerHub: customer.hub,
-        items: items,
-        subtotal: subtotal,
-        discount: discount,
-        totalAmount: totalAmount,
-        status: status,
-        createdAt: createdAt.toISOString(),
-        updatedAt: createdAt.toISOString(),
-        repId: `rep${String(Math.floor(Math.random() * 10) + 1).padStart(3, '0')}`,
-        repName: `Trình dược viên ${String.fromCharCode(65 + Math.floor(Math.random() * 10))}`,
-        notes: Math.random() > 0.8 ? 'Giao hàng trong giờ hành chính' : ''
+  const loadOrders = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/orders`, {
+        headers: {
+          'x-auth-token': token
+        }
       });
-    }
 
-    return mockOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      if (response.ok) {
+        const data = await response.json();
+        // Map API data to UI format
+        const mappedOrders = data.map(order => ({
+          id: order.orderNumber || order.id, // Use orderNumber if available
+          realId: order.id, // Keep real ID for API calls
+          customerId: order.pharmacy?.id,
+          customerCode: 'NT' + (order.pharmacy?.id?.substring(0, 4) || '000'), // Mock code if missing
+          customerName: order.pharmacy?.name || 'Khách lẻ',
+          customerAddress: order.pharmacy?.address || '',
+          customerPhone: order.pharmacy?.phone || '',
+          customerHub: order.pharmacy?.hub || 'CENTRAL',
+          items: order.items.map(item => ({
+            productId: item.product?.id,
+            productCode: item.product?.code || 'SP000',
+            productName: item.product?.name || 'Sản phẩm',
+            quantity: item.quantity,
+            unit: item.product?.unit || 'Đơn vị',
+            price: item.price || 0,
+            total: (item.price || 0) * item.quantity
+          })),
+          subtotal: order.totalAmount, // API doesn't separate subtotal/discount yet
+          discount: 0,
+          totalAmount: order.totalAmount,
+          status: order.status.toLowerCase(), // API uses uppercase
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          repId: order.user?.id,
+          repName: order.user?.name || 'Trình dược viên',
+          notes: order.notes || ''
+        }));
+        setOrders(mappedOrders);
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    }
   };
 
   const filterOrders = () => {
@@ -123,14 +97,31 @@ const AdminOrders = () => {
     setFilteredOrders(filtered);
   };
 
-  const handleStatusChange = (orderId, newStatus) => {
-    const updated = orders.map(o =>
-      o.id === orderId
-        ? { ...o, status: newStatus, updatedAt: new Date().toISOString() }
-        : o
-    );
-    setOrders(updated);
-    saveToLocalStorage('adminOrders', updated);
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const order = orders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/orders/${order.realId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: newStatus.toUpperCase() })
+      });
+
+      if (response.ok) {
+        // Reload orders to get updated status
+        loadOrders();
+      } else {
+        alert('Lỗi khi cập nhật trạng thái đơn hàng');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Lỗi khi cập nhật trạng thái đơn hàng');
+    }
   };
 
   const handleViewDetails = (order) => {

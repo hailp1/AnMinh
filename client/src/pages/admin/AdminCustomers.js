@@ -47,7 +47,12 @@ const AdminCustomers = () => {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/pharmacies/admin/all`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/pharmacies/admin/all`, {
+        headers: {
+          'x-auth-token': token
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setCustomers(Array.isArray(data) ? data : []);
@@ -128,8 +133,12 @@ const AdminCustomers = () => {
 
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE}/pharmacies/${id}`, {
         method: 'DELETE',
+        headers: {
+          'x-auth-token': token
+        }
       });
 
       if (response.ok) {
@@ -175,10 +184,12 @@ const AdminCustomers = () => {
         : `${API_BASE}/pharmacies`;
       const method = editingCustomer ? 'PUT' : 'POST';
 
+      const token = localStorage.getItem('token');
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'x-auth-token': token
         },
         body: JSON.stringify(payload),
       });
@@ -288,10 +299,12 @@ const AdminCustomers = () => {
 
         for (const importedCustomer of importedCustomers) {
           try {
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/pharmacies`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'x-auth-token': token
               },
               body: JSON.stringify(importedCustomer),
             });
