@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Settings, Tablet, Brain, Facebook, Twitter, Youtube } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Settings, Tablet, Brain, Facebook, Twitter, Youtube, Menu, X } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Custom Hexagon Background Component
 const HexagonBackground = () => (
@@ -24,32 +25,35 @@ const HexagonBackground = () => (
     </div>
 );
 
-import Image from 'next/image';
-
 const Logo = () => (
-    <div className="relative w-48 h-12">
+    <div className="relative w-32 h-10 sm:w-40 sm:h-11 md:w-48 md:h-12 transition-all duration-300">
         <Image
             src="/logo_medtech.png"
             alt="AM Medtech Logo"
             fill
             className="object-contain"
+            priority
         />
     </div>
 );
 
 const Hero = () => {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
     return (
-        <div className="relative h-screen w-full bg-[#020617] text-white overflow-hidden font-sans flex flex-col">
+        <div className="relative min-h-screen w-full bg-[#020617] text-white overflow-hidden font-sans flex flex-col">
             <HexagonBackground />
 
             {/* Navbar */}
-            <nav className="relative z-50 flex justify-between items-center px-10 py-8 w-full max-w-[1600px] mx-auto">
-                <Link href="/">
+            <nav className="relative z-50 flex justify-between items-center px-4 sm:px-6 md:px-10 py-6 md:py-8 w-full max-w-[1600px] mx-auto">
+                <Link href="/" className="z-50">
                     <Logo />
                 </Link>
 
                 {/* Desktop Navigation */}
-                <div className="hidden md:flex items-center gap-8">
+                <div className="hidden lg:flex items-center gap-6 xl:gap-8">
                     <a href="#services" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Services</a>
                     <Link href="/data-intelligence" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Data Intelligence</Link>
                     <Link href="/case-studies/famfa" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Case Studies</Link>
@@ -58,30 +62,92 @@ const Hero = () => {
 
                 <Link
                     href="/login"
-                    className="px-8 py-2 rounded-full border border-[#00D4FF] text-[#00D4FF] text-sm font-bold tracking-wider hover:bg-[#00D4FF] hover:text-[#020617] hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] transition-all duration-300"
+                    className="hidden lg:flex px-6 py-2 xl:px-8 rounded-full border border-[#00D4FF] text-[#00D4FF] text-sm font-bold tracking-wider hover:bg-[#00D4FF] hover:text-[#020617] hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] transition-all duration-300"
                 >
                     CLIENT LOGIN
                 </Link>
+
+                {/* Mobile Menu Button */}
+                <button
+                    className="lg:hidden z-50 p-2 text-white hover:text-[#00D4FF] transition-colors"
+                    onClick={toggleMobileMenu}
+                    aria-label="Toggle menu"
+                >
+                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                </button>
+
+                {/* Mobile Menu Dropdown - Compact & Modern */}
+                <AnimatePresence>
+                    {isMobileMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="absolute top-full right-4 sm:right-6 md:right-10 mt-2 w-64 bg-[#0B1221]/95 backdrop-blur-xl border border-[#00D4FF]/20 rounded-2xl shadow-2xl z-50 lg:hidden overflow-hidden origin-top-right"
+                        >
+                            <div className="flex flex-col py-2">
+                                <a
+                                    href="#services"
+                                    onClick={toggleMobileMenu}
+                                    className="px-6 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    Services
+                                </a>
+                                <Link
+                                    href="/data-intelligence"
+                                    onClick={toggleMobileMenu}
+                                    className="px-6 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    Data Intelligence
+                                </Link>
+                                <Link
+                                    href="/case-studies/famfa"
+                                    onClick={toggleMobileMenu}
+                                    className="px-6 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    Case Studies
+                                </Link>
+                                <Link
+                                    href="/about"
+                                    onClick={toggleMobileMenu}
+                                    className="px-6 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                                >
+                                    About
+                                </Link>
+                                <div className="p-4 bg-[#020617]/50">
+                                    <Link
+                                        href="/login"
+                                        onClick={toggleMobileMenu}
+                                        className="flex items-center justify-center w-full px-4 py-2 rounded-lg bg-[#00D4FF]/10 text-[#00D4FF] text-xs font-bold tracking-wider border border-[#00D4FF]/50 hover:bg-[#00D4FF] hover:text-[#020617] transition-all duration-300"
+                                    >
+                                        CLIENT LOGIN
+                                    </Link>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </nav>
 
             {/* Main Content Area */}
-            <div className="relative z-10 flex-grow flex flex-col justify-center px-10 md:px-20">
+            <div className="relative z-10 flex-grow flex flex-col justify-center px-4 sm:px-6 md:px-10 lg:px-20 py-10 md:py-0">
                 {/* Hero Text */}
-                <div className="mb-16 max-w-4xl">
+                <div className="mb-10 md:mb-16 max-w-4xl mx-auto md:mx-0 text-center md:text-left">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="text-6xl md:text-7xl lg:text-8xl font-bold leading-tight tracking-tight text-white"
+                        className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold leading-tight tracking-tight text-white"
                     >
-                        ELEVATING <br />
-                        PHARMA <br />
+                        ELEVATING <br className="hidden md:block" />
+                        PHARMA <br className="hidden md:block" />
                         DISTRIBUTION
                     </motion.h1>
                 </div>
 
                 {/* Feature Cards Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-[1400px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-[1400px] mx-auto md:mx-0">
                     <GlassCard
                         icon={<Settings strokeWidth={1.5} />}
                         title="DIGITAL TRANSFORMATION"
@@ -103,20 +169,7 @@ const Hero = () => {
                 </div>
             </div>
 
-            {/* Footer */}
-            <footer className="relative z-10 px-10 py-6 flex justify-between items-center text-xs text-slate-400">
-                <div className="flex gap-6">
-                    <a href="#" className="hover:text-white transition-colors">About us</a>
-                    <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-                    <a href="#" className="hover:text-white transition-colors">Accessibility</a>
-                    <a href="#" className="hover:text-white transition-colors">Contact us</a>
-                </div>
-                <div className="flex gap-4">
-                    <SocialIcon icon={<Facebook size={16} />} />
-                    <SocialIcon icon={<Twitter size={16} />} />
-                    <SocialIcon icon={<Youtube size={16} />} />
-                </div>
-            </footer>
+
         </div>
     );
 };
@@ -133,16 +186,16 @@ const GlassCard = ({ icon, title, text, delay }: GlassCardProps) => (
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay }}
-        className="group relative p-6 rounded-2xl bg-[#0B1221]/60 backdrop-blur-md border border-[#00D4FF]/30 hover:border-[#00D4FF] hover:bg-[#0B1221]/80 transition-all duration-300 overflow-hidden"
+        className="group relative p-5 sm:p-6 rounded-2xl bg-[#0B1221]/60 backdrop-blur-md border border-[#00D4FF]/30 hover:border-[#00D4FF] hover:bg-[#0B1221]/80 transition-all duration-300 overflow-hidden"
     >
         {/* Inner Glow Effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#00D4FF]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
         <div className="relative z-10">
-            <div className="mb-4 text-[#00D4FF]">
-                {React.cloneElement(icon as any, { className: "w-10 h-10" })}
+            <div className="mb-3 sm:mb-4 text-[#00D4FF]">
+                {React.cloneElement(icon as any, { className: "w-8 h-8 sm:w-10 sm:h-10" })}
             </div>
-            <h3 className="text-lg font-bold text-white mb-2 tracking-wide">{title}</h3>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-2 tracking-wide">{title}</h3>
             <p className="text-slate-300 text-xs leading-relaxed opacity-80">
                 {text}
             </p>

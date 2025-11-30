@@ -2,129 +2,102 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import {
-    Users,
-    TrendingUp,
-    Target,
-    BookOpen,
-    Database,
-    Smartphone,
-    BarChart3,
-    ShoppingCart,
-    Layers,
-    CheckCircle2
-} from 'lucide-react';
+import { Settings, BarChart3, Globe, ShieldCheck, Zap, Users, ArrowRight } from 'lucide-react';
 
 const Services = () => {
     return (
-        <section id="services" className="py-24 bg-[#020617] relative overflow-hidden">
-            {/* Background Gradients */}
+        <section id="services" className="py-16 md:py-24 bg-[#020617] relative overflow-hidden">
+            {/* Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[20%] left-[-10%] w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[100px]"></div>
-                <div className="absolute bottom-[10%] right-[-5%] w-[500px] h-[500px] bg-cyan-900/10 rounded-full blur-[100px]"></div>
+                <div className="absolute top-[-10%] right-[-5%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-[#00D4FF]/10 rounded-full blur-[100px]"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-600/10 rounded-full blur-[100px]"></div>
             </div>
 
-            <div className="container mx-auto px-6 relative z-10">
+            <div className="container mx-auto px-4 md:px-6 relative z-10">
 
                 {/* Section Header */}
-                <div className="text-center mb-20">
+                <div className="text-center mb-12 md:mb-20 max-w-3xl mx-auto">
                     <motion.span
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="text-cyan-400 font-semibold tracking-wider uppercase text-sm"
+                        viewport={{ once: true }}
+                        className="text-[#00D4FF] font-semibold tracking-wider text-sm uppercase mb-4 block"
                     >
                         Our Expertise
                     </motion.span>
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
-                        className="text-4xl md:text-5xl font-bold text-white mt-4 mb-6"
+                        className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight"
                     >
-                        Comprehensive <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Pharma Solutions</span>
+                        Comprehensive Digital <br /> Solutions for Pharma
                     </motion.h2>
-                    <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-                        From strategic consulting to cutting-edge digital tools, we provide the complete ecosystem for pharmaceutical growth.
-                    </p>
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.2 }}
+                        className="text-slate-400 text-base md:text-lg leading-relaxed"
+                    >
+                        We combine deep pharmaceutical industry knowledge with cutting-edge technology to drive growth, efficiency, and compliance.
+                    </motion.p>
                 </div>
 
-                {/* 1. Strategic Consulting Services */}
-                <div className="mb-24">
-                    <h3 className="text-2xl font-bold text-white mb-10 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                            <Target className="w-6 h-6 text-blue-400" />
-                        </div>
-                        Strategic Consulting
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Service Category 1: Strategic Consulting */}
+                <div className="mb-16 md:mb-24">
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-8 border-l-4 border-[#00D4FF] pl-4">Strategic Consulting</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         <ServiceCard
-                            icon={<Layers />}
-                            title="Business Restructuring"
-                            desc="Redesigning organizational structure and workflows for maximum agility and efficiency in the pharma sector."
+                            icon={<Globe />}
+                            title="Route-to-Market Strategy"
+                            desc="Optimize distribution channels and market entry strategies for maximum reach."
+                            delay={0}
+                        />
+                        <ServiceCard
+                            icon={<BarChart3 />}
+                            title="Commercial Excellence"
+                            desc="Enhance sales force effectiveness and commercial operations performance."
+                            delay={0.1}
                         />
                         <ServiceCard
                             icon={<Users />}
-                            title="Competency Framework"
-                            desc="Building detailed competency maps and KPIs to standardize and elevate your sales force performance."
+                            title="Organizational Design"
+                            desc="Structure your teams and processes for agility and digital readiness."
+                            delay={0.2}
                         />
                         <ServiceCard
-                            icon={<TrendingUp />}
-                            title="Channel Development"
-                            desc="Strategic planning for distribution expansion, territory mapping, and partner relationship management."
-                        />
-                        <ServiceCard
-                            icon={<BookOpen />}
-                            title="Training & Development"
-                            desc="Customized training programs to upskill your team in modern sales techniques and product knowledge."
+                            icon={<ShieldCheck />}
+                            title="Regulatory Compliance"
+                            desc="Navigate complex pharma regulations with digital compliance frameworks."
+                            delay={0.3}
                         />
                     </div>
                 </div>
 
-                {/* 2. Digital Transformation Solutions */}
+                {/* Service Category 2: Digital Solutions */}
                 <div>
-                    <h3 className="text-2xl font-bold text-white mb-10 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                            <Database className="w-6 h-6 text-cyan-400" />
-                        </div>
-                        Digital Transformation Solutions
-                    </h3>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Tech Card 1: DMS & CRM */}
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-8 border-l-4 border-blue-600 pl-4">Digital Transformation</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                         <TechCard
-                            title="DMS & CRM Ecosystem"
-                            features={[
-                                "Real-time Inventory Tracking",
-                                "GPS-based Sales Route Optimization",
-                                "Automated Order Processing",
-                                "360° Customer Relationship View"
-                            ]}
-                            icon={<Smartphone className="w-8 h-8 text-cyan-400" />}
+                            title="Next-Gen DMS"
+                            desc="Advanced Document Management System tailored for pharma workflows, ensuring data integrity and seamless collaboration."
+                            features={['Automated Workflows', 'Version Control', 'Audit Trails', 'Secure Sharing']}
+                            delay={0.2}
                         />
-
-                        {/* Tech Card 2: Business Intelligence */}
                         <TechCard
-                            title="Business Intelligence (BI)"
-                            features={[
-                                "Predictive Sales Analytics",
-                                "Market Trend Forecasting",
-                                "Performance Dashboards",
-                                "AI-Driven Decision Support"
-                            ]}
-                            icon={<BarChart3 className="w-8 h-8 text-purple-400" />}
+                            title="Data Intelligence Platform"
+                            desc="Turn raw data into actionable insights with our AI-powered analytics platform designed for commercial decision-making."
+                            features={['Predictive Analytics', 'Real-time Dashboards', 'Sales Forecasting', 'Market Trend Analysis']}
+                            delay={0.3}
+                            highlight
                         />
-
-                        {/* Tech Card 3: E-Commerce */}
                         <TechCard
-                            title="Omnichannel E-Commerce"
-                            features={[
-                                "B2B Portal for Pharmacies/Hospitals",
-                                "B2B2C & D2C Integration",
-                                "Loyalty & Rewards Programs",
-                                "Seamless ERP Integration"
-                            ]}
-                            icon={<ShoppingCart className="w-8 h-8 text-pink-400" />}
+                            title="Omnichannel Ecosystem"
+                            desc="Integrate offline and online channels to provide a unified experience for HCPs, pharmacies, and patients."
+                            features={['E-commerce Integration', 'CRM Sync', 'Multi-channel Marketing', 'Customer 360 View']}
+                            delay={0.4}
                         />
                     </div>
                 </div>
@@ -134,41 +107,52 @@ const Services = () => {
     );
 };
 
-const ServiceCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
+const ServiceCard = ({ icon, title, desc, delay }: { icon: React.ReactNode, title: string, desc: string, delay: number }) => (
     <motion.div
-        whileHover={{ y: -5 }}
-        className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-300"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay }}
+        className="bg-[#0B1221] p-6 rounded-xl border border-white/5 hover:border-[#00D4FF]/50 transition-all duration-300 group hover:-translate-y-1"
     >
-        <div className="mb-4 text-cyan-400">
-            {React.cloneElement(icon as any, { className: "w-8 h-8" })}
+        <div className="w-12 h-12 rounded-lg bg-[#00D4FF]/10 flex items-center justify-center text-[#00D4FF] mb-4 group-hover:bg-[#00D4FF] group-hover:text-[#020617] transition-colors duration-300">
+            {icon}
         </div>
         <h4 className="text-lg font-bold text-white mb-3">{title}</h4>
         <p className="text-slate-400 text-sm leading-relaxed">{desc}</p>
     </motion.div>
 );
 
-const TechCard = ({ title, features, icon }: { title: string, features: string[], icon: React.ReactNode }) => (
+const TechCard = ({ title, desc, features, delay, highlight }: { title: string, desc: string, features: string[], delay: number, highlight?: boolean }) => (
     <motion.div
-        whileHover={{ scale: 1.02 }}
-        className="p-8 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 hover:border-cyan-500/50 transition-all duration-300 relative overflow-hidden group"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay }}
+        className={`relative p-6 md:p-8 rounded-2xl border ${highlight ? 'bg-gradient-to-b from-[#0B1221] to-[#00D4FF]/5 border-[#00D4FF]/30' : 'bg-[#0B1221] border-white/5'} hover:border-[#00D4FF]/50 transition-all duration-300 group`}
     >
-        <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-40 transition-opacity">
-            {icon}
+        {highlight && (
+            <div className="absolute top-0 right-0 bg-[#00D4FF] text-[#020617] text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                POPULAR
+            </div>
+        )}
+        <div className="mb-6">
+            <div className="w-12 h-12 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 mb-4">
+                <Zap size={24} />
+            </div>
+            <h4 className="text-xl font-bold text-white mb-3">{title}</h4>
+            <p className="text-slate-400 text-sm leading-relaxed mb-6">{desc}</p>
         </div>
-        <h4 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-            {icon}
-            {title}
-        </h4>
-        <ul className="space-y-4">
+        <ul className="space-y-3 mb-8">
             {features.map((feature, idx) => (
-                <li key={idx} className="flex items-start gap-3 text-slate-300 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-cyan-500 shrink-0" />
+                <li key={idx} className="flex items-center gap-2 text-sm text-slate-300">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00D4FF]"></div>
                     {feature}
                 </li>
             ))}
         </ul>
-        <button className="mt-8 w-full py-3 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-cyan-400 font-semibold text-sm transition-colors border border-white/5 hover:border-cyan-500/50">
-            Learn More
+        <button className={`w-full py-3 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${highlight ? 'bg-[#00D4FF] text-[#020617] hover:bg-[#00D4FF]/90' : 'bg-white/5 text-white hover:bg-white/10'}`}>
+            Learn More <ArrowRight size={16} />
         </button>
     </motion.div>
 );

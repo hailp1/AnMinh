@@ -1,82 +1,94 @@
 import React from 'react';
-import { Activity, Mail, Phone, MapPin, Facebook, Linkedin, Twitter } from 'lucide-react';
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 import Link from 'next/link';
-
 import Image from 'next/image';
 
 const Footer = () => {
     return (
-        <footer className="bg-[#020c1b] text-slate-400 py-16 border-t border-white/5">
-            <div className="container mx-auto px-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                    <div className="col-span-1 md:col-span-1">
-                        <div className="relative w-48 h-12 mb-6">
+        <footer className="bg-[#020617] border-t border-white/10 pt-16 pb-8">
+            <div className="container mx-auto px-4 md:px-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+
+                    {/* Brand Column */}
+                    <div className="space-y-6">
+                        <div className="relative w-40 h-12">
                             <Image
                                 src="/logo_medtech.png"
-                                alt="AM Medtech Logo"
+                                alt="AM Medtech"
                                 fill
                                 className="object-contain"
                             />
                         </div>
-                        <p className="text-sm leading-relaxed mb-6">
-                            Empowering the pharmaceutical industry with next-generation digital solutions.
+                        <p className="text-slate-400 text-sm leading-relaxed">
+                            Empowering pharmaceutical distribution with cutting-edge digital solutions. We bridge the gap between technology and healthcare logistics.
                         </p>
                         <div className="flex gap-4">
-                            <SocialIcon icon={<Facebook className="w-5 h-5" />} />
-                            <SocialIcon icon={<Linkedin className="w-5 h-5" />} />
-                            <SocialIcon icon={<Twitter className="w-5 h-5" />} />
+                            <SocialLink icon={<Facebook size={18} />} href="#" />
+                            <SocialLink icon={<Twitter size={18} />} href="#" />
+                            <SocialLink icon={<Linkedin size={18} />} href="#" />
+                            <SocialLink icon={<Instagram size={18} />} href="#" />
                         </div>
                     </div>
 
+                    {/* Quick Links */}
                     <div>
                         <h4 className="text-white font-bold mb-6">Solutions</h4>
-                        <ul className="space-y-4 text-sm">
-                            <li><Link href="/solutions/dms-platform" className="hover:text-cyan-400 transition-colors">DMS Platform</Link></li>
-                            <li><Link href="/solutions/rtm-strategy" className="hover:text-cyan-400 transition-colors">RTM Strategy</Link></li>
-                            <li><Link href="/solutions/distribution-development" className="hover:text-cyan-400 transition-colors">Distribution Development</Link></li>
-                            <li><Link href="/solutions/pharma-ecommerce" className="hover:text-cyan-400 transition-colors">Pharma E-Commerce</Link></li>
+                        <ul className="space-y-4 text-sm text-slate-400">
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">DMS Platform</Link></li>
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Data Intelligence</Link></li>
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Omnichannel Sales</Link></li>
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Supply Chain AI</Link></li>
                         </ul>
                     </div>
 
+                    {/* Company */}
                     <div>
                         <h4 className="text-white font-bold mb-6">Company</h4>
-                        <ul className="space-y-4 text-sm">
-                            <li><Link href="/about" className="hover:text-cyan-400 transition-colors">About Us</Link></li>
-                            <li><Link href="/case-studies" className="hover:text-cyan-400 transition-colors">Case Studies</Link></li>
-                            <li><Link href="/careers" className="hover:text-cyan-400 transition-colors">Careers</Link></li>
-                            <li><Link href="/contact" className="hover:text-cyan-400 transition-colors">Contact</Link></li>
+                        <ul className="space-y-4 text-sm text-slate-400">
+                            <li><Link href="/about" className="hover:text-[#00D4FF] transition-colors">About Us</Link></li>
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Careers</Link></li>
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Blog</Link></li>
+                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Contact</Link></li>
                         </ul>
                     </div>
 
+                    {/* Contact */}
                     <div>
                         <h4 className="text-white font-bold mb-6">Contact Us</h4>
-                        <ul className="space-y-4 text-sm">
-                            <li className="flex items-center gap-3">
-                                <Mail className="w-4 h-4 text-cyan-400" />
-                                <span>contact@ammedtech.com</span>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <Phone className="w-4 h-4 text-cyan-400" />
-                                <span>+84 90 888 8888</span>
-                            </li>
+                        <ul className="space-y-4 text-sm text-slate-400">
                             <li className="flex items-start gap-3">
-                                <MapPin className="w-4 h-4 text-cyan-400 mt-1" />
-                                <span>Ho Chi Minh City, Vietnam</span>
+                                <MapPin size={18} className="text-[#00D4FF] shrink-0 mt-1" />
+                                <span>123 Innovation Drive, Tech Park, Ho Chi Minh City, Vietnam</span>
+                            </li>
+                            <li className="flex items-center gap-3">
+                                <Phone size={18} className="text-[#00D4FF] shrink-0" />
+                                <span>+84 28 1234 5678</span>
+                            </li>
+                            <li className="flex items-center gap-3">
+                                <Mail size={18} className="text-[#00D4FF] shrink-0" />
+                                <span className="break-all">contact@ammedtech.com</span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                <div className="pt-8 border-t border-white/5 text-center text-sm">
+                <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
                     <p>&copy; {new Date().getFullYear()} AM Medtech. All rights reserved.</p>
+                    <div className="flex gap-6">
+                        <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
+                        <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+                    </div>
                 </div>
             </div>
         </footer>
     );
 };
 
-const SocialIcon = ({ icon }: { icon: React.ReactNode }) => (
-    <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-cyan-500 hover:text-white transition-all">
+const SocialLink = ({ icon, href }: { icon: React.ReactNode, href: string }) => (
+    <a
+        href={href}
+        className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[#00D4FF] hover:text-[#020617] transition-all duration-300"
+    >
         {icon}
     </a>
 );

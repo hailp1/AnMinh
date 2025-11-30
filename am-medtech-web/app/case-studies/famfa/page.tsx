@@ -191,8 +191,17 @@ const FamfaPage = () => {
                     </div>
 
                     {/* Animated Map Visualization */}
-                    <div className="relative max-w-5xl mx-auto h-[500px] bg-slate-900 rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-                        <div className="absolute inset-0 opacity-40 bg-[url('/map-pattern.svg')] bg-cover"></div>
+                    <div className="relative max-w-5xl mx-auto h-[500px] bg-[#020617] rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+                        {/* Map Background Inside Container */}
+                        <div className="absolute inset-0 z-0">
+                            <Image
+                                src="/dms_map_bg.png"
+                                alt="Map Background"
+                                fill
+                                className="object-cover opacity-30"
+                            />
+                            <div className="absolute inset-0 bg-[#020617]/60"></div>
+                        </div>
 
                         {/* Map Points & Check-ins */}
                         <div className="absolute inset-0">
@@ -257,13 +266,99 @@ const FamfaPage = () => {
                                 <TrainingCard title="Leadership" desc="Management training for supervisors" />
                             </div>
                         </div>
-                        <div className="order-1 lg:order-2 relative h-[400px] bg-slate-900/50 rounded-3xl border border-white/10 overflow-hidden p-8 flex items-center justify-center">
-                            {/* Progress Visual */}
-                            <div className="w-full max-w-xs space-y-6">
-                                <SkillBar label="Product Knowledge" percent={95} color="bg-purple-500" />
-                                <SkillBar label="Customer Service" percent={88} color="bg-blue-500" />
-                                <SkillBar label="Compliance" percent={100} color="bg-green-500" />
-                                <SkillBar label="Tech Adoption" percent={92} color="bg-cyan-500" />
+                        <div className="order-1 lg:order-2 relative h-[400px] bg-[#0B1221]/50 rounded-3xl border border-white/10 overflow-hidden flex items-center justify-center p-6">
+                            {/* Animated Growth Chart */}
+                            <div className="relative w-full h-full flex flex-col justify-end pb-8 pl-8 pr-4">
+                                {/* Chart Grid & Axes */}
+                                <div className="absolute inset-0 left-12 bottom-12 top-8 right-4 border-l border-b border-white/20">
+                                    {/* Horizontal Grid Lines */}
+                                    {[0.25, 0.5, 0.75].map((y) => (
+                                        <div key={y} className="absolute w-full h-px bg-white/5" style={{ bottom: `${y * 100}%` }}></div>
+                                    ))}
+                                </div>
+
+                                {/* Y-Axis Labels (Competency Factors) */}
+                                <div className="absolute left-0 top-8 bottom-12 w-10 flex flex-col justify-between text-[10px] text-slate-400 font-medium py-2 text-right pr-2">
+                                    <span className="text-purple-400">Mgmt</span>
+                                    <span className="text-blue-400">Skills</span>
+                                    <span className="text-cyan-400">Know-ledge</span>
+                                </div>
+
+                                {/* X-Axis Labels (Job Levels) */}
+                                <div className="absolute left-12 right-4 bottom-2 flex justify-between text-xs text-slate-300 font-bold px-2">
+                                    <span>MR</span>
+                                    <span>SS</span>
+                                    <span>ASM</span>
+                                    <span>RSM</span>
+                                    <span>NSM</span>
+                                </div>
+
+                                {/* SVG Curves */}
+                                <svg className="absolute inset-0 left-12 bottom-12 top-8 right-4 w-[calc(100%-4rem)] h-[calc(100%-5rem)] overflow-visible">
+                                    <defs>
+                                        <linearGradient id="gradCompetency" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stopColor="#22d3ee" />   {/* Cyan - Knowledge */}
+                                            <stop offset="50%" stopColor="#3b82f6" />   {/* Blue - Skills */}
+                                            <stop offset="100%" stopColor="#a855f7" />  {/* Purple - Management */}
+                                        </linearGradient>
+                                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                            <feMerge>
+                                                <feMergeNode in="coloredBlur" />
+                                                <feMergeNode in="SourceGraphic" />
+                                            </feMerge>
+                                        </filter>
+                                    </defs>
+
+                                    {/* Curve Path: Fluctuating Growth */}
+                                    {/* MR(Start) -> SS(Up) -> ASM(Dip/Plateau) -> RSM(Up) -> NSM(Peak) */}
+                                    <motion.path
+                                        d="M0,280 C40,260 60,200 100,180 C140,160 180,200 220,150 C260,100 300,120 350,50 C380,10 420,0 450,0"
+                                        fill="none"
+                                        stroke="url(#gradCompetency)"
+                                        strokeWidth="4"
+                                        strokeLinecap="round"
+                                        filter="url(#glow)"
+                                        initial={{ pathLength: 0 }}
+                                        whileInView={{ pathLength: 1 }}
+                                        transition={{ duration: 3, ease: "easeInOut" }}
+                                    />
+
+                                    {/* Points on Curve */}
+                                    {[
+                                        { cx: "0%", cy: "88%", label: "Basic" },
+                                        { cx: "25%", cy: "56%", label: "Advanced" },
+                                        { cx: "50%", cy: "47%", label: "Expert" },
+                                        { cx: "75%", cy: "15%", label: "Strategic" },
+                                        { cx: "100%", cy: "0%", label: "Visionary" }
+                                    ].map((point, i) => (
+                                        <motion.g key={i} initial={{ opacity: 0, scale: 0 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ delay: 1 + i * 0.5 }}>
+                                            <circle cx={point.cx} cy={point.cy} r="6" fill="#020617" stroke="white" strokeWidth="2" />
+                                        </motion.g>
+                                    ))}
+                                </svg>
+
+                                {/* Floating Competency Tags */}
+                                <div className="absolute inset-0 left-12 bottom-12 top-8 right-4 pointer-events-none">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 }}
+                                        className="absolute left-[10%] bottom-[20%] bg-cyan-500/20 text-cyan-300 text-[10px] px-2 py-1 rounded border border-cyan-500/30"
+                                    >
+                                        Product Knowledge
+                                    </motion.div>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 2.5 }}
+                                        className="absolute left-[45%] bottom-[55%] bg-blue-500/20 text-blue-300 text-[10px] px-2 py-1 rounded border border-blue-500/30"
+                                    >
+                                        Sales Skills
+                                    </motion.div>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: 3.5 }}
+                                        className="absolute right-[5%] top-[10%] bg-purple-500/20 text-purple-300 text-[10px] px-2 py-1 rounded border border-purple-500/30"
+                                    >
+                                        Leadership
+                                    </motion.div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -365,16 +460,24 @@ const FamfaPage = () => {
                                 {/* Body */}
                                 <div className="p-4 space-y-3">
                                     {/* Live Ticker */}
-                                    <div className="flex gap-2 overflow-hidden bg-slate-900/50 p-1 rounded border border-slate-700/50">
+                                    <div className="flex overflow-hidden bg-slate-900/50 p-1 rounded border border-slate-700/50">
                                         <motion.div
-                                            animate={{ x: ["0%", "-100%"] }}
-                                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                            className="flex gap-4 whitespace-nowrap text-[10px] text-green-400 font-mono"
+                                            animate={{ x: "-50%" }}
+                                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                                            className="flex gap-4 whitespace-nowrap text-[10px] text-green-400 font-mono min-w-max"
                                         >
+                                            {/* Content duplicated for seamless loop */}
                                             <span>▲ PANADOL +2%</span>
                                             <span>▼ ASPIRIN -1%</span>
                                             <span>▲ VITAMIN C +5%</span>
+                                            <span>▲ AUGMENTIN +1.5%</span>
+                                            <span>▼ BERBERIN -0.5%</span>
+
                                             <span>▲ PANADOL +2%</span>
+                                            <span>▼ ASPIRIN -1%</span>
+                                            <span>▲ VITAMIN C +5%</span>
+                                            <span>▲ AUGMENTIN +1.5%</span>
+                                            <span>▼ BERBERIN -0.5%</span>
                                         </motion.div>
                                     </div>
                                     {/* Chart Area */}
@@ -439,13 +542,28 @@ const FamfaPage = () => {
             </section>
 
             {/* 7. Halo Doctor System */}
-            <section className="py-24 bg-gradient-to-b from-[#020617] to-blue-950/30">
-                <div className="container mx-auto px-6">
+            <section className="py-24 bg-gradient-to-b from-[#020617] to-cyan-950/20 relative overflow-hidden">
+                {/* ECG Background Effect */}
+                <div className="absolute inset-0 opacity-5 pointer-events-none">
+                    <svg className="w-full h-full" preserveAspectRatio="none">
+                        <motion.path
+                            d="M0,500 L200,500 L220,450 L240,550 L260,500 L400,500 L420,400 L440,600 L460,500 L800,500 L820,450 L840,550 L860,500 L1200,500"
+                            fill="none"
+                            stroke="#22d3ee"
+                            strokeWidth="2"
+                            initial={{ x: -1000 }}
+                            animate={{ x: 0 }}
+                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                        />
+                    </svg>
+                </div>
+
+                <div className="container mx-auto px-6 relative z-10">
                     <div className="text-center mb-16">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 mb-6 backdrop-blur-sm border border-white/20">
-                            <Stethoscope className="text-white w-8 h-8" />
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 mb-6 backdrop-blur-sm border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                            <Activity className="text-cyan-400 w-8 h-8" />
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-bold mb-6">Halo Doctor <span className="text-blue-400">Network</span></h2>
+                        <h2 className="text-4xl md:text-5xl font-bold mb-6">Halo Doctor <span className="text-cyan-400">Network</span></h2>
                         <p className="text-slate-400 max-w-3xl mx-auto text-lg leading-relaxed">
                             A revolutionary platform maximizing healthcare potential.
                             <br className="hidden md:block" />
@@ -456,14 +574,14 @@ const FamfaPage = () => {
                     </div>
 
                     {/* Geo-Connection Visualization */}
-                    <div className="relative max-w-5xl mx-auto h-[500px] bg-[#0B1221] rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+                    <div className="relative max-w-5xl mx-auto h-[500px] bg-[#0B1221] rounded-3xl border border-cyan-500/20 overflow-hidden shadow-2xl shadow-cyan-900/10">
                         {/* Map Background */}
-                        <div className="absolute inset-0 opacity-20 bg-[url('/map-pattern.svg')] bg-cover"></div>
+                        <div className="absolute inset-0 opacity-30 bg-[url('/map-pattern.svg')] bg-cover mix-blend-screen"></div>
 
                         {/* Radar Scan Effect */}
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-[600px] h-[600px] border border-blue-500/20 rounded-full animate-ping opacity-20"></div>
-                            <div className="w-[400px] h-[400px] border border-blue-500/30 rounded-full animate-ping opacity-30 animation-delay-500"></div>
+                            <div className="w-[600px] h-[600px] border border-cyan-500/10 rounded-full animate-[spin_10s_linear_infinite] opacity-30 border-t-cyan-500/50"></div>
+                            <div className="w-[400px] h-[400px] border border-cyan-500/20 rounded-full animate-ping opacity-20 animation-delay-500"></div>
                         </div>
 
                         {/* Nodes */}
@@ -478,32 +596,28 @@ const FamfaPage = () => {
                             <PatientNode x="65%" y="55%" name="Patient B" delay={4} />
 
                             {/* Connection Lines */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                                <motion.line
-                                    x1="20%" y1="30%" x2="25%" y2="35%"
-                                    stroke="#22d3ee" strokeWidth="2" strokeDasharray="5 5"
-                                    initial={{ pathLength: 0, opacity: 0 }}
-                                    whileInView={{ pathLength: 1, opacity: 1 }}
-                                    transition={{ delay: 3.5, duration: 1 }}
-                                />
-                                <motion.line
-                                    x1="70%" y1="60%" x2="65%" y2="55%"
-                                    stroke="#22d3ee" strokeWidth="2" strokeDasharray="5 5"
-                                    initial={{ pathLength: 0, opacity: 0 }}
-                                    whileInView={{ pathLength: 1, opacity: 1 }}
-                                    transition={{ delay: 4.5, duration: 1 }}
-                                />
-                            </svg>
+                            <ConnectionLine x1="20%" y1="30%" x2="25%" y2="35%" delay={3.5} />
+                            <ConnectionLine x1="70%" y1="60%" x2="65%" y2="55%" delay={4.5} />
                         </div>
 
                         {/* Match Notification */}
                         <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            whileInView={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 3.8 }}
-                            className="absolute top-[32%] left-[22%] bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-20 flex items-center gap-1"
+                            initial={{ y: 20, opacity: 0 }}
+                            whileInView={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 4.5 }}
+                            className="absolute top-[10%] right-[5%] bg-slate-900/90 backdrop-blur border border-cyan-500/50 p-4 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.2)] flex items-start gap-3 max-w-xs z-30"
                         >
-                            <CheckCircle2 size={12} /> Match Found
+                            <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0 animate-pulse">
+                                <Activity size={16} className="text-cyan-400" />
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-white mb-1">Medical Match Found</div>
+                                <div className="text-xs text-slate-400">Dr. Lan is 0.5km away and available for immediate consultation.</div>
+                                <div className="mt-2 flex gap-2">
+                                    <button className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold rounded transition-colors">Connect</button>
+                                    <button className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold rounded transition-colors">Dismiss</button>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 </div>
@@ -605,15 +719,20 @@ const DoctorNode = ({ x, y, name, status, delay }: { x: string, y: string, name:
         initial={{ scale: 0, opacity: 0 }}
         whileInView={{ scale: 1, opacity: 1 }}
         transition={{ delay }}
-        className="absolute flex flex-col items-center z-10"
+        className="absolute flex flex-col items-center z-20"
         style={{ left: x, top: y }}
     >
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${status === 'Available' ? 'bg-blue-600 border-blue-400' : 'bg-slate-700 border-slate-500'}`}>
-            <Stethoscope size={18} className="text-white" />
+        <div className="relative">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${status === 'Available' ? 'bg-cyan-600 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'bg-slate-700 border-slate-500'}`}>
+                <Stethoscope size={20} className="text-white" />
+            </div>
+            {status === 'Available' && (
+                <div className="absolute inset-0 rounded-full border border-cyan-400 animate-ping opacity-50"></div>
+            )}
         </div>
-        <div className="mt-2 bg-slate-800/90 px-2 py-1 rounded text-[10px] border border-white/10 whitespace-nowrap">
-            <div className="font-bold text-white">{name}</div>
-            <div className={status === 'Available' ? 'text-green-400' : 'text-slate-400'}>● {status}</div>
+        <div className="mt-2 bg-slate-900/90 px-3 py-1.5 rounded-lg text-[10px] border border-cyan-500/30 whitespace-nowrap backdrop-blur-sm shadow-lg">
+            <div className="font-bold text-white text-xs">{name}</div>
+            <div className={status === 'Available' ? 'text-cyan-400 font-medium' : 'text-slate-400'}>● {status}</div>
         </div>
     </motion.div>
 );
@@ -623,15 +742,53 @@ const PatientNode = ({ x, y, name, delay }: { x: string, y: string, name: string
         initial={{ scale: 0, opacity: 0 }}
         whileInView={{ scale: 1, opacity: 1 }}
         transition={{ delay }}
-        className="absolute flex flex-col items-center z-10"
+        className="absolute flex flex-col items-center z-20"
         style={{ left: x, top: y }}
     >
-        <div className="w-8 h-8 rounded-full bg-orange-500 border-2 border-orange-300 flex items-center justify-center">
-            <Users size={14} className="text-white" />
+        <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-red-500 border-2 border-red-300 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                <Users size={16} className="text-white" />
+            </div>
+            <div className="absolute inset-0 rounded-full border border-red-400 animate-ping opacity-50"></div>
         </div>
-        <div className="mt-2 bg-slate-800/90 px-2 py-1 rounded text-[10px] border border-white/10 whitespace-nowrap">
-            <div className="font-bold text-white">{name}</div>
-            <div className="text-orange-400">Needs Care</div>
+        <div className="mt-2 bg-slate-900/90 px-3 py-1.5 rounded-lg text-[10px] border border-red-500/30 whitespace-nowrap backdrop-blur-sm shadow-lg">
+            <div className="font-bold text-white text-xs">{name}</div>
+            <div className="text-red-400 font-medium flex items-center gap-1">
+                <Activity size={8} /> Needs Care
+            </div>
         </div>
     </motion.div>
+);
+
+const ConnectionLine = ({ x1, y1, x2, y2, delay }: { x1: string, y1: string, x2: string, y2: string, delay: number }) => (
+    <>
+        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+            <motion.line
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="#22d3ee" strokeWidth="2" strokeDasharray="4 4"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 1 }}
+                transition={{ delay, duration: 1.5, ease: "easeInOut" }}
+            />
+            <motion.circle
+                cx={x2} cy={y2} r="4" fill="#22d3ee"
+                initial={{ opacity: 0, scale: 0 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: delay + 1.5 }}
+            />
+        </svg>
+        <motion.div
+            className="absolute w-6 h-6 bg-cyan-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.6)] z-30 border-2 border-white"
+            style={{
+                left: `calc((${x1} + ${x2}) / 2)`,
+                top: `calc((${y1} + ${y2}) / 2)`,
+                transform: 'translate(-50%, -50%)'
+            }}
+            initial={{ scale: 0, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            transition={{ delay: delay + 0.8, type: "spring", stiffness: 200, damping: 10 }}
+        >
+            <Network size={12} className="text-white" />
+        </motion.div>
+    </>
 );
