@@ -85,3 +85,5 @@ cloudflared.exe
 .next/
 am-medtech-web/.next/
 mobile/node_modules/
+
+postgres_data/
