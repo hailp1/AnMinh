@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
-  // Align with AuthContext: Use direct URL if env var is missing
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  // Force API URL for debugging - Temporary Public Link
+  const API_BASE = 'https://dms.ammedtech.com/api';
+  console.log('AdminLogin: API_BASE set to', API_BASE);
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -128,7 +129,7 @@ const AdminLogin = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           {error && (
             <div style={{
               padding: '14px 16px',
@@ -159,6 +160,7 @@ const AdminLogin = () => {
               value={formData.username}
               onChange={handleChange}
               placeholder="VD: ADMIN001"
+              autoComplete="off"
               style={{
                 width: '100%',
                 padding: '16px 18px',
@@ -197,6 +199,7 @@ const AdminLogin = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Nhập mật khẩu"
+              autoComplete="new-password"
               style={{
                 width: '100%',
                 padding: '16px 18px',

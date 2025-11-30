@@ -46,6 +46,7 @@ const allowedOrigins = new Set([
   'http://127.0.0.1:2099',
   'http://127.0.0.1:2100',
   'https://sales.ammedtech.com',
+  'https://dms.ammedtech.com',
   process.env.FRONTEND_ORIGIN,
 ].filter(Boolean));
 

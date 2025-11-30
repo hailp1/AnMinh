@@ -27,22 +27,27 @@
 
 ## 🚀 Quick Start
 
-### Khởi động nhanh (Tự động):
+### Khởi động tất cả services:
 ```bash
 # Windows - Double click:
-scripts\start-all.bat
-
-# Hoặc PowerShell:
-.\scripts\start-all.ps1
+START_ALL_SIMPLE.bat
 ```
 
-Sau đó đợi compile xong và mở: http://localhost:3099
+Sau đó đợi services khởi động (30-60 giây) và truy cập:
+- **Landing Page**: http://localhost:3000
+- **DMS Client**: http://localhost:3099
+- **Backend API**: http://localhost:5000
+- **Public Domain**: https://ammedtech.com
 
-**Đăng nhập:**
+### Dừng tất cả services:
+```bash
+# Windows - Double click:
+STOP_ALL_SIMPLE.bat
+```
+
+**Đăng nhập DMS:**
 - Employee Code: `AM01`
 - Password: `admin123`
-
-Xem thêm: [QUICK_START.md](QUICK_START.md)
 
 ---
 

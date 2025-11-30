@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import './AdminLayout.css';
 
 const AdminLayout = ({ children }) => {
   const [adminUser, setAdminUser] = useState(null);
@@ -12,6 +13,7 @@ const AdminLayout = ({ children }) => {
     // Check admin authentication
     const storedAdmin = localStorage.getItem('adminUser');
     if (!storedAdmin) {
+      console.log('AdminLayout: No adminUser in localStorage, redirecting to login');
       navigate('/admin/login');
       return;
     }
@@ -143,71 +145,24 @@ const AdminLayout = ({ children }) => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="admin-layout" style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: '#f5f7fa',
-      color: '#1a1a2e'
-    }}>
+    <div className="admin-layout">
       {/* Sidebar */}
-      <div style={{
-        width: sidebarOpen ? (isMobile ? '100%' : '280px') : (isMobile ? '0' : '80px'),
-        background: '#1E4A8B',
-        color: '#fff',
-        transition: 'width 0.3s ease, transform 0.3s ease',
-        position: isMobile ? 'fixed' : 'fixed',
-        height: '100vh',
-        overflowY: 'auto',
-        zIndex: isMobile && sidebarOpen ? 1000 : 1000,
-        boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
-        transform: isMobile && !sidebarOpen ? 'translateX(-100%)' : 'translateX(0)',
-        display: isMobile && !sidebarOpen ? 'none' : 'block',
-        paddingBottom: sidebarOpen ? '72px' : '16px'
-      }}>
+      <div className={`admin-sidebar ${sidebarOpen ? 'expanded' : ''} ${isMobile ? 'mobile' : ''} ${isMobile && !sidebarOpen ? 'closed' : 'open'}`}>
         {/* Logo */}
-        <div style={{
-          padding: '24px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <div style={{
-            width: '50px',
-            height: '50px',
-            borderRadius: '12px',
-            background: 'rgba(255,255,255,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            padding: '8px',
-            overflow: 'hidden'
-          }}>
-            <img 
-              src="/image/logo.webp" 
-              alt="An Minh Business System" 
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain'
-              }}
+        <div className="admin-sidebar-header">
+          <div className="admin-logo-container">
+            <img
+              src="/image/logo.webp"
+              alt="An Minh Business System"
+              className="admin-logo-img"
             />
           </div>
           {sidebarOpen && (
             <div>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                marginBottom: '4px',
-                color: '#fff'
-              }}>
+              <div className="admin-brand-text">
                 An Minh Business System
               </div>
-              <div style={{
-                fontSize: '12px',
-                color: 'rgba(255,255,255,0.7)'
-              }}>
+              <div className="admin-brand-subtext">
                 Admin Panel
               </div>
             </div>
@@ -215,45 +170,17 @@ const AdminLayout = ({ children }) => {
         </div>
 
         {/* User Info */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          background: 'rgba(255,255,255,0.05)'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '8px'
-          }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: '#F29E2E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              flexShrink: 0
-            }}>
+        <div className="admin-user-info">
+          <div className="admin-user-container">
+            <div className="admin-user-avatar">
               {adminUser.name ? adminUser.name[0].toUpperCase() : 'A'}
             </div>
             {sidebarOpen && (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
+              <div className="admin-user-details">
+                <div className="admin-user-name">
                   {adminUser.name}
                 </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: 'rgba(255,255,255,0.7)'
-                }}>
+                <div className="admin-user-username">
                   {adminUser.username}
                 </div>
               </div>
@@ -262,45 +189,18 @@ const AdminLayout = ({ children }) => {
         </div>
 
         {/* Menu Items */}
-        <nav style={{ padding: '16px 0' }}>
+        <nav className="admin-nav">
           {menuItems.map(item => (
             <div
               key={item.id}
               onClick={() => navigate(item.path)}
-              style={{
-                padding: '14px 24px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                background: isActive(item.path) 
-                  ? 'rgba(62, 180, 168, 0.3)' 
-                  : 'transparent',
-                borderLeft: isActive(item.path) 
-                  ? '3px solid #FBC93D' 
-                  : '3px solid transparent',
-                transition: 'all 0.2s',
-                color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,0.8)'
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive(item.path)) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive(item.path)) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
+              className={`admin-nav-item ${isActive(item.path) ? 'active' : ''}`}
             >
-              <span style={{ fontSize: '20px', flexShrink: 0 }}>
+              <span className="admin-nav-icon">
                 {item.icon}
               </span>
               {sidebarOpen && (
-                <span style={{
-                  fontSize: '14px',
-                  fontWeight: isActive(item.path) ? '600' : '400'
-                }}>
+                <span className="admin-nav-label">
                   {item.label.replace(/^[^\s]+\s/, '')}
                 </span>
               )}
@@ -310,31 +210,10 @@ const AdminLayout = ({ children }) => {
 
         {/* Toggle Sidebar (footer) - only show when expanded on desktop */}
         {!isMobile && sidebarOpen && (
-          <div style={{
-            padding: '16px',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: '#1a1a2e'
-          }}>
+          <div className="admin-sidebar-footer">
             <button
               onClick={() => setSidebarOpen(false)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
+              className="admin-sidebar-collapse-btn"
             >
               <span>◀</span>
               <span>Thu gọn</span>
@@ -347,42 +226,17 @@ const AdminLayout = ({ children }) => {
       {isMobile && sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 999
-          }}
+          className="admin-mobile-overlay"
         />
       )}
 
       {/* Main Content */}
-      <div style={{
-        flex: 1,
-        marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'),
-        transition: 'margin-left 0.3s ease',
-        background: '#f5f7fa'
-      }}>
+      <div className={`admin-main-content ${sidebarOpen ? 'expanded' : ''} ${isMobile ? 'mobile' : ''}`}>
         {/* Floating toggle when collapsed (desktop) */}
         {!isMobile && !sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(true)}
-            style={{
-              position: 'fixed',
-              left: '88px',
-              top: '80px',
-              zIndex: 1100,
-              padding: '10px',
-              background: '#1E4A8B',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              cursor: 'pointer'
-            }}
+            className="admin-floating-toggle"
             aria-label="Mở thanh bên"
             title="Mở thanh bên"
           >
@@ -390,68 +244,24 @@ const AdminLayout = ({ children }) => {
           </button>
         )}
         {/* Top Bar */}
-        <div style={{
-          background: '#fff',
-          padding: isMobile ? '12px 16px' : '16px 32px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          color: '#1a1a2e'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            flex: 1,
-            minWidth: 0
-          }}>
+        <div className={`admin-top-bar ${isMobile ? 'mobile' : 'desktop'}`}>
+          <div className="admin-top-bar-left">
             {isMobile && (
               <button
                 onClick={() => setSidebarOpen(true)}
-                style={{
-                  padding: '8px',
-                  background: '#f3f4f6',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
+                className="admin-mobile-menu-btn"
               >
                 ☰
               </button>
             )}
-            <div style={{
-              fontSize: isMobile ? '16px' : '20px',
-              fontWeight: '600',
-              color: '#1a1a2e',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
+            <div className={`admin-page-title ${isMobile ? 'mobile' : 'desktop'}`}>
               {menuItems.find(item => isActive(item.path))?.label || 'Dashboard'}
             </div>
           </div>
-          
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? '8px' : '16px',
-            flexShrink: 0
-          }}>
+
+          <div className={`admin-top-bar-right ${isMobile ? 'mobile' : 'desktop'}`}>
             {!isMobile && (
-              <div style={{
-                fontSize: '14px',
-                color: '#666',
-                whiteSpace: 'nowrap'
-              }}>
+              <div className="admin-date-display">
                 {new Date().toLocaleDateString('vi-VN', {
                   weekday: 'long',
                   year: 'numeric',
@@ -462,24 +272,7 @@ const AdminLayout = ({ children }) => {
             )}
             <button
               onClick={handleLogout}
-              style={{
-                padding: isMobile ? '8px 12px' : '8px 16px',
-                background: '#fee2e2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                color: '#dc2626',
-                cursor: 'pointer',
-                fontSize: isMobile ? '12px' : '14px',
-                fontWeight: '500',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#fecaca';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#fee2e2';
-              }}
+              className={`admin-logout-btn ${isMobile ? 'mobile' : 'desktop'}`}
             >
               {isMobile ? 'Đăng xuất' : 'Đăng xuất'}
             </button>
@@ -487,11 +280,7 @@ const AdminLayout = ({ children }) => {
         </div>
 
         {/* Page Content */}
-        <div style={{
-          padding: isMobile ? '16px' : '32px',
-          minHeight: 'calc(100vh - 80px)',
-          boxSizing: 'border-box'
-        }}>
+        <div className={`admin-page-container ${isMobile ? 'mobile' : 'desktop'}`}>
           {children}
         </div>
       </div>

@@ -22,10 +22,10 @@ const Login = () => {
     // Update time every second
     const updateTime = () => {
       const now = new Date();
-      const timeString = now.toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
+      const timeString = now.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: false 
+        hour12: false
       });
       setCurrentTime(timeString);
     };
@@ -47,12 +47,12 @@ const Login = () => {
 
   const handleChange = (e) => {
     let value = e.target.value;
-    
+
     // Format employee code - chuyển thành chữ hoa và loại bỏ khoảng trắng
     if (e.target.name === 'employeeCode') {
       value = value.toUpperCase().trim();
     }
-    
+
     setFormData({
       ...formData,
       [e.target.name]: value
@@ -79,7 +79,7 @@ const Login = () => {
     }
 
     const result = await login(formData.employeeCode.trim(), formData.password);
-    
+
     if (result.success) {
       setShowSuccess(true);
       setTimeout(() => {
@@ -128,8 +128,8 @@ const Login = () => {
           flexShrink: 0,
           position: 'relative'
         }}>
-          <button 
-            onClick={handleBackClick} 
+          <button
+            onClick={handleBackClick}
             style={{
               position: 'absolute',
               top: '0',
@@ -176,9 +176,9 @@ const Login = () => {
             boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)',
             boxSizing: 'border-box'
           }}>
-            <img 
-              src="/image/logo.webp" 
-              alt="An Minh Business System" 
+            <img
+              src="/image/logo.webp"
+              alt="An Minh Business System"
               style={{
                 width: '100%',
                 height: '100%',
@@ -269,7 +269,7 @@ const Login = () => {
                   required
                 />
               </div>
-              
+
               <div style={{ marginBottom: '28px', flexShrink: 0 }}>
                 <label style={{
                   display: 'block',
@@ -311,14 +311,14 @@ const Login = () => {
               </div>
 
               <div style={{ marginTop: '24px', flexShrink: 0 }}>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={loading}
                   style={{
                     width: '100%',
                     padding: '18px',
-                    background: loading 
-                      ? '#9ca3af' 
+                    background: loading
+                      ? '#9ca3af'
                       : '#F29E2E',
                     color: '#fff',
                     border: 'none',
@@ -327,8 +327,8 @@ const Login = () => {
                     fontWeight: '600',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
-                    boxShadow: loading 
-                      ? 'none' 
+                    boxShadow: loading
+                      ? 'none'
                       : '0 8px 24px rgba(26, 92, 162, 0.4)',
                     marginBottom: '20px'
                   }}
@@ -368,7 +368,7 @@ const Login = () => {
                 </button>
 
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => navigateWithTransition('/forgot-password')}
                     style={{
@@ -392,38 +392,13 @@ const Login = () => {
                   textAlign: 'center'
                 }}>
                   <p style={{
-                    fontSize: '15px',
-                    color: '#374151',
-                    margin: '0 0 16px 0',
-                    fontWeight: '500'
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0,
+                    fontStyle: 'italic'
                   }}>
-                    Chưa có tài khoản?
+                    Vui lòng liên hệ Admin để cấp tài khoản
                   </p>
-                  <button 
-                    onClick={() => navigateWithTransition('/register')}
-                    style={{
-                      background: 'rgba(26, 92, 162, 0.1)',
-                      border: '2px solid #1E4A8B',
-                      color: '#1E4A8B',
-                      padding: '14px 28px',
-                      borderRadius: '14px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      width: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.background = 'rgba(26, 92, 162, 0.2)';
-                      e.target.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.background = 'rgba(26, 92, 162, 0.1)';
-                      e.target.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    Đăng ký ngay
-                  </button>
                 </div>
               </div>
             </form>

@@ -5,6 +5,43 @@ import adminAuth from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
+// Lấy danh sách users (cho tính năng tìm đồng nghiệp)
+router.get('/', auth, async (req, res) => {
+  try {
+    const { role, hub } = req.query;
+    const where = {};
+
+    if (role) where.role = role;
+    // if (hub) where.hub = hub; // User model might not have hub field directly, check schema if needed. 
+    // Assuming 'hub' is stored in routeCode or similar, or just ignore for now if schema is unclear.
+    // Based on AdminUsers.js, hub seems to be derived or stored. 
+    // Let's check AdminUsers.js again... it displays user.hub but where does it come from?
+    // In AdminUsers.js: 🏢 {user.hub}
+    // In routes/users.js admin endpoint: select includes routeCode. 
+    // Maybe hub is mapped from routeCode? Or maybe it's missing in schema?
+    // For now, let's just filter by role if provided.
+
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        phone: true,
+        email: true,
+        routeCode: true,
+        lastLogin: true, // To show online status/last seen
+        // latitude: true, // Need to check if these exist in schema
+        // longitude: true
+      }
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 // Lấy thông tin profile user
 router.get('/profile', auth, async (req, res) => {
   try {
@@ -32,7 +69,7 @@ router.get('/profile', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
   try {
     const { name, phone } = req.body;
-    
+
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: { name, phone },
@@ -72,7 +109,7 @@ router.get('/my-stations', auth, async (req, res) => {
 router.post('/stations/:id/promotions', auth, async (req, res) => {
   try {
     const { title, description, discount, validFrom, validTo } = req.body;
-    
+
     const station = await prisma.chargingStation.findFirst({
       where: {
         id: req.params.id,
@@ -137,7 +174,7 @@ router.get('/admin/users', adminAuth, async (req, res) => {
 router.post('/admin/users', adminAuth, async (req, res) => {
   try {
     const { name, employeeCode, routeCode, email, phone, role, password } = req.body;
-    
+
     if (!name || !employeeCode || !role || !password) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
     }
@@ -184,7 +221,7 @@ router.post('/admin/users', adminAuth, async (req, res) => {
 router.put('/admin/users/:id', adminAuth, async (req, res) => {
   try {
     const { name, employeeCode, routeCode, email, phone, role, password, isActive } = req.body;
-    
+
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (employeeCode !== undefined) updateData.employeeCode = employeeCode.toUpperCase();

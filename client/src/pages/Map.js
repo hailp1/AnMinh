@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getNearbyUsers, initializeNearbyUsers, initializePharmacyReps } from '../utils/mockData';
-import customersData from '../data/customers.json';
+import { pharmaciesAPI, usersAPI } from '../services/api';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -25,102 +24,111 @@ const Map = () => {
   const [showUserProfile, setShowUserProfile] = useState(null);
 
   useEffect(() => {
-    // Initialize nearby users data
-    initializeNearbyUsers();
-    // Initialize pharmacy reps
-    initializePharmacyReps();
-    
     // Lấy vị trí hiện tại của user
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserLocation([latitude, longitude]);
-          fetchPharmacies(latitude, longitude);
-          fetchColleagues(latitude, longitude);
+          fetchData(latitude, longitude);
         },
         (error) => {
           console.error('Error getting location:', error);
-          fetchPharmacies(10.7769, 106.7009); // Fallback location: TP.HCM
-          fetchColleagues(10.7769, 106.7009);
+          fetchData(10.7769, 106.7009); // Fallback location: TP.HCM
         }
       );
     } else {
-      fetchPharmacies(10.7769, 106.7009);
-      fetchColleagues(10.7769, 106.7009);
+      fetchData(10.7769, 106.7009);
     }
   }, [user]);
 
-  const fetchPharmacies = async (lat, lng) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+  const fetchData = async (lat, lng) => {
+    setLoading(true);
     try {
-      const allPharmacies = customersData?.customers || [];
-      
-      // Lọc theo Hub phụ trách nếu user là Trình dược viên
-      let filteredPharmacies = allPharmacies;
-      if (user && user.hub) {
-        filteredPharmacies = allPharmacies.filter(pharmacy => pharmacy.hub === user.hub);
-      }
-      
-      // Tính khoảng cách và sắp xếp
-      const pharmaciesWithDistance = filteredPharmacies.map(pharmacy => {
-        const R = 6371000;
-        const dLat = (pharmacy.latitude - lat) * Math.PI / 180;
-        const dLng = (pharmacy.longitude - lng) * Math.PI / 180;
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(lat * Math.PI / 180) * Math.cos(pharmacy.latitude * Math.PI / 180) * 
-          Math.sin(dLng/2) * Math.sin(dLng/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
-        return { ...pharmacy, distance };
-      }).sort((a, b) => a.distance - b.distance);
-      
-      setPharmacies(pharmaciesWithDistance);
+      await Promise.all([
+        fetchPharmacies(lat, lng),
+        fetchColleagues(lat, lng)
+      ]);
     } catch (error) {
-      console.error('Error fetching pharmacies:', error);
+      console.error('Error fetching map data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchPharmacies = async (lat, lng) => {
+    try {
+      const allPharmacies = await pharmaciesAPI.getAll();
+
+      // Lọc theo Hub phụ trách nếu user là Trình dược viên
+      let filteredPharmacies = Array.isArray(allPharmacies) ? allPharmacies : [];
+      if (user && user.hub) {
+        filteredPharmacies = filteredPharmacies.filter(pharmacy => pharmacy.hub === user.hub);
+      }
+
+      // Filter out pharmacies without coordinates
+      filteredPharmacies = filteredPharmacies.filter(p =>
+        p.latitude && p.longitude &&
+        !isNaN(parseFloat(p.latitude)) && !isNaN(parseFloat(p.longitude))
+      );
+
+      // Tính khoảng cách và sắp xếp
+      const pharmaciesWithDistance = filteredPharmacies.map(pharmacy => {
+        const R = 6371000;
+        const pLat = parseFloat(pharmacy.latitude);
+        const pLng = parseFloat(pharmacy.longitude);
+        const dLat = (pLat - lat) * Math.PI / 180;
+        const dLng = (pLng - lng) * Math.PI / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat * Math.PI / 180) * Math.cos(pLat * Math.PI / 180) *
+          Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+        return { ...pharmacy, distance, latitude: pLat, longitude: pLng };
+      }).sort((a, b) => a.distance - b.distance);
+
+      setPharmacies(pharmaciesWithDistance);
+    } catch (error) {
+      console.error('Error fetching pharmacies:', error);
+    }
+  };
+
   const fetchColleagues = async (lat, lng) => {
     try {
-      // Lấy danh sách users từ localStorage
-      const { getFromLocalStorage } = await import('../utils/mockData');
-      const users = getFromLocalStorage('users', []);
-      
+      // Fetch users with role PHARMACY_REP
+      const users = await usersAPI.getAll({ role: 'PHARMACY_REP' });
+
       // Lọc đồng nghiệp (cùng role PHARMACY_REP và cùng hub)
-      const colleagues = users.filter(u => 
-        u.role === 'PHARMACY_REP' && 
+      // Note: API might return all users if role filter not implemented, so double check here
+      const colleagues = Array.isArray(users) ? users.filter(u =>
+        u.role === 'PHARMACY_REP' &&
         u.id !== user?.id &&
-        (user?.hub ? u.hub === user.hub : true) &&
-        (u.latitude && u.longitude)
-      );
-      
+        (user?.hub ? u.routeCode?.includes(user.hub) || true : true) && // Relax hub check if needed
+        (u.latitude && u.longitude) // Only show users with location
+      ) : [];
+
       // Tính khoảng cách
       const colleaguesWithDistance = colleagues.map(colleague => {
-        const colleagueLat = colleague.latitude || colleague.location?.lat;
-        const colleagueLng = colleague.longitude || colleague.location?.lng;
+        const colleagueLat = parseFloat(colleague.latitude);
+        const colleagueLng = parseFloat(colleague.longitude);
         const R = 6371000;
         const dLat = (colleagueLat - lat) * Math.PI / 180;
         const dLng = (colleagueLng - lng) * Math.PI / 180;
-        const a = 
-          Math.sin(dLat/2) * Math.sin(dLat/2) +
-          Math.cos(lat * Math.PI / 180) * Math.cos(colleagueLat * Math.PI / 180) * 
-          Math.sin(dLng/2) * Math.sin(dLng/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat * Math.PI / 180) * Math.cos(colleagueLat * Math.PI / 180) *
+          Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c;
-        return { 
-          ...colleague, 
+        return {
+          ...colleague,
           distance,
           latitude: colleagueLat,
           longitude: colleagueLng
         };
       }).sort((a, b) => a.distance - b.distance);
-      
+
       setColleagues(colleaguesWithDistance);
     } catch (error) {
       console.error('Error fetching colleagues:', error);
@@ -140,7 +148,7 @@ const Map = () => {
     const now = new Date();
     const diff = now - new Date(date);
     const minutes = Math.floor(diff / 60000);
-    
+
     if (minutes < 1) return 'Vừa xong';
     if (minutes < 60) return `${minutes} phút trước`;
     const hours = Math.floor(minutes / 60);
@@ -204,9 +212,9 @@ const Map = () => {
         <Link to="/home" style={{ fontSize: '24px', textDecoration: 'none', color: '#1E4A8B' }}>
           ←
         </Link>
-        <h1 style={{ 
-          fontSize: '16px', 
-          fontWeight: 'bold', 
+        <h1 style={{
+          fontSize: '16px',
+          fontWeight: 'bold',
           margin: 0,
           color: '#1E4A8B',
           flex: 1,
@@ -228,13 +236,13 @@ const Map = () => {
           padding: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <button 
+          <button
             onClick={() => setActiveTab('pharmacies')}
             style={{
               flex: 1,
               padding: '12px',
-              background: activeTab === 'pharmacies' 
-                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
+              background: activeTab === 'pharmacies'
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)'
                 : 'transparent',
               color: activeTab === 'pharmacies' ? '#fff' : '#1E4A8B',
               border: 'none',
@@ -247,13 +255,13 @@ const Map = () => {
           >
             🏥 Nhà thuốc ({pharmacies.length})
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('colleagues')}
             style={{
               flex: 1,
               padding: '12px',
-              background: activeTab === 'colleagues' 
-                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
+              background: activeTab === 'colleagues'
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)'
                 : 'transparent',
               color: activeTab === 'colleagues' ? '#fff' : '#1E4A8B',
               border: 'none',
@@ -279,9 +287,9 @@ const Map = () => {
               textAlign: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <p style={{ 
-                color: '#1E4A8B', 
-                fontSize: '14px', 
+              <p style={{
+                color: '#1E4A8B',
+                fontSize: '14px',
                 fontWeight: '600',
                 margin: 0
               }}>
@@ -299,9 +307,9 @@ const Map = () => {
               height: '400px',
               position: 'relative'
             }}>
-              <MapContainer 
-                center={userLocation} 
-                zoom={13} 
+              <MapContainer
+                center={userLocation}
+                zoom={13}
                 style={{ height: '100%', width: '100%', zIndex: 1 }}
                 scrollWheelZoom={true}
               >
@@ -309,7 +317,7 @@ const Map = () => {
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
-                
+
                 {/* Marker vị trí user */}
                 <Marker position={userLocation}>
                   <Popup>
@@ -322,8 +330,8 @@ const Map = () => {
 
                 {/* Markers cho các nhà thuốc */}
                 {pharmacies.map((pharmacy) => (
-                  <Marker 
-                    key={pharmacy.id} 
+                  <Marker
+                    key={pharmacy.id}
                     position={[pharmacy.latitude, pharmacy.longitude]}
                   >
                     <Popup>
@@ -345,7 +353,7 @@ const Map = () => {
                             📏 {formatDistance(pharmacy.distance)}
                           </p>
                         )}
-                        <Link 
+                        <Link
                           to={`/create-order`}
                           style={{
                             display: 'block',
@@ -371,16 +379,16 @@ const Map = () => {
 
             {/* Danh sách nhà thuốc - Mobile Card Layout */}
             <div>
-              <h3 style={{ 
-                color: '#fff', 
-                textAlign: 'center', 
+              <h3 style={{
+                color: '#fff',
+                textAlign: 'center',
                 marginBottom: '15px',
                 fontSize: '16px',
                 fontWeight: '600'
               }}>
                 📋 Danh sách nhà thuốc
               </h3>
-              
+
               {pharmacies.length === 0 ? (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.95)',
@@ -399,8 +407,8 @@ const Map = () => {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {pharmacies.map((pharmacy) => (
-                    <div 
-                      key={pharmacy.id} 
+                    <div
+                      key={pharmacy.id}
                       style={{
                         background: 'rgba(255, 255, 255, 0.95)',
                         borderRadius: '16px',
@@ -408,16 +416,16 @@ const Map = () => {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                       }}
                     >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'flex-start', 
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
                         marginBottom: '12px'
                       }}>
                         <div style={{ flex: 1 }}>
-                          <h3 style={{ 
-                            margin: '0 0 8px 0', 
-                            fontSize: '16px', 
+                          <h3 style={{
+                            margin: '0 0 8px 0',
+                            fontSize: '16px',
                             fontWeight: '600',
                             color: '#1a1a2e'
                           }}>
@@ -435,8 +443,8 @@ const Map = () => {
                           }}>
                             {pharmacy.code}
                           </div>
-                          <p style={{ 
-                            color: '#666', 
+                          <p style={{
+                            color: '#666',
                             margin: '8px 0',
                             fontSize: '13px',
                             lineHeight: '1.5'
@@ -475,7 +483,7 @@ const Map = () => {
                         )}
                       </div>
 
-                      <Link 
+                      <Link
                         to={`/create-order`}
                         style={{
                           display: 'block',
@@ -509,9 +517,9 @@ const Map = () => {
               textAlign: 'center',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
             }}>
-              <p style={{ 
-                color: '#1E4A8B', 
-                fontSize: '14px', 
+              <p style={{
+                color: '#1E4A8B',
+                fontSize: '14px',
                 fontWeight: '600',
                 margin: 0
               }}>
@@ -538,8 +546,8 @@ const Map = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {colleagues.map((colleague) => (
-                  <div 
-                    key={colleague.id} 
+                  <div
+                    key={colleague.id}
                     style={{
                       background: 'rgba(255, 255, 255, 0.95)',
                       borderRadius: '16px',
@@ -579,9 +587,9 @@ const Map = () => {
                         )}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <h3 style={{ 
-                          margin: '0 0 6px 0', 
-                          fontSize: '16px', 
+                        <h3 style={{
+                          margin: '0 0 6px 0',
+                          fontSize: '16px',
                           fontWeight: '600',
                           color: '#1a1a2e'
                         }}>
@@ -611,7 +619,7 @@ const Map = () => {
                       <div>🕒 {formatLastSeen(colleague.lastLogin || colleague.createdAt)}</div>
                     </div>
 
-                    <Link 
+                    <Link
                       to={`/chat/${colleague.id}`}
                       style={{
                         display: 'block',

@@ -1,5 +1,8 @@
 import React from 'react';
 import { Activity, Mail, Phone, MapPin, Facebook, Linkedin, Twitter } from 'lucide-react';
+import Link from 'next/link';
+
+import Image from 'next/image';
 
 const Footer = () => {
     return (
@@ -7,11 +10,13 @@ const Footer = () => {
             <div className="container mx-auto px-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                     <div className="col-span-1 md:col-span-1">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
-                                <Activity className="text-white w-5 h-5" />
-                            </div>
-                            <span className="text-xl font-bold text-white tracking-tight">AM <span className="text-cyan-400">Medtech</span></span>
+                        <div className="relative w-48 h-12 mb-6">
+                            <Image
+                                src="/logo_medtech.png"
+                                alt="AM Medtech Logo"
+                                fill
+                                className="object-contain"
+                            />
                         </div>
                         <p className="text-sm leading-relaxed mb-6">
                             Empowering the pharmaceutical industry with next-generation digital solutions.
@@ -26,20 +31,20 @@ const Footer = () => {
                     <div>
                         <h4 className="text-white font-bold mb-6">Solutions</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">DMS Platform</a></li>
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">RTM Strategy</a></li>
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">Distribution Development</a></li>
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">Pharma E-Commerce</a></li>
+                            <li><Link href="/solutions/dms-platform" className="hover:text-cyan-400 transition-colors">DMS Platform</Link></li>
+                            <li><Link href="/solutions/rtm-strategy" className="hover:text-cyan-400 transition-colors">RTM Strategy</Link></li>
+                            <li><Link href="/solutions/distribution-development" className="hover:text-cyan-400 transition-colors">Distribution Development</Link></li>
+                            <li><Link href="/solutions/pharma-ecommerce" className="hover:text-cyan-400 transition-colors">Pharma E-Commerce</Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="text-white font-bold mb-6">Company</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">About Us</a></li>
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">Case Studies</a></li>
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">Careers</a></li>
-                            <li><a href="#" className="hover:text-cyan-400 transition-colors">Contact</a></li>
+                            <li><Link href="/about" className="hover:text-cyan-400 transition-colors">About Us</Link></li>
+                            <li><Link href="/case-studies" className="hover:text-cyan-400 transition-colors">Case Studies</Link></li>
+                            <li><Link href="/careers" className="hover:text-cyan-400 transition-colors">Careers</Link></li>
+                            <li><Link href="/contact" className="hover:text-cyan-400 transition-colors">Contact</Link></li>
                         </ul>
                     </div>
 

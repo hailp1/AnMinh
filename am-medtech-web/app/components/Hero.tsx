@@ -51,9 +51,9 @@ const Hero = () => {
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center gap-8">
                     <a href="#services" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Services</a>
-                    <a href="#growth" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Data Intelligence</a>
-                    <a href="#case-studies" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Case Studies</a>
-                    <a href="#about" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">About</a>
+                    <Link href="/data-intelligence" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Data Intelligence</Link>
+                    <Link href="/case-studies/famfa" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">Case Studies</Link>
+                    <Link href="/about" className="text-slate-300 hover:text-[#00D4FF] text-sm font-medium transition-colors">About</Link>
                 </div>
 
                 <Link

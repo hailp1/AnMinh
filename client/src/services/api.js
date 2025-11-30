@@ -1,7 +1,7 @@
 // API Service for An Minh Business System
 // Sử dụng proxy /api trong development (setupProxy.js sẽ proxy tới localhost:5000)
 // Hoặc REACT_APP_API_URL nếu được set trong production
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -112,7 +112,16 @@ export const visitPlansAPI = {
   importRoutes: (data) => apiCall('/visit-plans/import-routes', {
     method: 'POST',
     body: JSON.stringify(data)
-  })
+  }),
+  checkIn: (data) => apiCall('/visit-plans/check-in', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  checkOut: (data) => apiCall('/visit-plans/check-out', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getCurrentVisit: (userId) => apiCall(`/visit-plans/current/${userId}`)
 };
 export const promotionsAPI = {
   ...createCRUDEndpoints('promotions'),

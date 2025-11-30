@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, ArrowUpRight, Database, PieChart, BarChart2 } from 'lucide-react';
+import Link from 'next/link';
 
 const DataGrowth = () => {
     return (
@@ -42,9 +43,9 @@ const DataGrowth = () => {
                             <StatItem value="99%" label="Data Accuracy" delay={0.4} />
                         </div>
 
-                        <button className="w-full md:w-auto px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-[#020617] font-bold rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20">
+                        <Link href="/data-intelligence" className="w-full md:w-auto px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-[#020617] font-bold rounded-full transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20">
                             Explore Analytics <ArrowUpRight className="w-5 h-5" />
-                        </button>
+                        </Link>
                     </div>
 
                     {/* Right Visuals (Charts) */}

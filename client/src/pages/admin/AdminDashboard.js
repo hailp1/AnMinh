@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import customersData from '../../data/customers.json';
-import { getFromLocalStorage } from '../../utils/mockData';
+import { pharmaciesAPI, ordersAPI, usersAPI } from '../../services/api';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -26,32 +25,44 @@ const AdminDashboard = () => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    const customers = customersData.customers || [];
-    const orders = getFromLocalStorage('orders', []);
-    const users = getFromLocalStorage('users', []);
+  const loadDashboardData = async () => {
+    try {
+      // Fetch data in parallel
+      const [customers, orders, users] = await Promise.all([
+        pharmaciesAPI.getAll(),
+        ordersAPI.getAll(),
+        usersAPI.getAll()
+      ]);
 
-    const totalRevenue = orders.reduce((sum, order) => {
-      return sum + (order.totalAmount || 0);
-    }, 0);
+      const totalRevenue = (Array.isArray(orders) ? orders : []).reduce((sum, order) => {
+        return sum + (order.totalAmount || 0);
+      }, 0);
 
-    const activeReps = users.filter(u =>
-      u.role === 'PHARMACY_REP' &&
-      u.isOnline
-    ).length;
+      const activeReps = (Array.isArray(users) ? users : []).filter(u =>
+        (u.role === 'PHARMACY_REP' || u.role === 'TDV') &&
+        u.isActive // Assuming there's an isActive flag or similar
+      ).length;
 
-    setStats({
-      totalCustomers: customers.length,
-      totalOrders: orders.length,
-      totalRevenue: totalRevenue,
-      activeReps: activeReps
-    });
+      setStats({
+        totalCustomers: Array.isArray(customers) ? customers.length : 0,
+        totalOrders: Array.isArray(orders) ? orders.length : 0,
+        totalRevenue: totalRevenue,
+        activeReps: activeReps
+      });
 
-    // Recent orders
-    const recent = orders
-      .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
-      .slice(0, 5);
-    setRecentOrders(recent);
+      // Recent orders
+      const recent = (Array.isArray(orders) ? orders : [])
+        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+        .slice(0, 5)
+        .map(order => ({
+          ...order,
+          customerName: order.pharmacy?.name || 'Khách lẻ',
+          totalAmount: order.totalAmount
+        }));
+      setRecentOrders(recent);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    }
   };
 
   const statCards = [

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import customersData from '../data/customers.json';
-import productsData from '../data/products.json';
-import { getFromLocalStorage, saveToLocalStorage } from '../utils/mockData';
+import { pharmaciesAPI, ordersAPI, productsAPI } from '../services/api';
 
 const StationDetail = () => {
   const { id } = useParams();
@@ -19,78 +17,79 @@ const StationDetail = () => {
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPharmacyData = async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Tìm nhà thuốc theo ID
-    const pharmacyData = customersData?.customers?.find(c => c.id === id);
-    
-    if (pharmacyData) {
+    try {
+      setLoading(true);
+
+      // 1. Load pharmacy details
+      const pharmacyData = await pharmaciesAPI.getById(id);
       setPharmacy(pharmacyData);
-      
-      // Load lịch sử đơn hàng (mock data từ localStorage)
-      const orders = getFromLocalStorage('orders', []);
-      const pharmacyOrders = orders.filter(order => 
-        order.customer && order.customer.id === id
-      );
-      
-      // Lọc đơn hàng trong tháng hiện tại
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const thisMonthOrders = pharmacyOrders.filter(order => {
-        const orderDate = new Date(order.createdAt || order.date);
-        return orderDate.getMonth() === currentMonth && 
-               orderDate.getFullYear() === currentYear;
-      });
-      
-      setOrderHistory(thisMonthOrders);
-      
-      // Tính doanh thu 3 tháng gần nhất
-      const revenueData = [];
-      for (let i = 2; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const month = date.getMonth();
-        const year = date.getFullYear();
-        
-        const monthOrders = pharmacyOrders.filter(order => {
+
+      if (pharmacyData) {
+        // 2. Load orders history
+        const orders = await ordersAPI.getAll({ pharmacyId: id });
+
+        // Filter orders for current month
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const thisMonthOrders = orders.filter(order => {
           const orderDate = new Date(order.createdAt || order.date);
-          return orderDate.getMonth() === month && 
-                 orderDate.getFullYear() === year;
+          return orderDate.getMonth() === currentMonth &&
+            orderDate.getFullYear() === currentYear;
         });
-        
-        const revenue = monthOrders.reduce((sum, order) => {
-          const orderTotal = order.items?.reduce((itemSum, item) => 
-            itemSum + (item.price * item.quantity), 0) || 0;
-          return sum + orderTotal;
-        }, 0);
-        
-        revenueData.push({
-          month: date.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }),
-          revenue: revenue,
-          orderCount: monthOrders.length
+
+        setOrderHistory(thisMonthOrders);
+
+        // Calculate revenue for last 3 months
+        const revenueData = [];
+        for (let i = 2; i >= 0; i--) {
+          const date = new Date();
+          date.setMonth(date.getMonth() - i);
+          const month = date.getMonth();
+          const year = date.getFullYear();
+
+          const monthOrders = orders.filter(order => {
+            const orderDate = new Date(order.createdAt || order.date);
+            return orderDate.getMonth() === month &&
+              orderDate.getFullYear() === year;
+          });
+
+          const revenue = monthOrders.reduce((sum, order) => {
+            // Assuming order.totalAmount exists from API, otherwise calculate from items
+            return sum + (order.totalAmount || 0);
+          }, 0);
+
+          revenueData.push({
+            month: date.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }),
+            revenue: revenue,
+            orderCount: monthOrders.length
+          });
+        }
+
+        setMonthlyRevenue(revenueData);
+
+        // 3. Load products for recommendations
+        const products = await productsAPI.getAll();
+        const groups = await productsAPI.getGroups();
+
+        // Map group names to products
+        const productsWithGroups = products.map(p => {
+          const group = groups.find(g => g.id === p.groupId);
+          return { ...p, groupName: group?.name || 'Khác' };
         });
+
+        // Sort by price (descending) and take top 6 as recommendation
+        // In a real app, this would be a smarter recommendation algorithm
+        const recommended = productsWithGroups
+          .sort((a, b) => b.price - a.price)
+          .slice(0, 6);
+
+        setRecommendedProducts(recommended);
       }
-      
-      setMonthlyRevenue(revenueData);
-      
-      // Gợi ý thuốc nên chào (lấy từ products.json)
-      // Ưu tiên các nhóm sản phẩm phổ biến
-      const allProducts = productsData?.productGroups?.flatMap(group => 
-        group.products.map(product => ({
-          ...product,
-          groupName: group.name
-        }))
-      ) || [];
-      
-      // Sắp xếp theo giá và chọn top 6 sản phẩm
-      const recommended = allProducts
-        .sort((a, b) => b.price - a.price)
-        .slice(0, 6);
-      
-      setRecommendedProducts(recommended);
+    } catch (error) {
+      console.error('Error loading pharmacy data:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const formatCurrency = (amount) => {
@@ -163,11 +162,7 @@ const StationDetail = () => {
             <h3 style={{ color: 'rgba(255, 255, 255, 0.9)' }}>💰 Doanh thu tháng này</h3>
             <div style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
               {formatCurrency(
-                orderHistory.reduce((sum, order) => {
-                  const orderTotal = order.items?.reduce((itemSum, item) => 
-                    itemSum + (item.price * item.quantity), 0) || 0;
-                  return sum + orderTotal;
-                }, 0)
+                orderHistory.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
               )}
             </div>
           </div>
@@ -219,24 +214,21 @@ const StationDetail = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                   <div>
                     <div style={{ fontWeight: '600', color: '#1E4A8B' }}>
-                      Đơn hàng #{order.id?.slice(-6) || index + 1}
+                      Đơn hàng #{order.orderNumber || order.id?.slice(-6) || index + 1}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
                       {formatDate(order.createdAt || order.date)}
                     </div>
                   </div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1E4A8B' }}>
-                    {formatCurrency(
-                      order.items?.reduce((sum, item) => 
-                        sum + (item.price * item.quantity), 0) || 0
-                    )}
+                    {formatCurrency(order.totalAmount || 0)}
                   </div>
                 </div>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>
                   {order.items?.length || 0} sản phẩm
                 </div>
                 <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#888' }}>
-                  {order.items?.slice(0, 3).map(item => item.productName).join(', ')}
+                  {order.items?.slice(0, 3).map(item => item.product?.name || item.productName).join(', ')}
                   {order.items?.length > 3 && '...'}
                 </div>
               </div>
@@ -266,15 +258,15 @@ const StationDetail = () => {
               cursor: 'pointer',
               transition: 'all 0.3s ease'
             }}
-            onClick={() => window.location.href = `/create-order?pharmacy=${pharmacy.id}&product=${product.id}`}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
+              onClick={() => window.location.href = `/create-order?pharmacy=${pharmacy.id}&product=${product.id}`}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 92, 162, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <div>
@@ -308,7 +300,7 @@ const StationDetail = () => {
           ))}
         </div>
         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <Link 
+          <Link
             to={`/create-order?pharmacy=${pharmacy.id}`}
             className="btn-primary"
             style={{
@@ -328,7 +320,7 @@ const StationDetail = () => {
 
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
-        <Link 
+        <Link
           to="/home"
           className="btn-secondary"
           style={{
@@ -345,7 +337,7 @@ const StationDetail = () => {
         >
           ← Quay lại
         </Link>
-        <Link 
+        <Link
           to={`/edit-pharmacy/${pharmacy.id}`}
           className="btn-secondary"
           style={{
@@ -362,7 +354,7 @@ const StationDetail = () => {
         >
           ✏️ Cập nhật
         </Link>
-        <Link 
+        <Link
           to={`/create-order?pharmacy=${pharmacy.id}`}
           className="btn-primary"
           style={{

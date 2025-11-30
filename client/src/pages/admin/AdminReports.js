@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import customersData from '../../data/customers.json';
-import productsData from '../../data/products.json';
-import { getFromLocalStorage } from '../../utils/mockData';
+import { pharmaciesAPI, ordersAPI, productsAPI } from '../../services/api';
 
 const AdminReports = () => {
   const [selectedHub, setSelectedHub] = useState('all');
@@ -36,61 +34,117 @@ const AdminReports = () => {
     loadReportData();
   }, [selectedHub, selectedPeriod]);
 
-  const loadReportData = () => {
-    // Mock data for reports
-    const orders = getFromLocalStorage('orders', []);
-    const customers = selectedHub === 'all' 
-      ? (customersData.customers || [])
-      : (customersData.customers || []).filter(c => c.hub === selectedHub);
-    
-    const allProducts = productsData.productGroups?.flatMap(g => g.products) || [];
-    
-    // Calculate stats
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-    const totalOrders = orders.length;
-    const totalCustomers = customers.length;
-    const activeCustomers = orders.reduce((set, o) => {
-      if (o.customerId) set.add(o.customerId);
-      return set;
-    }, new Set()).size;
-    
-    setStats({
-      totalRevenue,
-      totalOrders,
-      totalCustomers,
-      activeCustomers,
-      averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-      customerActivityRate: totalCustomers > 0 ? (activeCustomers / totalCustomers * 100) : 0
-    });
+  const loadReportData = async () => {
+    try {
+      // Fetch data in parallel
+      const [customersData, ordersData, productsData, groupsData] = await Promise.all([
+        pharmaciesAPI.getAll(),
+        ordersAPI.getAll(),
+        productsAPI.getAll(),
+        productsAPI.getGroups()
+      ]);
 
-    // Business Activity (Daily/Weekly/Monthly)
-    const activityData = generateActivityData(selectedPeriod);
-    setBusinessActivity(activityData);
+      const customers = Array.isArray(customersData) ? customersData : [];
+      let orders = Array.isArray(ordersData) ? ordersData : [];
+      const allProducts = Array.isArray(productsData) ? productsData : [];
+      const productGroups = Array.isArray(groupsData) ? groupsData : [];
 
-    // Coverage Data
-    const coverage = {
-      byProduct: calculateCoverageByProduct(orders, allProducts),
-      byCategory: calculateCoverageByCategory(orders, productsData.productGroups || []),
-      byCustomerType: calculateCoverageByCustomerType(orders, customers),
-      byHub: calculateCoverageByHub(orders, customers)
-    };
-    setCoverageData(coverage);
+      // Filter by Hub
+      const filteredCustomers = selectedHub === 'all'
+        ? customers
+        : customers.filter(c => c.hub === selectedHub);
 
-    // Performance Data
-    const performance = generatePerformanceData(customers, orders);
-    setPerformanceData(performance);
+      const filteredCustomerIds = new Set(filteredCustomers.map(c => c.id));
+
+      if (selectedHub !== 'all') {
+        orders = orders.filter(o => filteredCustomerIds.has(o.pharmacy?.id || o.customerId));
+      }
+
+      // Filter by Period (mock logic for now as API might not support complex filtering yet)
+      const now = new Date();
+      let days = selectedPeriod === 'week' ? 7 : selectedPeriod === 'month' ? 30 : 90;
+      const startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - days);
+
+      orders = orders.filter(o => new Date(o.createdAt) >= startDate);
+
+      // Calculate stats
+      const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      const totalOrders = orders.length;
+      const totalCustomers = filteredCustomers.length;
+      const activeCustomers = orders.reduce((set, o) => {
+        const customerId = o.pharmacy?.id || o.customerId;
+        if (customerId && filteredCustomerIds.has(customerId)) set.add(customerId);
+        return set;
+      }, new Set()).size;
+
+      setStats({
+        totalRevenue,
+        totalOrders,
+        totalCustomers,
+        activeCustomers,
+        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        customerActivityRate: totalCustomers > 0 ? (activeCustomers / totalCustomers * 100) : 0
+      });
+
+      // Business Activity (Daily/Weekly/Monthly)
+      // Group orders by date
+      const activityMap = {};
+      for (let i = 0; i < days; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        activityMap[dateStr] = { date: dateStr, revenue: 0, orders: 0, customers: new Set() };
+      }
+
+      orders.forEach(order => {
+        const dateStr = new Date(order.createdAt).toISOString().split('T')[0];
+        if (activityMap[dateStr]) {
+          activityMap[dateStr].revenue += order.totalAmount || 0;
+          activityMap[dateStr].orders += 1;
+          if (order.pharmacy?.id || order.customerId) {
+            activityMap[dateStr].customers.add(order.pharmacy?.id || order.customerId);
+          }
+        }
+      });
+
+      const activityData = Object.values(activityMap)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map(item => ({
+          ...item,
+          customers: item.customers.size
+        }));
+
+      setBusinessActivity(activityData);
+
+      // Coverage Data
+      const coverage = {
+        byProduct: calculateCoverageByProduct(orders, allProducts),
+        byCategory: calculateCoverageByCategory(orders, productGroups),
+        byCustomerType: calculateCoverageByCustomerType(orders, filteredCustomers),
+        byHub: calculateCoverageByHub(orders, filteredCustomers)
+      };
+      setCoverageData(coverage);
+
+      // Performance Data
+      const performance = generatePerformanceData(filteredCustomers, orders);
+      setPerformanceData(performance);
+
+    } catch (error) {
+      console.error('Error loading report data:', error);
+    }
   };
 
   const generateActivityData = (period) => {
     const data = [];
     const now = new Date();
     let days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
+
       data.push({
         date: dateStr,
         revenue: Math.floor(Math.random() * 5000000) + 1000000,
@@ -106,7 +160,10 @@ const AdminReports = () => {
     orders.forEach(order => {
       if (order.items) {
         order.items.forEach(item => {
-          const productId = item.productId || item.product;
+          // item.product is an object from API, item.productId might be directly available or inside product
+          const productId = item.productId || item.product?.id;
+          if (!productId) return;
+
           if (!productCounts[productId]) {
             productCounts[productId] = { orders: 0, quantity: 0, revenue: 0 };
           }
@@ -129,17 +186,56 @@ const AdminReports = () => {
 
   const calculateCoverageByCategory = (orders, categories) => {
     const categoryCounts = {};
+
+    // Create a map of productId to groupId
+    // We need to fetch all products first to know their groups, 
+    // but here we rely on 'categories' which are groups.
+    // We need 'allProducts' to map product -> group if order items don't have group info.
+    // However, 'calculateCoverageByCategory' only receives 'orders' and 'categories'.
+    // We should pass 'allProducts' to this function or use a closure if 'allProducts' is in scope.
+    // But 'allProducts' is not passed here. 
+    // Let's assume we can access product group info from the product list we fetched.
+
+    // Actually, let's look at how we call this: calculateCoverageByCategory(orders, productGroups)
+    // We are missing the link between order item (product) and its group.
+    // I will modify the function signature to accept allProducts as well.
+
+    // Wait, I can't easily change the signature in this replace block without changing the caller.
+    // But I can see 'allProducts' is available in 'loadReportData' scope, but this function is defined outside.
+    // Ah, 'calculateCoverageByCategory' is defined INSIDE the component in the original code?
+    // No, it's defined inside the component in the previous view.
+
+    // Let's look at the caller in loadReportData:
+    // byCategory: calculateCoverageByCategory(orders, productGroups),
+
+    // I need to change the caller too if I change the signature.
+    // Or I can try to find the product in 'categories' if 'categories' structure allows.
+    // 'categories' is 'productGroups', which has 'products' array.
+
+    const productToGroupMap = {};
+    categories.forEach(group => {
+      if (group.products) {
+        group.products.forEach(prod => {
+          productToGroupMap[prod.id] = group.id;
+        });
+      }
+    });
+
     orders.forEach(order => {
       if (order.items) {
         order.items.forEach(item => {
-          const categoryId = item.categoryId || item.productGroup;
-          if (!categoryCounts[categoryId]) {
-            categoryCounts[categoryId] = { orders: 0, revenue: 0, customers: new Set() };
-          }
-          categoryCounts[categoryId].orders++;
-          categoryCounts[categoryId].revenue += (item.price || 0) * (item.quantity || 0);
-          if (order.customerId) {
-            categoryCounts[categoryId].customers.add(order.customerId);
+          const productId = item.productId || item.product?.id;
+          const groupId = productToGroupMap[productId];
+
+          if (groupId) {
+            if (!categoryCounts[groupId]) {
+              categoryCounts[groupId] = { orders: 0, revenue: 0, customers: new Set() };
+            }
+            categoryCounts[groupId].orders++;
+            categoryCounts[groupId].revenue += (item.price || 0) * (item.quantity || 0);
+            if (order.pharmacy?.id || order.customerId) {
+              categoryCounts[groupId].customers.add(order.pharmacy?.id || order.customerId);
+            }
           }
         });
       }
@@ -185,7 +281,7 @@ const AdminReports = () => {
   const calculateCoverageByHub = (orders, customers) => {
     const hubCounts = {};
     const hubs = ['Trung tâm', 'Củ Chi', 'Đồng Nai'];
-    
+
     hubs.forEach(hub => {
       hubCounts[hub] = {
         customers: customers.filter(c => c.hub === hub).length,
@@ -219,7 +315,7 @@ const AdminReports = () => {
         hub: customer.hub,
         orders: customerOrders.length,
         revenue: revenue,
-        lastOrder: customerOrders.length > 0 
+        lastOrder: customerOrders.length > 0
           ? new Date(customerOrders[customerOrders.length - 1].createdAt || Date.now())
           : null
       };
@@ -266,7 +362,7 @@ const AdminReports = () => {
             Phân tích hoạt động kinh doanh và bao phủ thị trường
           </p>
         </div>
-        
+
         {/* Filters */}
         <div style={{
           display: 'flex',
@@ -294,7 +390,7 @@ const AdminReports = () => {
             <option value="Củ Chi">Củ Chi</option>
             <option value="Đồng Nai">Đồng Nai</option>
           </select>
-          
+
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}

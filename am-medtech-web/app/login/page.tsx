@@ -17,21 +17,25 @@ export default function LoginPage() {
         setError('');
 
         // Simulate API check
-        setTimeout(() => {
-            const code = companyCode.toUpperCase().trim();
+        const code = companyCode.toUpperCase().trim();
 
-            if (code === 'AM' || code === 'ANMINH' || code === 'AMGROUP') {
-                // Redirect to An Minh Admin Portal
-                window.location.href = 'http://localhost:3099/admin/login';
-            } else if (code === 'TEST' || code === 'DEMO') {
-                // Redirect to a hypothetical demo site (for now just alert)
-                alert('Redirecting to Demo Portal...');
-                setIsLoading(false);
-            } else {
-                setError('Invalid Company Code. Please contact your administrator.');
-                setIsLoading(false);
-            }
-        }, 1000);
+        if (code === 'AM' || code === 'ANMINH' || code === 'AMGROUP') {
+            // Redirect to An Minh Admin Portal
+
+            // DEBUG: Show current hostname
+            // alert(`Current hostname: ${window.location.hostname}`);
+
+            // Force redirect to production DMS for now to verify fix
+            window.location.href = 'https://dms.ammedtech.com/admin/login';
+
+        } else if (code === 'TEST' || code === 'DEMO') {
+            // Redirect to a hypothetical demo site (for now just alert)
+            alert('Redirecting to Demo Portal...');
+            setIsLoading(false);
+        } else {
+            setError('Invalid Company Code. Please contact your administrator.');
+            setIsLoading(false);
+        }
     };
 
     return (

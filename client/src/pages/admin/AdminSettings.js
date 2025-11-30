@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { getFromLocalStorage, saveToLocalStorage } from '../../utils/mockData';
 import TerritoryManagement from '../../components/TerritoryManagement';
 
 const AdminSettings = () => {
@@ -31,7 +30,7 @@ const AdminSettings = () => {
 
   useEffect(() => {
     loadSettings();
-    
+
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -40,9 +39,13 @@ const AdminSettings = () => {
   }, []);
 
   const loadSettings = () => {
-    const stored = getFromLocalStorage('adminSettings', null);
-    if (stored) {
-      setSettings({ ...settings, ...stored });
+    try {
+      const stored = localStorage.getItem('adminSettings');
+      if (stored) {
+        setSettings(prev => ({ ...prev, ...JSON.parse(stored) }));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
     }
   };
 
@@ -55,7 +58,7 @@ const AdminSettings = () => {
   };
 
   const handleSave = () => {
-    saveToLocalStorage('adminSettings', settings);
+    localStorage.setItem('adminSettings', JSON.stringify(settings));
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -127,8 +130,8 @@ const AdminSettings = () => {
             onClick={handleSave}
             style={{
               padding: isMobile ? '10px 16px' : '12px 24px',
-              background: saved 
-                ? '#10b981' 
+              background: saved
+                ? '#10b981'
                 : 'linear-gradient(135deg, #1E4A8B, #FBC93D)',
               border: 'none',
               borderRadius: '12px',
@@ -162,8 +165,8 @@ const AdminSettings = () => {
             onClick={() => setActiveTab(tab.id)}
             style={{
               padding: isMobile ? '10px 16px' : '12px 20px',
-              background: activeTab === tab.id 
-                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
+              background: activeTab === tab.id
+                ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)'
                 : '#f3f4f6',
               border: 'none',
               borderRadius: '8px',

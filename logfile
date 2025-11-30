@@ -243,3 +243,84 @@
 2025-11-28 08:25:52.883 +07 [7480] LOG:  checkpoint complete: wrote 488 buffers (3.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=52.066 s, sync=0.039 s, total=52.114 s; sync files=81, longest=0.002 s, average=0.001 s; distance=8126 kB, estimate=8126 kB
 2025-11-28 09:20:00.973 +07 [7480] LOG:  checkpoint starting: time
 2025-11-28 09:20:01.302 +07 [7480] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.316 s, sync=0.003 s, total=0.330 s; sync files=3, longest=0.001 s, average=0.001 s; distance=5 kB, estimate=7314 kB
+2025-11-28 22:30:04.634 +07 [7480] LOG:  checkpoint starting: time
+2025-11-28 22:30:14.156 +07 [7480] LOG:  checkpoint complete: wrote 90 buffers (0.5%); 0 WAL file(s) added, 0 removed, 0 recycled; write=9.494 s, sync=0.019 s, total=9.523 s; sync files=25, longest=0.005 s, average=0.001 s; distance=569 kB, estimate=6640 kB
+2025-11-28 22:55:04.181 +07 [7480] LOG:  checkpoint starting: time
+2025-11-28 22:55:05.924 +07 [7480] LOG:  checkpoint complete: wrote 16 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.732 s, sync=0.007 s, total=1.744 s; sync files=3, longest=0.006 s, average=0.003 s; distance=19 kB, estimate=5978 kB
+2025-11-29 00:30:05.106 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 00:30:07.494 +07 [7480] LOG:  checkpoint complete: wrote 23 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.360 s, sync=0.017 s, total=2.388 s; sync files=19, longest=0.005 s, average=0.001 s; distance=105 kB, estimate=5391 kB
+2025-11-29 00:35:05.495 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 00:35:05.823 +07 [7480] LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.315 s, sync=0.008 s, total=0.329 s; sync files=4, longest=0.005 s, average=0.002 s; distance=11 kB, estimate=4853 kB
+2025-11-29 00:41:53.915 +07 [416] ERROR:  duplicate key value violates unique constraint "users_phone_key"
+2025-11-29 00:41:53.915 +07 [416] DETAIL:  Key (phone)=(0900000001) already exists.
+2025-11-29 00:41:53.915 +07 [416] STATEMENT:  INSERT INTO "public"."users" ("id","name","employeeCode","routeCode","email","password","phone","role","isActive","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,CAST($8::text AS "public"."Role"),$9,$10,$11) RETURNING "public"."users"."id", "public"."users"."name", "public"."users"."employeeCode", "public"."users"."routeCode", "public"."users"."email", "public"."users"."password", "public"."users"."phone", "public"."users"."role"::text, "public"."users"."avatar", "public"."users"."isActive", "public"."users"."createdAt", "public"."users"."updatedAt"
+2025-11-29 00:41:53.922 +07 [416] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 00:45:05.844 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 00:45:22.093 +07 [7480] LOG:  checkpoint complete: wrote 153 buffers (0.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=16.219 s, sync=0.020 s, total=16.249 s; sync files=36, longest=0.001 s, average=0.001 s; distance=786 kB, estimate=4446 kB
+2025-11-29 00:54:39.377 +07 [5748] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-11-29 00:54:39.377 +07 [5748] DETAIL:  Key (email)=(admin@anminh.com) already exists.
+2025-11-29 00:54:39.377 +07 [5748] STATEMENT:  INSERT INTO "public"."users" ("id","name","employeeCode","routeCode","email","password","phone","role","isActive","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,CAST($8::text AS "public"."Role"),$9,$10,$11) RETURNING "public"."users"."id", "public"."users"."name", "public"."users"."employeeCode", "public"."users"."role"::text, "public"."users"."email", "public"."users"."phone", "public"."users"."isActive"
+2025-11-29 00:54:39.384 +07 [5748] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 00:55:05.111 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 00:55:05.455 +07 [7480] LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.331 s, sync=0.008 s, total=0.344 s; sync files=4, longest=0.005 s, average=0.002 s; distance=8 kB, estimate=4002 kB
+2025-11-29 01:00:05.456 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 01:00:06.024 +07 [7480] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.550 s, sync=0.008 s, total=0.568 s; sync files=6, longest=0.005 s, average=0.002 s; distance=10 kB, estimate=3603 kB
+2025-11-29 01:28:49.351 +07 [26896] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 01:29:14.110 +07 [15352] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 01:35:05.082 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 01:35:06.168 +07 [7480] LOG:  checkpoint complete: wrote 11 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.067 s, sync=0.010 s, total=1.086 s; sync files=9, longest=0.005 s, average=0.002 s; distance=51 kB, estimate=3248 kB
+2025-11-29 01:45:05.175 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 01:45:05.504 +07 [7480] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.316 s, sync=0.006 s, total=0.330 s; sync files=1, longest=0.006 s, average=0.006 s; distance=8 kB, estimate=2924 kB
+2025-11-29 01:50:05.507 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 01:50:05.634 +07 [7480] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.112 s, sync=0.003 s, total=0.127 s; sync files=2, longest=0.002 s, average=0.002 s; distance=7 kB, estimate=2632 kB
+2025-11-29 01:55:05.642 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 01:55:05.756 +07 [7480] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.103 s, sync=0.003 s, total=0.114 s; sync files=2, longest=0.002 s, average=0.002 s; distance=7 kB, estimate=2370 kB
+2025-11-29 02:00:05.767 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 02:00:05.885 +07 [7480] LOG:  checkpoint complete: wrote 1 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.108 s, sync=0.001 s, total=0.119 s; sync files=1, longest=0.001 s, average=0.001 s; distance=6 kB, estimate=2133 kB
+2025-11-29 10:28:09.855 +07 [10932] ERROR:  update or delete on table "users" violates foreign key constraint "orders_userId_fkey" on table "orders"
+2025-11-29 10:28:09.855 +07 [10932] DETAIL:  Key (id)=(cmii6ezdu0001kt31178djzzj) is still referenced from table "orders".
+2025-11-29 10:28:09.855 +07 [10932] STATEMENT:  DELETE FROM "public"."users" WHERE 1=1
+2025-11-29 10:28:09.952 +07 [10932] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-11-29 10:28:09.952 +07 [10932] DETAIL:  Key (email)=(admin@anminh.com) already exists.
+2025-11-29 10:28:09.952 +07 [10932] STATEMENT:  INSERT INTO "public"."users" ("id","name","employeeCode","routeCode","email","password","phone","role","isActive","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,CAST($8::text AS "public"."Role"),$9,$10,$11) RETURNING "public"."users"."id", "public"."users"."name", "public"."users"."employeeCode", "public"."users"."routeCode", "public"."users"."email", "public"."users"."password", "public"."users"."phone", "public"."users"."role"::text, "public"."users"."avatar", "public"."users"."isActive", "public"."users"."createdAt", "public"."users"."updatedAt"
+2025-11-29 10:28:09.956 +07 [10932] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 10:30:06.642 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 10:30:17.601 +07 [7480] LOG:  checkpoint complete: wrote 103 buffers (0.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=10.933 s, sync=0.017 s, total=10.959 s; sync files=32, longest=0.001 s, average=0.001 s; distance=985 kB, estimate=2018 kB
+2025-11-29 10:35:06.603 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 10:35:10.350 +07 [7480] LOG:  checkpoint complete: wrote 36 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.724 s, sync=0.008 s, total=3.748 s; sync files=5, longest=0.006 s, average=0.002 s; distance=6 kB, estimate=1817 kB
+2025-11-29 14:33:21.358 +07 [22348] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 14:33:21.358 +07 [10856] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 14:33:21.358 +07 [26776] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 14:33:21.358 +07 [27584] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 14:33:21.358 +07 [17996] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 14:33:21.360 +07 [12592] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 14:40:06.650 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 14:40:07.198 +07 [7480] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.538 s, sync=0.005 s, total=0.548 s; sync files=6, longest=0.002 s, average=0.001 s; distance=22 kB, estimate=1638 kB
+2025-11-29 15:30:06.276 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 15:30:06.812 +07 [7480] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.519 s, sync=0.009 s, total=0.537 s; sync files=6, longest=0.006 s, average=0.002 s; distance=11 kB, estimate=1475 kB
+2025-11-29 21:30:50.203 +07 [20328] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 21:30:50.204 +07 [25552] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 21:30:50.204 +07 [17372] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-29 21:40:07.314 +07 [7480] LOG:  checkpoint starting: time
+2025-11-29 21:40:07.888 +07 [7480] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.530 s, sync=0.030 s, total=0.575 s; sync files=6, longest=0.027 s, average=0.005 s; distance=11 kB, estimate=1329 kB
+2025-11-30 12:51:26.741 +07 [24380] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-11-30 12:51:29.710 +07 [23604] LOG:  background worker "logical replication launcher" (PID 15872) was terminated by exception 0xC000013A
+2025-11-30 12:51:29.710 +07 [23604] HINT:  See C include file "ntstatus.h" for a description of the hexadecimal value.
+2025-11-30 12:51:29.711 +07 [23604] LOG:  terminating any other active server processes
+2025-11-30 12:51:29.721 +07 [23604] LOG:  all server processes terminated; reinitializing
+^C

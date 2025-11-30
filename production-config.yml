@@ -1,0 +1,12 @@
+tunnel: ab5e9afe-87ea-46ce-a1b9-43cbd0d842a5
+credentials-file: C:\Users\OWNER\.cloudflared\ab5e9afe-87ea-46ce-a1b9-43cbd0d842a5.json
+
+ingress:
+  - hostname: ammedtech.com
+    service: http://localhost:3000
+  - hostname: dms.ammedtech.com
+    path: /api
+    service: http://localhost:5000
+  - hostname: dms.ammedtech.com
+    service: http://localhost:3099
+  - service: http_status:404

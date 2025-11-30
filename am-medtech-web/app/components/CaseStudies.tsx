@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const CaseStudies = () => {
     return (
@@ -93,13 +94,15 @@ const CaseStudies = () => {
                             <ResultItem text="Seamless mobile app experience for field teams" />
                         </div>
 
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="px-8 py-4 bg-white text-[#0A192F] font-bold rounded-full hover:bg-cyan-50 transition-colors"
-                        >
-                            Read Full Case Study
-                        </motion.button>
+                        <Link href="/case-studies/famfa">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="px-8 py-4 bg-white text-[#0A192F] font-bold rounded-full hover:bg-cyan-50 transition-colors"
+                            >
+                                Read Full Case Study
+                            </motion.button>
+                        </Link>
                     </div>
                 </div>
             </div>

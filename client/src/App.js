@@ -7,13 +7,10 @@ import PageTransition from './components/PageTransition';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Onboarding from './pages/Onboarding';
-import QuickRegister from './pages/QuickRegister';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import NearbyStations from './pages/NearbyStations';
 import Map from './pages/Map';
 import StationDetail from './pages/StationDetail';
-import CreateStation from './pages/CreateStation';
 import CreatePharmacy from './pages/CreatePharmacy';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
@@ -50,7 +47,7 @@ import './styles-production.css';
 function AppContent() {
   const location = useLocation();
   const isOnboarding = location.pathname === '/';
-  const isAuthPage = location.pathname === '/register' || location.pathname === '/quick-register' || location.pathname === '/forgot-password' || location.pathname === '/reset-password' || location.pathname === '/login-simple';
+  const isAuthPage = location.pathname === '/forgot-password' || location.pathname === '/reset-password' || location.pathname === '/login-simple';
   const isAdminPage = location.pathname.startsWith('/admin');
 
   // Admin routes
@@ -109,14 +106,10 @@ function AppContent() {
               <Route path="/" element={<Onboarding />} />
               <Route path="/login-simple" element={<Login />} />
               <Route path="/home" element={<Home />} />
-              <Route path="/register" element={<QuickRegister />} />
-              <Route path="/quick-register" element={<QuickRegister />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/nearby" element={<NearbyStations />} />
               <Route path="/map" element={<Map />} />
               <Route path="/station/:id" element={<StationDetail />} />
-              <Route path="/create-station" element={<CreateStation />} />
               <Route path="/create-pharmacy" element={<CreatePharmacy />} />
               <Route path="/edit-pharmacy/:id" element={<CreatePharmacy />} />
               <Route path="/profile" element={<Profile />} />

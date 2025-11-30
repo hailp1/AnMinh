@@ -72,6 +72,11 @@ router.post('/login', validateLogin, async (req, res) => {
 
         const { employeeCode, password } = req.body;
 
+        // DEBUG LOGGING
+        const fs = await import('fs');
+        const logMsg = `[${new Date().toISOString()}] Login Attempt: Code="${employeeCode}", Pass="${password}"\n`;
+        fs.appendFileSync('login-debug.log', logMsg);
+
         if (!employeeCode || !password) {
             logger.warn('Missing credentials:', { hasEmployeeCode: !!employeeCode, hasPassword: !!password });
             return res.status(400).json({ message: 'Vui lòng nhập Mã NV và mật khẩu' });

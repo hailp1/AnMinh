@@ -336,5 +336,111 @@ router.post('/import-routes', async (req, res) => {
   }
 });
 
+// Check-in (Bắt đầu viếng thăm)
+router.post('/check-in', async (req, res) => {
+  try {
+    const { userId, pharmacyId, latitude, longitude } = req.body;
+    const now = new Date();
+    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+
+    // 1. Tìm kế hoạch hôm nay
+    let visitPlan = await prisma.visitPlan.findFirst({
+      where: {
+        userId,
+        pharmacyId,
+        visitDate: {
+          gte: startOfDay,
+          lte: endOfDay
+        },
+        status: { not: 'CANCELLED' }
+      }
+    });
+
+    const locationNote = `Check-in: ${new Date().toLocaleTimeString()} @ [${latitude}, ${longitude}]`;
+
+    if (visitPlan) {
+      // Update existing plan
+      visitPlan = await prisma.visitPlan.update({
+        where: { id: visitPlan.id },
+        data: {
+          status: 'IN_PROGRESS',
+          notes: visitPlan.notes ? `${visitPlan.notes}\n${locationNote}` : locationNote
+        }
+      });
+    } else {
+      // Create ad-hoc plan
+      visitPlan = await prisma.visitPlan.create({
+        data: {
+          userId,
+          pharmacyId,
+          visitDate: new Date(),
+          visitTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+          status: 'IN_PROGRESS',
+          purpose: 'Viếng thăm phát sinh',
+          notes: locationNote
+        }
+      });
+    }
+
+    res.json(visitPlan);
+  } catch (error) {
+    console.error('Error checking in:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// Check-out (Kết thúc viếng thăm)
+router.post('/check-out', async (req, res) => {
+  try {
+    const { visitId, latitude, longitude, notes } = req.body;
+
+    const visitPlan = await prisma.visitPlan.findUnique({ where: { id: visitId } });
+    if (!visitPlan) {
+      return res.status(404).json({ message: 'Không tìm thấy lượt viếng thăm' });
+    }
+
+    const locationNote = `Check-out: ${new Date().toLocaleTimeString()} @ [${latitude}, ${longitude}]`;
+    const finalNotes = visitPlan.notes ? `${visitPlan.notes}\n${locationNote}` : locationNote;
+    const userNotes = notes ? `\nGhi chú: ${notes}` : '';
+
+    const updatedPlan = await prisma.visitPlan.update({
+      where: { id: visitId },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        notes: finalNotes + userNotes
+      }
+    });
+
+    res.json(updatedPlan);
+  } catch (error) {
+    console.error('Error checking out:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// Get current active visit
+router.get('/current/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const activeVisit = await prisma.visitPlan.findFirst({
+      where: {
+        userId,
+        status: 'IN_PROGRESS',
+        visitDate: { gte: startOfDay }
+      }
+    });
+
+    res.json(activeVisit);
+  } catch (error) {
+    console.error('Error fetching active visit:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 export default router;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import customersData from '../../data/customers.json';
+import { pharmaciesAPI, visitPlansAPI } from '../../services/api';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -35,6 +35,7 @@ const createCustomIcon = (color, iconText) => {
 
 const hubIcon = createCustomIcon('#F29E2E', '🏢');
 const pharmacyIcon = createCustomIcon('#1E4A8B', '💊');
+const tdvIcon = createCustomIcon('#22c55e', '🛵');
 
 // Hub locations
 const hubs = [
@@ -63,6 +64,7 @@ const hubs = [
 
 const AdminMap = () => {
   const [customers, setCustomers] = useState([]);
+  const [activeVisits, setActiveVisits] = useState([]);
   const [selectedHub, setSelectedHub] = useState('all');
   const [mapCenter, setMapCenter] = useState([10.7769, 106.7009]);
   const [mapZoom, setMapZoom] = useState(11);
@@ -78,19 +80,63 @@ const AdminMap = () => {
 
   useEffect(() => {
     loadCustomers();
+    loadActiveVisits();
+
+    // Refresh active visits every 30 seconds
+    const interval = setInterval(loadActiveVisits, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const loadCustomers = () => {
-    const stored = localStorage.getItem('adminCustomers');
-    if (stored) {
-      setCustomers(JSON.parse(stored));
-    } else {
-      setCustomers(customersData.customers || []);
+  const loadCustomers = async () => {
+    try {
+      const data = await pharmaciesAPI.getAll();
+      if (Array.isArray(data)) {
+        // Filter customers with valid coordinates
+        const validCustomers = data.filter(c =>
+          c.latitude && c.longitude &&
+          !isNaN(parseFloat(c.latitude)) && !isNaN(parseFloat(c.longitude))
+        );
+        setCustomers(validCustomers);
+      }
+    } catch (error) {
+      console.error('Error loading customers for map:', error);
     }
   };
 
-  const filteredCustomers = selectedHub === 'all' 
-    ? customers 
+  const loadActiveVisits = async () => {
+    try {
+      // Assuming we have an endpoint to get all active visits or we filter from all plans
+      // For now, let's fetch all plans for today and filter IN_PROGRESS
+      const today = new Date().toISOString().split('T')[0];
+      const data = await visitPlansAPI.getAll({ visitDate: today, status: 'IN_PROGRESS' });
+
+      if (Array.isArray(data)) {
+        // We need user info and coordinates. 
+        // The check-in stores coordinates in 'notes' as "Check-in: ... @ [lat, long]"
+        // This is a bit hacky, ideally we should have lat/long columns in VisitPlan or a separate Tracking table.
+        // Let's parse the notes for now.
+
+        const visitsWithLocation = data.map(visit => {
+          const match = visit.notes?.match(/@ \[([\d.]+), ([\d.]+)\]/);
+          if (match) {
+            return {
+              ...visit,
+              latitude: parseFloat(match[1]),
+              longitude: parseFloat(match[2])
+            };
+          }
+          return null;
+        }).filter(v => v !== null);
+
+        setActiveVisits(visitsWithLocation);
+      }
+    } catch (error) {
+      console.error('Error loading active visits:', error);
+    }
+  };
+
+  const filteredCustomers = selectedHub === 'all'
+    ? customers
     : customers.filter(c => c.hub === selectedHub);
 
   const handleHubClick = (hub) => {
@@ -145,8 +191,8 @@ const AdminMap = () => {
           }}
           style={{
             padding: isMobile ? '8px 14px' : '10px 20px',
-            background: selectedHub === 'all' 
-              ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)' 
+            background: selectedHub === 'all'
+              ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)'
               : '#f3f4f6',
             border: 'none',
             borderRadius: isMobile ? '6px' : '8px',
@@ -165,8 +211,8 @@ const AdminMap = () => {
             onClick={() => handleHubClick(hub)}
             style={{
               padding: isMobile ? '8px 14px' : '10px 20px',
-              background: selectedHub === hub.id 
-                ? '#F29E2E' 
+              background: selectedHub === hub.id
+                ? '#F29E2E'
                 : '#fff',
               border: `2px solid ${selectedHub === hub.id ? '#F29E2E' : '#e5e7eb'}`,
               borderRadius: isMobile ? '6px' : '8px',
@@ -205,7 +251,7 @@ const AdminMap = () => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          
+
           {/* Hub Markers */}
           {hubs.map(hub => (
             <Marker
@@ -296,6 +342,42 @@ const AdminMap = () => {
               </Popup>
             </Marker>
           ))}
+
+          {/* Active TDV Markers */}
+          {activeVisits.map(visit => (
+            <Marker
+              key={visit.id}
+              position={[visit.latitude, visit.longitude]}
+              icon={tdvIcon}
+              zIndexOffset={1000} // Show on top
+            >
+              <Popup>
+                <div style={{ padding: '8px' }}>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1a1a2e',
+                    marginBottom: '8px'
+                  }}>
+                    🛵 {visit.user?.name || 'TDV'}
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: '#666',
+                    marginBottom: '4px'
+                  }}>
+                    Đang viếng thăm: <strong>{visit.pharmacy?.name}</strong>
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#999'
+                  }}>
+                    🕒 Bắt đầu: {visit.visitTime}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
 
         {/* Legend */}
@@ -362,6 +444,26 @@ const AdminMap = () => {
               </div>
               <span style={{ fontSize: '13px', color: '#666' }}>Nhà thuốc</span>
             </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#22c55e',
+                border: '2px solid #fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px'
+              }}>
+                🛵
+              </div>
+              <span style={{ fontSize: '13px', color: '#666' }}>TDV đang hoạt động</span>
+            </div>
           </div>
         </div>
       </div>
@@ -421,4 +523,3 @@ const AdminMap = () => {
 };
 
 export default AdminMap;
-

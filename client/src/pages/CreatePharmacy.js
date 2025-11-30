@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { saveToLocalStorage, getFromLocalStorage } from '../utils/mockData';
+import { pharmaciesAPI } from '../services/api';
 import provincesData from '../data/provinces.json';
-import customersData from '../data/customers.json';
 
 const CreatePharmacy = () => {
   const { id } = useParams(); // Nếu có id thì là edit mode
   const isEditMode = !!id;
-  
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -22,8 +21,7 @@ const CreatePharmacy = () => {
     lat: null,
     lng: null
   });
-  
-  const [pharmacyImages, setPharmacyImages] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gettingLocation, setGettingLocation] = useState(false);
@@ -32,7 +30,7 @@ const CreatePharmacy = () => {
   const [addressSuggestion, setAddressSuggestion] = useState('');
   const [geocodingStatus, setGeocodingStatus] = useState('');
 
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const provinces = useMemo(() => provincesData?.provinces || [], []);
@@ -41,17 +39,23 @@ const CreatePharmacy = () => {
   // Load pharmacy data nếu là edit mode
   useEffect(() => {
     if (isEditMode && id) {
-      const pharmacy = customersData.customers.find(c => c.id === id);
+      loadPharmacyData();
+    }
+  }, [isEditMode, id]);
+
+  const loadPharmacyData = async () => {
+    try {
+      const pharmacy = await pharmaciesAPI.getById(id);
       if (pharmacy) {
         setFormData({
           name: pharmacy.name || '',
           code: pharmacy.code || '',
           address: pharmacy.address || '',
-          province: '',
-          district: '',
-          ward: '',
+          province: pharmacy.province || '',
+          district: pharmacy.district || '',
+          ward: pharmacy.ward || '',
           phone: pharmacy.phone || '',
-          owner: pharmacy.owner || '',
+          owner: pharmacy.ownerName || '', // Backend uses ownerName
           hub: pharmacy.hub || '',
           lat: pharmacy.latitude || null,
           lng: pharmacy.longitude || null
@@ -60,8 +64,11 @@ const CreatePharmacy = () => {
           setLocationDetected(true);
         }
       }
+    } catch (error) {
+      console.error('Error loading pharmacy:', error);
+      setError('Không thể tải thông tin nhà thuốc');
     }
-  }, [isEditMode, id]);
+  };
 
   useEffect(() => {
     if (provinces.length > 0) {
@@ -107,20 +114,20 @@ const CreatePharmacy = () => {
 
     try {
       setGeocodingStatus('Đang ước tính địa chỉ...');
-      
+
       const estimatedProvince = estimateProvinceFromCoords(lat, lng);
       const estimatedProvinceData = provinces.find(p => p.code === estimatedProvince);
       const firstDistrict = estimatedProvinceData?.districts?.[0]?.code || '';
-      
+
       setFormData(prev => ({
         ...prev,
         province: estimatedProvince,
         district: firstDistrict
       }));
-      
+
       setAddressSuggestion(`Ước tính vị trí: ${estimatedProvinceData?.name || 'TP.HCM'}`);
       setGeocodingStatus('✅ Đã tự động chọn tỉnh thành dựa trên tọa độ!');
-      
+
       setTimeout(() => {
         setGeocodingStatus('');
       }, 3000);
@@ -133,57 +140,10 @@ const CreatePharmacy = () => {
     }
   }, [provinces]);
 
-  const compressImage = (file, maxWidth = 800, quality = 0.8) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(resolve, 'image/jpeg', quality);
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    const compressedImages = [];
-    
-    for (const file of files) {
-      if (file.type.startsWith('image/')) {
-        const compressed = await compressImage(file);
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          compressedImages.push({
-            id: Date.now() + Math.random(),
-            file: compressed,
-            preview: event.target.result,
-            name: file.name
-          });
-          
-          if (compressedImages.length === files.length) {
-            setPharmacyImages(prev => [...prev, ...compressedImages]);
-          }
-        };
-        reader.readAsDataURL(compressed);
-      }
-    }
-  };
-
-  const removeImage = (imageId) => {
-    setPharmacyImages(prev => prev.filter(img => img.id !== imageId));
-  };
-
   const getCurrentLocation = useCallback(() => {
     setGettingLocation(true);
     setError('');
-    
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -191,22 +151,22 @@ const CreatePharmacy = () => {
             const lat = parseFloat(position.coords.latitude.toFixed(6));
             const lng = parseFloat(position.coords.longitude.toFixed(6));
             const accuracy = position.coords.accuracy;
-            
+
             if (accuracy > 100) {
               setGeocodingStatus(`⚠️ Độ chính xác GPS: ${Math.round(accuracy)}m (khuyến nghị < 50m)`);
             } else {
               setGeocodingStatus(`✅ Độ chính xác GPS tốt: ${Math.round(accuracy)}m`);
             }
-            
+
             setFormData(prev => ({
               ...prev,
               lat,
               lng
             }));
-            
+
             setLocationDetected(true);
             setGettingLocation(false);
-            
+
             try {
               await reverseGeocode(lat, lng);
             } catch (geocodeError) {
@@ -221,8 +181,8 @@ const CreatePharmacy = () => {
         (error) => {
           console.error('Lỗi lấy vị trí GPS:', error);
           let errorMessage = 'Không thể lấy vị trí hiện tại. ';
-          
-          switch(error.code) {
+
+          switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage += 'Vui lòng cho phép truy cập vị trí trong trình duyệt.';
               break;
@@ -236,7 +196,7 @@ const CreatePharmacy = () => {
               errorMessage += 'Vui lòng thử lại hoặc nhập thủ công.';
               break;
           }
-          
+
           setError(errorMessage);
           setGettingLocation(false);
         },
@@ -274,20 +234,10 @@ const CreatePharmacy = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Tự động tạo mã nhà thuốc nếu chưa có
-  const generatePharmacyCode = () => {
-    if (formData.code) return formData.code;
-    const prefix = 'NT';
-    const timestamp = Date.now().toString().slice(-6);
-    return `${prefix}${timestamp}`;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
       // Validate
@@ -303,45 +253,35 @@ const CreatePharmacy = () => {
         throw new Error('Vui lòng lấy tọa độ GPS hoặc chọn vị trí trên bản đồ');
       }
 
-      const pharmacyCode = formData.code || generatePharmacyCode();
-
       const pharmacyData = {
-        id: isEditMode ? id : Date.now().toString(),
         name: formData.name,
-        code: pharmacyCode,
+        // code: formData.code, // Backend might generate this or handle it
         address: formData.address,
         phone: formData.phone,
-        owner: formData.owner || user.name,
+        ownerName: formData.owner || user.name,
         hub: formData.hub,
         latitude: formData.lat,
         longitude: formData.lng,
-        type: 'Nhà thuốc',
-        images: pharmacyImages.map(img => img.name),
-        createdAt: isEditMode ? customersData.customers.find(c => c.id === id)?.createdAt : new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        province: formData.province,
+        district: formData.district,
+        ward: formData.ward,
+        description: 'Created via App'
       };
 
-      // Lưu vào localStorage
-      const customers = getFromLocalStorage('customers', customersData.customers || []);
-      
       if (isEditMode) {
-        const index = customers.findIndex(c => c.id === id);
-        if (index !== -1) {
-          customers[index] = { ...customers[index], ...pharmacyData };
-        }
+        await pharmaciesAPI.update(id, pharmacyData);
       } else {
-        customers.push(pharmacyData);
+        await pharmaciesAPI.create(pharmacyData);
       }
-      
-      saveToLocalStorage('customers', customers);
 
       alert(`🎉 ${isEditMode ? 'Cập nhật' : 'Tạo'} nhà thuốc thành công!`);
       navigate('/home');
     } catch (error) {
+      console.error('Submit error:', error);
       setError(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -360,7 +300,7 @@ const CreatePharmacy = () => {
       }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
-          <button 
+          <button
             onClick={() => navigate(-1)}
             style={{
               background: 'none',
@@ -376,9 +316,9 @@ const CreatePharmacy = () => {
           >
             ← Quay lại
           </button>
-          <h2 style={{ 
-            fontSize: '24px', 
-            fontWeight: 'bold', 
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
             color: '#1E4A8B',
             margin: 0
           }}>
@@ -410,14 +350,14 @@ const CreatePharmacy = () => {
           <h3 style={{ margin: '0 0 1rem 0', color: locationDetected ? '#10b981' : '#60a5fa' }}>
             📍 Bước 1: Xác định vị trí nhà thuốc
           </h3>
-          
+
           {!locationDetected ? (
             <div>
               <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
                 Nhấn nút bên dưới để tự động lấy tọa độ GPS
               </p>
-              
-              <button 
+
+              <button
                 type="button"
                 onClick={getCurrentLocation}
                 disabled={gettingLocation}
@@ -438,9 +378,9 @@ const CreatePharmacy = () => {
             </div>
           ) : (
             <div>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: '10px',
                 marginBottom: '10px'
               }}>
@@ -449,8 +389,8 @@ const CreatePharmacy = () => {
                   Đã lấy tọa độ GPS thành công!
                 </span>
               </div>
-              
-              <div style={{ 
+
+              <div style={{
                 background: '#fff',
                 padding: '10px',
                 borderRadius: '8px',
@@ -460,15 +400,15 @@ const CreatePharmacy = () => {
               }}>
                 📍 Tọa độ: {formData.lat}, {formData.lng}
               </div>
-              
+
               {geocodingStatus && (
                 <div style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
                   {geocodingStatus}
                 </div>
               )}
-              
+
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     setLocationDetected(false);
@@ -485,7 +425,7 @@ const CreatePharmacy = () => {
                 >
                   🔄 Lấy lại vị trí
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     const url = `https://www.google.com/maps?q=${formData.lat},${formData.lng}`;
@@ -513,15 +453,15 @@ const CreatePharmacy = () => {
             <>
               {/* Địa chỉ */}
               <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
                   marginBottom: '1rem',
                   color: '#1E4A8B'
                 }}>
                   📍 Bước 2: Thông tin địa chỉ
                 </h3>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
@@ -629,15 +569,15 @@ const CreatePharmacy = () => {
 
               {/* Thông tin nhà thuốc */}
               <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
                   marginBottom: '1rem',
                   color: '#1E4A8B'
                 }}>
                   🏥 Bước 3: Thông tin nhà thuốc
                 </h3>
-                
+
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
                     🏥 Tên nhà thuốc *
@@ -734,8 +674,8 @@ const CreatePharmacy = () => {
                           border: `2px solid ${formData.hub === hub ? '#1E4A8B' : '#e5e7eb'}`,
                           borderRadius: '12px',
                           cursor: 'pointer',
-                          background: formData.hub === hub 
-                            ? 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))' 
+                          background: formData.hub === hub
+                            ? 'linear-gradient(135deg, rgba(26, 92, 162, 0.1), rgba(62, 180, 168, 0.1))'
                             : '#fff',
                           textAlign: 'center',
                           transition: 'all 0.2s'
@@ -756,90 +696,8 @@ const CreatePharmacy = () => {
                 </div>
               </div>
 
-              {/* Hình ảnh */}
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
-                  marginBottom: '1rem',
-                  color: '#1E4A8B'
-                }}>
-                  📸 Hình ảnh nhà thuốc (tùy chọn)
-                </h3>
-                
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
-                  id="pharmacy-images"
-                />
-                <label
-                  htmlFor="pharmacy-images"
-                  style={{
-                    display: 'inline-block',
-                    padding: '12px 24px',
-                    background: '#f3f4f6',
-                    border: '2px dashed #d1d5db',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    marginBottom: '1rem'
-                  }}
-                >
-                  📷 Chọn hình ảnh
-                </label>
-                
-                {pharmacyImages.length > 0 && (
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-                    gap: '1rem',
-                    marginTop: '1rem'
-                  }}>
-                    {pharmacyImages.map((image) => (
-                      <div key={image.id} style={{ position: 'relative' }}>
-                        <img 
-                          src={image.preview} 
-                          alt="Preview" 
-                          style={{
-                            width: '100%',
-                            height: '150px',
-                            objectFit: 'cover',
-                            borderRadius: '8px'
-                          }}
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => removeImage(image.id)}
-                          style={{
-                            position: 'absolute',
-                            top: '5px',
-                            right: '5px',
-                            background: '#ef4444',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '28px',
-                            height: '28px',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
                 style={{
                   width: '100%',
@@ -854,8 +712,8 @@ const CreatePharmacy = () => {
                   opacity: loading ? 0.7 : 1
                 }}
               >
-                {loading 
-                  ? `⏳ Đang ${isEditMode ? 'cập nhật' : 'tạo'}...` 
+                {loading
+                  ? `⏳ Đang ${isEditMode ? 'cập nhật' : 'tạo'}...`
                   : `✅ ${isEditMode ? 'Cập nhật' : 'Tạo'} nhà thuốc`}
               </button>
             </>
@@ -879,4 +737,3 @@ const CreatePharmacy = () => {
 };
 
 export default CreatePharmacy;
-

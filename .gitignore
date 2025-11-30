@@ -80,3 +80,8 @@ client/npm-debug.log*
 .DS_Store
 Thumbs.db
 
+
+cloudflared.exe
+.next/
+am-medtech-web/.next/
+mobile/node_modules/
