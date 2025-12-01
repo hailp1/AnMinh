@@ -1,0 +1,13 @@
+tunnel: ebe58fd0-0808-4d20-849d-2656840fdf9b
+credentials-file: ./tunnel-creds.json
+
+ingress:
+  - hostname: dms.ammedtech.com
+    service: http://localhost:3099
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      tlsTimeout: 10s
+      httpHostHeader: localhost
+  
+  - service: http_status:404

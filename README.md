@@ -25,24 +25,27 @@
 - 📦 **Quản lý đơn hàng**: Xem và xử lý đơn hàng cần giao
 - 🗺️ **Tối ưu tuyến đường**: Xem vị trí khách hàng trên bản đồ
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Docker Environment)
 
-### Khởi động tất cả services:
+Hệ thống đã được đóng gói hoàn toàn bằng Docker. Bạn chỉ cần chạy 1 lệnh duy nhất để khởi động toàn bộ hệ sinh thái (Landing Page, Web App, DMS Client, Backend, Database, Redis).
+
+### Khởi động hệ thống:
 ```bash
 # Windows - Double click:
-START_ALL_SIMPLE.bat
+START_FULL_DOCKER.bat
 ```
 
-Sau đó đợi services khởi động (30-60 giây) và truy cập:
+Sau đó đợi services khởi động (khoảng 1-2 phút lần đầu) và truy cập:
 - **Landing Page**: http://localhost:3000
+- **Web App Portal**: http://localhost:3001
 - **DMS Client**: http://localhost:3099
-- **Backend API**: http://localhost:5000
-- **Public Domain**: https://ammedtech.com
+- **Backend API**: http://localhost:5001
+- **Redis**: localhost:6379
 
-### Dừng tất cả services:
+### Dừng hệ thống:
 ```bash
 # Windows - Double click:
-STOP_ALL_SIMPLE.bat
+STOP_FULL_DOCKER.bat
 ```
 
 **Đăng nhập DMS:**
@@ -344,9 +347,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 Documentation
 
-- [VERCEL_AUTO_DEPLOY_FIX.md](VERCEL_AUTO_DEPLOY_FIX.md) - Hướng dẫn sửa auto-deploy Vercel
-- [VERCEL_QUICK_FIX.md](VERCEL_QUICK_FIX.md) - Hướng dẫn nhanh Vercel
-- [VERCEL_SETUP_INSTRUCTIONS.md](VERCEL_SETUP_INSTRUCTIONS.md) - Hướng dẫn setup Vercel
+- [DOCKER_FULL_GUIDE.md](DOCKER_FULL_GUIDE.md) - Hướng dẫn chi tiết chạy Docker toàn hệ thống
 
 ---
 

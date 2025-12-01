@@ -1,0 +1,21 @@
+# Cloudflare Tunnel Configuration for AM Medtech DMS
+# Replace <YOUR-TUNNEL-ID> with your actual tunnel ID from: cloudflared tunnel create am-dms
+
+tunnel: <YOUR-TUNNEL-ID>
+credentials-file: C:\Users\OWNER\.cloudflared\<YOUR-TUNNEL-ID>.json
+
+ingress:
+  # DMS System - Main application
+  - hostname: dms.ammedtech.com
+    service: http://localhost:3000
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      tlsTimeout: 10s
+  
+  # Catch-all rule (required - must be last)
+  - service: http_status:404
+
+# Optional: Logging
+# logDirectory: C:\Users\OWNER\.cloudflared\logs
+# loglevel: info

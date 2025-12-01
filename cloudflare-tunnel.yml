@@ -1,0 +1,12 @@
+tunnel: ebe58fd0-0808-4d20-849d-2656840fdf9b
+credentials-file: /etc/cloudflared/creds/tunnel.json
+
+ingress:
+  - hostname: dms.ammedtech.com
+    service: http://dms_frontend:80
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      tlsTimeout: 10s
+  
+  - service: http_status:404

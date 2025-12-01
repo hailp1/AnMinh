@@ -1,70 +1,28 @@
 {
-  "name": "an-minh-business-system",
+  "name": "am-business-system",
   "version": "1.0.0",
-  "description": "An Minh Business System - Hệ thống quản lý bán hàng cho Trình dược viên",
-  "main": "index.js",
-  "type": "module",
+  "private": true,
+  "description": "AM Business System - Monorepo for DMS and Landing pages",
   "scripts": {
-    "build": "cd client && npm ci --only=production && npm run build",
-    "vercel-build": "cd client && npm ci && npm run build",
-    "start": "cd client && npm start",
-    "dev": "cd client && npm start",
-    "install": "cd client && npm install",
-    "db:seed": "node prisma/seed.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "create:admin": "node scripts/create-admin.js",
-    "create:am01": "node scripts/create-employee-am01.js",
-    "check:user": "node scripts/check-user-am01.js",
-    "check:backend": "node scripts/check-backend-health.js",
-    "check": "node auto-check-fix.js",
-    "check:fix": "node auto-check-fix.js",
-    "check:connections": "node scripts/check-all-connections.js",
-    "check:users": "node scripts/verify-users.js",
-    "create:users": "node scripts/create-users.js",
-    "fix": "node auto-fix.js",
-    "start:backend": "node server.js",
-    "start:frontend": "cd client && npm start",
-    "dev:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\""
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.7.1",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.1.5",
-    "express-validator": "^7.3.0",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "node-fetch": "^2.7.0",
-    "winston": "^3.18.3"
-  },
-  "devDependencies": {
-    "concurrently": "^9.2.1",
-    "prisma": "^5.7.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/hailp1/AnMinh.git"
+    "start:landing": "cd home/landing && npm start",
+    "start:frontend": "cd DMS/frontend && npm start",
+    "start:portal": "cd DMS/portal && npm run dev",
+    "start:backend": "cd DMS/backend && npm start",
+    "install:all": "npm install && cd home/landing && npm install && cd ../../DMS/frontend && npm install && cd ../portal && npm install && cd ../backend && npm install",
+    "dev:landing": "cd home/landing && npm run dev",
+    "dev:frontend": "cd DMS/frontend && npm start",
+    "dev:portal": "cd DMS/portal && npm run dev",
+    "start:all": "concurrently \"npm run dev:landing\" \"npm run dev:frontend\" \"npm run dev:portal\" \"npm run start:backend\" --names \"LANDING,FRONTEND,PORTAL,BACKEND\" --prefix-colors \"blue,green,yellow,red\""
   },
   "keywords": [
-    "an-minh-business-system",
-    "sales-management",
-    "pharmacy",
-    "react",
-    "vietnam"
+    "dms",
+    "landing",
+    "portal"
   ],
-  "author": "AMMedtech Team",
-  "license": "MIT",
-  "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
+

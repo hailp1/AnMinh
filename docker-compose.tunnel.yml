@@ -1,0 +1,32 @@
+# ===================================
+# Cloudflare Tunnel Only
+# Run this after backend and frontend are healthy
+# ===================================
+version: '3.8'
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: dms_tunnel
+    command: tunnel --no-autoupdate run
+    networks:
+      - dms_network
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./cloudflare-tunnel.yml:/etc/cloudflared/config.yml
+      - ./tunnel-creds.json:/etc/cloudflared/creds/tunnel.json
+    depends_on:
+      - frontend
+
+  # Reference to existing frontend (external)
+  frontend:
+    image: dms_frontend_dev
+    container_name: dms_frontend
+    external: true
+
+networks:
+  dms_network:
+    external: true
+    name: am_bs_dms_network

@@ -1,5 +1,6 @@
 # ===================================
-# AM Medtech DMS - All-in-One Docker
+# Development Docker Compose
+# Simplified for testing
 # ===================================
 version: '3.8'
 
@@ -11,9 +12,9 @@ services:
     image: postgres:15-alpine
     container_name: dms_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-anminh_db}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anminh_db
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -32,20 +33,15 @@ services:
   # ===================================
   # Backend API
   # ===================================
-  # ===================================
-  # Backend API
-  # ===================================
   backend:
-    build:
-      context: ./DMS/backend
-      dockerfile: Dockerfile
+    image: dms_backend
     container_name: dms_backend
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-anminh_db}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-change_this_to_a_strong_secret_minimum_32_characters}
-      FRONTEND_ORIGIN: https://dms.ammedtech.com
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/anminh_db?schema=public
+      JWT_SECRET: change_this_to_a_strong_secret_minimum_32_characters
+      FRONTEND_ORIGIN: http://localhost:3099
     ports:
       - "5001:5000"
     depends_on:
@@ -64,15 +60,17 @@ services:
       start_period: 40s
 
   # ===================================
-  # Frontend (React)
+  # Frontend (React) - Development
   # ===================================
   frontend:
     build:
       context: ./DMS/frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
+    image: dms_frontend_dev
     container_name: dms_frontend
     environment:
-      REACT_APP_API_URL: /api
+      REACT_APP_API_URL: http://localhost:5001/api
+      PORT: 80
     ports:
       - "3099:80"
     depends_on:
@@ -81,12 +79,6 @@ services:
     networks:
       - dms_network
     restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
   # ===================================
   # Cloudflare Tunnel
@@ -104,64 +96,12 @@ services:
       - ./cloudflare-tunnel.yml:/etc/cloudflared/config.yml
       - ./tunnel-creds.json:/etc/cloudflared/creds/tunnel.json
     depends_on:
-      frontend:
-        condition: service_healthy
+      - frontend
 
-  # ===================================
-  # Landing Page (Next.js)
-  # ===================================
-  landing:
-    build:
-      context: ./home/landing
-      dockerfile: Dockerfile
-    container_name: dms_landing
-    ports:
-      - "3000:3000"
-    networks:
-      - dms_network
-    restart: unless-stopped
-
-  # ===================================
-  # Web App (Next.js)
-  # ===================================
-  webapp:
-    build:
-      context: ./DMS/portal
-      dockerfile: Dockerfile
-    container_name: dms_webapp
-    ports:
-      - "3001:3000"
-    networks:
-      - dms_network
-    restart: unless-stopped
-
-  # ===================================
-  # Redis (Cache Service)
-  # ===================================
-  redis:
-    image: redis:alpine
-    container_name: dms_redis
-    ports:
-      - "6379:6379"
-    networks:
-      - dms_network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-# ===================================
-# Volumes
-# ===================================
 volumes:
   postgres_data:
     driver: local
 
-# ===================================
-# Networks
-# ===================================
 networks:
   dms_network:
     driver: bridge
