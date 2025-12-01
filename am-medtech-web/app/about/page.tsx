@@ -196,7 +196,7 @@ const TeamMember = ({ image, name, experience, education, delay }: TeamMemberPro
     >
         {/* Image Container */}
         <div className="relative w-48 h-48 mb-6 rounded-full overflow-hidden border-4 border-[#112240] shadow-[0_0_20px_rgba(6,182,212,0.15)] group-hover:shadow-[0_0_30px_rgba(6,182,212,0.3)] transition-all duration-500">
-            <div className="absolute inset-0 bg-slate-800 animate-pulse"></div>
+
             <img
                 src={image}
                 alt={name}

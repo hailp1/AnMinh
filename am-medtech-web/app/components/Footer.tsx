@@ -34,10 +34,10 @@ const Footer = () => {
                     <div>
                         <h4 className="text-white font-bold mb-6">Solutions</h4>
                         <ul className="space-y-4 text-sm text-slate-400">
-                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">DMS Platform</Link></li>
-                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Data Intelligence</Link></li>
-                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Omnichannel Sales</Link></li>
-                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Supply Chain AI</Link></li>
+                            <li><Link href="/solutions/dms-platform" className="hover:text-[#00D4FF] transition-colors">Distribution Management System</Link></li>
+                            <li><Link href="/data-intelligence" className="hover:text-[#00D4FF] transition-colors">Data Intelligence</Link></li>
+                            <li><Link href="/solutions/pharma-ecommerce" className="hover:text-[#00D4FF] transition-colors">Omnichannel Sales</Link></li>
+                            <li><Link href="/solutions/distribution-development" className="hover:text-[#00D4FF] transition-colors">Supply Chain AI</Link></li>
                         </ul>
                     </div>
 
@@ -46,9 +46,9 @@ const Footer = () => {
                         <h4 className="text-white font-bold mb-6">Company</h4>
                         <ul className="space-y-4 text-sm text-slate-400">
                             <li><Link href="/about" className="hover:text-[#00D4FF] transition-colors">About Us</Link></li>
-                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Careers</Link></li>
+                            <li><Link href="/careers" className="hover:text-[#00D4FF] transition-colors">Careers</Link></li>
                             <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Blog</Link></li>
-                            <li><Link href="#" className="hover:text-[#00D4FF] transition-colors">Contact</Link></li>
+                            <li><Link href="/contact" className="hover:text-[#00D4FF] transition-colors">Contact</Link></li>
                         </ul>
                     </div>
 

@@ -6,32 +6,13 @@ import { Database, BarChart, ShieldCheck, Globe, CheckCircle, Server, Lock, Smar
 import Link from 'next/link';
 import Image from 'next/image';
 import Footer from '../../components/Footer';
+import Navbar from '../../components/Navbar';
 
 const DMSPlatformPage = () => {
     return (
         <main className="min-h-screen bg-[#020617] text-white overflow-x-hidden font-sans">
             {/* Navbar */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-[#020617]/90 backdrop-blur-md border-b border-white/5 transition-all duration-300">
-                <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                    <Link href="/" className="relative w-32 md:w-40 h-8 md:h-10">
-                        <Image
-                            src="/logo_medtech.png"
-                            alt="AM Medtech Logo"
-                            fill
-                            className="object-contain"
-                        />
-                    </Link>
-                    <div className="hidden md:flex items-center gap-8">
-                        <Link href="/#services" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Services</Link>
-                        <Link href="/data-intelligence" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Data Intelligence</Link>
-                        <Link href="/case-studies/famfa" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Case Studies</Link>
-                        <Link href="/about" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">About</Link>
-                    </div>
-                    <Link href="/login" className="hidden md:block px-6 py-2 rounded-full border border-cyan-500 text-cyan-500 text-xs md:text-sm font-bold tracking-wider hover:bg-cyan-500 hover:text-[#020617] transition-all duration-300">
-                        CLIENT LOGIN
-                    </Link>
-                </div>
-            </nav>
+            <Navbar />
 
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-[#0A192F] relative overflow-hidden">
@@ -46,10 +27,10 @@ const DMSPlatformPage = () => {
                     >
                         <span className="text-cyan-400 font-bold tracking-widest uppercase text-sm mb-4 block">Solutions</span>
                         <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                            Next-Gen <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">DMS Platform</span>
+                            Next-Gen <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Distribution Management System</span>
                         </h1>
                         <p className="text-xl text-slate-400 leading-relaxed max-w-3xl mx-auto mb-8">
-                            Revolutionize your pharmaceutical distribution with our advanced Distributor Management System. Gain real-time visibility, automate complex workflows, and drive sales growth with data-driven insights.
+                            Revolutionize your pharmaceutical distribution with our advanced Distribution Management System. Gain real-time visibility, automate complex workflows, and drive sales growth with data-driven insights.
                         </p>
                         <div className="flex justify-center gap-4">
                             <Link href="/contact" className="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all">
@@ -68,9 +49,9 @@ const DMSPlatformPage = () => {
                 <div className="container mx-auto px-6">
                     {/* Introduction */}
                     <div className="mb-20 max-w-4xl mx-auto text-center">
-                        <h2 className="text-3xl font-bold text-white mb-6">Why Your Pharma Business Needs a Modern DMS</h2>
+                        <h2 className="text-3xl font-bold text-white mb-6">Why Your Pharma Business Needs a Modern Distribution Management System</h2>
                         <p className="text-slate-400 leading-relaxed text-lg">
-                            In the fast-paced pharmaceutical industry, managing a fragmented distribution network is a major challenge. Lack of visibility into secondary sales, stockouts at distributor points, and manual claim processing can drain your profitability. AM Medtech's DMS Platform is designed specifically for the unique complexities of the pharma supply chain, ensuring compliance, efficiency, and scalability.
+                            In the fast-paced pharmaceutical industry, managing a fragmented distribution network is a major challenge. Lack of visibility into secondary sales, stockouts at distributor points, and manual claim processing can drain your profitability. AM Medtech's Distribution Management System is designed specifically for the unique complexities of the pharma supply chain, ensuring compliance, efficiency, and scalability.
                         </p>
                     </div>
 
@@ -83,7 +64,7 @@ const DMSPlatformPage = () => {
                         >
                             <h2 className="text-3xl font-bold text-white">Complete Visibility & Control</h2>
                             <p className="text-slate-400 leading-relaxed">
-                                Our DMS Platform provides a unified view of your entire distribution network. From inventory levels at distributor warehouses to secondary sales data, gain complete transparency into your supply chain.
+                                Our Distribution Management System provides a unified view of your entire distribution network. From inventory levels at distributor warehouses to secondary sales data, gain complete transparency into your supply chain.
                             </p>
                             <div className="space-y-4">
                                 <FeatureItem
@@ -206,7 +187,7 @@ const DMSPlatformPage = () => {
                 <div className="container mx-auto px-6 text-center">
                     <h2 className="text-3xl font-bold text-white mb-6">Ready to Transform Your Distribution?</h2>
                     <p className="text-slate-400 mb-8 max-w-2xl mx-auto">
-                        Join leading pharma companies who have optimized their supply chain with AM Medtech's DMS.
+                        Join leading pharma companies who have optimized their supply chain with AM Medtech's Distribution Management System.
                     </p>
                     <Link href="/contact" className="px-8 py-3 rounded-full bg-cyan-500 text-[#020617] font-bold hover:bg-cyan-400 transition-all">
                         Schedule a Consultation

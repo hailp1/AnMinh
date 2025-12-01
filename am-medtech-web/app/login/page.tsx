@@ -20,8 +20,12 @@ export default function LoginPage() {
         const code = companyCode.toUpperCase().trim();
 
         if (code === 'AM' || code === 'ANMINH' || code === 'AMGROUP') {
-            // Redirect to An Minh Admin Portal
-            window.location.href = 'https://dms.ammedtech.com/admin/login';
+            // Redirect to An Minh Admin Portal (Client App)
+            window.location.href = 'https://dms.ammedtech.com/admin';
+
+        } else if (code === 'AM01' || code === 'TDV001') {
+            // Redirect to TDV Portal (Client App)
+            window.location.href = 'https://dms.ammedtech.com/login-simple';
 
         } else if (code === 'TEST' || code === 'DEMO') {
             alert('Redirecting to Demo Portal...');

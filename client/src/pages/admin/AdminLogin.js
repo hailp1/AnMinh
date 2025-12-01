@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
   // Force API URL for debugging - Temporary Public Link
   const API_BASE = 'https://dms.ammedtech.com/api';
-  console.log('AdminLogin: API_BASE set to', API_BASE);
+
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetStatus, setResetStatus] = useState(null); // 'success', 'error', null
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check for remembered user
+    const rememberedUser = localStorage.getItem('rememberedAdminUser');
+    if (rememberedUser) {
+      setFormData(prev => ({ ...prev, username: rememberedUser }));
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -21,6 +36,22 @@ const AdminLogin = () => {
     setError('');
   };
 
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResetStatus(null);
+
+    // Simulate API call
+    setTimeout(() => {
+      if (resetEmail.includes('@')) {
+        setResetStatus('success');
+      } else {
+        setResetStatus('error');
+      }
+      setLoading(false);
+    }, 1500);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -28,7 +59,6 @@ const AdminLogin = () => {
 
     try {
       const url = `${API_BASE}/auth/login`;
-      console.log('Attempting login to:', url);
 
       // Treat username as employeeCode for admin login via API
       const response = await fetch(url, {
@@ -54,6 +84,13 @@ const AdminLogin = () => {
       localStorage.setItem('adminUser', JSON.stringify(data.user));
       localStorage.setItem('adminLoginTime', new Date().toISOString());
 
+      // Handle Remember Me
+      if (rememberMe) {
+        localStorage.setItem('rememberedAdminUser', formData.username);
+      } else {
+        localStorage.removeItem('rememberedAdminUser');
+      }
+
       // Navigate to admin dashboard
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
@@ -64,203 +101,363 @@ const AdminLogin = () => {
     }
   };
 
+  const toggleMode = () => {
+    setIsForgotPasswordMode(!isForgotPasswordMode);
+    setError('');
+    setResetStatus(null);
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#1E4A8B',
+      background: 'linear-gradient(135deg, #1E4A8B 0%, #0F2A50 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '20px',
+      fontFamily: "'Inter', sans-serif"
     }}>
       <div style={{
         width: '100%',
-        maxWidth: '600px',
-        background: 'rgba(255, 255, 255, 0.98)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '28px',
-        padding: '48px 40px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        maxWidth: '480px',
+        background: '#ffffff',
+        borderRadius: '24px',
+        padding: '48px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
       }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
-            width: '180px',
-            height: '180px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(26, 92, 162, 0.15), rgba(62, 180, 168, 0.15))',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            backdropFilter: 'blur(20px)',
+            width: '80px',
+            height: '80px',
+            margin: '0 auto 20px',
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 24px',
-            padding: '20px',
-            boxShadow: '0 8px 32px rgba(26, 92, 162, 0.2)'
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
           }}>
             <img
               src="/image/logo.webp"
-              alt="An Minh Business System Admin"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                borderRadius: '50%'
+              alt="Logo"
+              style={{ width: '60%', height: '60%', objectFit: 'contain' }}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/150?text=AM';
               }}
             />
           </div>
           <h1 style={{
-            fontSize: '36px',
-            fontWeight: 'bold',
-            color: '#1a1a2e',
-            margin: '0 0 12px 0',
-            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            fontSize: '28px',
+            fontWeight: '800',
+            color: '#111827',
+            marginBottom: '8px',
+            letterSpacing: '-0.025em'
           }}>
-            An Minh Business System Admin
+            {isForgotPasswordMode ? 'Khôi phục mật khẩu' : 'Admin Portal'}
           </h1>
           <p style={{
-            fontSize: '18px',
-            color: '#374151',
-            margin: 0,
-            fontWeight: '500'
+            fontSize: '15px',
+            color: '#6B7280',
+            margin: 0
           }}>
-            Hệ thống quản trị DMS
+            {isForgotPasswordMode
+              ? 'Nhập email để nhận hướng dẫn đặt lại mật khẩu'
+              : 'Đăng nhập để truy cập hệ thống quản trị'}
           </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} autoComplete="off">
-          {error && (
-            <div style={{
-              padding: '14px 16px',
-              background: '#fee2e2',
-              border: '2px solid #fecaca',
-              borderRadius: '12px',
-              marginBottom: '24px',
-              color: '#dc2626',
-              fontSize: '14px'
-            }}>
-              ⚠️ {error}
+        {isForgotPasswordMode ? (
+          // Forgot Password Form
+          <form onSubmit={handleForgotPasswordSubmit}>
+            {resetStatus === 'success' ? (
+              <div style={{
+                padding: '16px',
+                background: '#ECFDF5',
+                border: '1px solid #A7F3D0',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                color: '#047857',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}>
+                ✅ Đã gửi email hướng dẫn! Vui lòng kiểm tra hộp thư của bạn.
+              </div>
+            ) : (
+              <>
+                {resetStatus === 'error' && (
+                  <div style={{
+                    padding: '12px',
+                    background: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '12px',
+                    marginBottom: '20px',
+                    color: '#DC2626',
+                    fontSize: '14px'
+                  }}>
+                    ⚠️ Email không hợp lệ. Vui lòng kiểm tra lại.
+                  </div>
+                )}
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Email đăng ký
+                  </label>
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: '1px solid #D1D5DB',
+                      borderRadius: '12px',
+                      fontSize: '15px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#2563EB';
+                      e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#D1D5DB';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    background: '#2563EB',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.2s',
+                    opacity: loading ? 0.7 : 1
+                  }}
+                >
+                  {loading ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={toggleMode}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'transparent',
+                color: '#4B5563',
+                border: 'none',
+                marginTop: '12px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              ← Quay lại đăng nhập
+            </button>
+          </form>
+        ) : (
+          // Login Form
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div style={{
+                padding: '12px',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                color: '#DC2626',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '18px' }}>⚠️</span>
+                {error}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Tên đăng nhập / Mã NV
+              </label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="VD: HAILP"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#2563EB';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#D1D5DB';
+                  e.target.style.boxShadow = 'none';
+                }}
+                required
+              />
             </div>
-          )}
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#1a1a2e',
-              marginBottom: '10px'
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Mật khẩu
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  style={{
+                    width: '100%',
+                    padding: '14px 48px 14px 16px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#2563EB';
+                    e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#D1D5DB';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    color: '#9CA3AF',
+                    padding: '4px'
+                  }}
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '24px'
             }}>
-              👤 Mã nhân viên (ADMIN)
-            </label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="VD: ADMIN001"
-              autoComplete="off"
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#4B5563'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    accentColor: '#2563EB',
+                    cursor: 'pointer'
+                  }}
+                />
+                Ghi nhớ đăng nhập
+              </label>
+
+              <button
+                type="button"
+                onClick={toggleMode}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563EB',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Quên mật khẩu?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
               style={{
                 width: '100%',
-                padding: '16px 18px',
-                border: '2px solid #d1d5db',
-                borderRadius: '14px',
-                fontSize: '17px',
-                boxSizing: 'border-box',
-                color: '#1a1a2e',
-                background: '#fff'
+                padding: '14px',
+                background: '#2563EB',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+                opacity: loading ? 0.7 : 1,
+                boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
               }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#1E4A8B';
-                e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#d1d5db';
-                e.target.style.boxShadow = 'none';
-              }}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: '28px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#1a1a2e',
-              marginBottom: '10px'
-            }}>
-              🔒 Mật khẩu
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Nhập mật khẩu"
-              autoComplete="new-password"
-              style={{
-                width: '100%',
-                padding: '16px 18px',
-                border: '2px solid #d1d5db',
-                borderRadius: '14px',
-                fontSize: '17px',
-                boxSizing: 'border-box',
-                color: '#1a1a2e',
-                background: '#fff'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#1E4A8B';
-                e.target.style.boxShadow = '0 0 0 4px rgba(26, 92, 162, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#d1d5db';
-                e.target.style.boxShadow = 'none';
-              }}
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '18px',
-              background: loading
-                ? '#9ca3af'
-                : '#F29E2E',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '14px',
-              fontSize: '17px',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: loading
-                ? 'none'
-                : '0 8px 24px rgba(26, 92, 162, 0.4)',
-              marginBottom: '20px'
-            }}
-          >
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </button>
-
-          {/* Demo Users Info */}
-          <div style={{
-            padding: '16px',
-            background: '#f3f4f6',
-            borderRadius: '12px',
-            fontSize: '13px',
-            color: '#666',
-            textAlign: 'center'
-          }}>
-            <strong>Demo Users:</strong><br />
-            admin / admin<br />
-            ketoan / ketoan
-          </div>
-        </form>
+            >
+              {loading ? 'Đang xác thực...' : 'Đăng nhập hệ thống'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

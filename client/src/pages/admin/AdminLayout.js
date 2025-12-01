@@ -208,15 +208,16 @@ const AdminLayout = ({ children }) => {
           ))}
         </nav>
 
-        {/* Toggle Sidebar (footer) - only show when expanded on desktop */}
-        {!isMobile && sidebarOpen && (
+        {/* Toggle Sidebar (footer) - visible on desktop */}
+        {!isMobile && (
           <div className="admin-sidebar-footer">
             <button
-              onClick={() => setSidebarOpen(false)}
-              className="admin-sidebar-collapse-btn"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`admin-sidebar-collapse-btn ${!sidebarOpen ? 'collapsed' : ''}`}
+              title={sidebarOpen ? "Thu gọn" : "Mở rộng"}
             >
-              <span>◀</span>
-              <span>Thu gọn</span>
+              <span>{sidebarOpen ? '◀' : '▶'}</span>
+              {sidebarOpen && <span>Thu gọn</span>}
             </button>
           </div>
         )}
@@ -232,17 +233,7 @@ const AdminLayout = ({ children }) => {
 
       {/* Main Content */}
       <div className={`admin-main-content ${sidebarOpen ? 'expanded' : ''} ${isMobile ? 'mobile' : ''}`}>
-        {/* Floating toggle when collapsed (desktop) */}
-        {!isMobile && !sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="admin-floating-toggle"
-            aria-label="Mở thanh bên"
-            title="Mở thanh bên"
-          >
-            ▶
-          </button>
-        )}
+
         {/* Top Bar */}
         <div className={`admin-top-bar ${isMobile ? 'mobile' : 'desktop'}`}>
           <div className="admin-top-bar-left">

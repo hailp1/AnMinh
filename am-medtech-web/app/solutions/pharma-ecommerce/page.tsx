@@ -6,26 +6,12 @@ import { ShoppingCart, Smartphone, CreditCard, Box, Layout, RefreshCw, MessageCi
 import Link from 'next/link';
 import Image from 'next/image';
 import Footer from '../../components/Footer';
+import Navbar from '../../components/Navbar';
 
 const PharmaEcommercePage = () => {
     return (
         <main className="min-h-screen bg-[#020617] text-white overflow-x-hidden font-sans">
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-[#020617]/90 backdrop-blur-md border-b border-white/5 transition-all duration-300">
-                <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                    <Link href="/" className="relative w-32 md:w-40 h-8 md:h-10">
-                        <Image src="/logo_medtech.png" alt="AM Medtech Logo" fill className="object-contain" />
-                    </Link>
-                    <div className="hidden md:flex items-center gap-8">
-                        <Link href="/#services" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Services</Link>
-                        <Link href="/data-intelligence" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Data Intelligence</Link>
-                        <Link href="/case-studies/famfa" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Case Studies</Link>
-                        <Link href="/about" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">About</Link>
-                    </div>
-                    <Link href="/login" className="hidden md:block px-6 py-2 rounded-full border border-cyan-500 text-cyan-500 text-xs md:text-sm font-bold tracking-wider hover:bg-cyan-500 hover:text-[#020617] transition-all duration-300">
-                        CLIENT LOGIN
-                    </Link>
-                </div>
-            </nav>
+            <Navbar />
 
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-[#0A192F] relative overflow-hidden">
@@ -58,7 +44,7 @@ const PharmaEcommercePage = () => {
                     <div className="mb-20 max-w-4xl mx-auto text-center">
                         <h2 className="text-3xl font-bold text-white mb-6">Digital Sales Transformation</h2>
                         <p className="text-slate-400 leading-relaxed text-lg">
-                            The future of pharma sales is digital. Pharmacies and hospitals expect the same convenience in B2B ordering as they do in their personal lives. Our E-Commerce platform bridges the gap between you and your customers, offering a 24/7 self-service portal that integrates seamlessly with your existing ERP and DMS.
+                            The future of pharma sales is digital. Pharmacies and hospitals expect the same convenience in B2B ordering as they do in their personal lives. Our E-Commerce platform bridges the gap between you and your customers, offering a 24/7 self-service portal that integrates seamlessly with your existing ERP and Distribution Management System.
                         </p>
                     </div>
 

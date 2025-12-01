@@ -81,8 +81,8 @@ const Services = () => {
                     <h3 className="text-xl md:text-2xl font-bold text-white mb-8 border-l-4 border-blue-600 pl-4">Digital Transformation</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                         <TechCard
-                            title="Next-Gen DMS"
-                            desc="Advanced Document Management System tailored for pharma workflows, ensuring data integrity and seamless collaboration."
+                            title="Next-Gen Distribution Management System"
+                            desc="Advanced Distribution Management System tailored for pharma workflows, ensuring data integrity and seamless collaboration."
                             features={['Automated Workflows', 'Version Control', 'Audit Trails', 'Secure Sharing']}
                             delay={0.2}
                         />

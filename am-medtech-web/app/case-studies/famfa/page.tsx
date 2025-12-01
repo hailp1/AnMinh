@@ -10,37 +10,13 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import Footer from '../../components/Footer';
+import Navbar from '../../components/Navbar';
 
 const FamfaPage = () => {
     return (
         <main className="min-h-screen bg-[#020617] text-white overflow-x-hidden font-sans">
             {/* Navbar */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-[#020617]/90 backdrop-blur-md border-b border-white/5 transition-all duration-300">
-                <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                    <Link href="/" className="relative w-32 md:w-40 h-8 md:h-10">
-                        <Image
-                            src="/logo_medtech.png"
-                            alt="AM Medtech Logo"
-                            fill
-                            className="object-contain"
-                        />
-                    </Link>
-
-                    <div className="hidden md:flex items-center gap-8">
-                        <Link href="/#services" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Services</Link>
-                        <Link href="/data-intelligence" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">Data Intelligence</Link>
-                        <Link href="/case-studies/famfa" className="text-cyan-400 text-sm font-medium transition-colors">Case Studies</Link>
-                        <Link href="/about" className="text-slate-300 hover:text-cyan-400 text-sm font-medium transition-colors">About</Link>
-                    </div>
-
-                    <Link
-                        href="/login"
-                        className="hidden md:block px-6 py-2 rounded-full border border-cyan-500 text-cyan-500 text-xs md:text-sm font-bold tracking-wider hover:bg-cyan-500 hover:text-[#020617] transition-all duration-300"
-                    >
-                        CLIENT LOGIN
-                    </Link>
-                </div>
-            </nav>
+            <Navbar />
 
             {/* Hero Section */}
             <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
@@ -184,7 +160,7 @@ const FamfaPage = () => {
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 mb-6 shadow-lg shadow-cyan-500/20">
                             <Smartphone className="text-white w-8 h-8" />
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-bold mb-6">Smart DMS <span className="text-cyan-400">Ecosystem</span></h2>
+                        <h2 className="text-4xl md:text-5xl font-bold mb-6">Smart Distribution Management System <span className="text-cyan-400">Ecosystem</span></h2>
                         <p className="text-slate-400 max-w-2xl mx-auto text-lg">
                             Complete control over the distribution channel. Real-time tracking of sales activities, route compliance, and market coverage.
                         </p>
