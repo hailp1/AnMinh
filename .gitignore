@@ -87,3 +87,6 @@ am-medtech-web/.next/
 mobile/node_modules/
 
 postgres_data/
+PRE_AMMED/
+DMS_BACKUP/
+

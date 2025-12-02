@@ -27,6 +27,7 @@ import approvalsRoutes from './routes/approvals.js';
 import revenueRoutes from './routes/revenue.js';
 import messagesRoutes from './routes/messages.js';
 import permissionsRoutes from './routes/permissions.js';
+import routesRoutes from './routes/routes.js';
 
 config();
 
@@ -81,6 +82,7 @@ app.use('/api/approvals', approvalsRoutes);
 app.use('/api/revenue', revenueRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/permissions', permissionsRoutes);
+app.use('/api/routes', routesRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {

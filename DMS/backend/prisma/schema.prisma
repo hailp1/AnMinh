@@ -28,6 +28,7 @@ model User {
   region       Region?  @relation(fields: [regionId], references: [id])
 
   customerAssignments CustomerAssignment[]
+  routes Route[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -86,6 +87,7 @@ model Pharmacy {
   customerSegment   CustomerSegment? @relation(fields: [customerSegmentId], references: [id])
 
   customerAssignments CustomerAssignment[]
+  routes Route[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -126,4 +128,19 @@ model Product {
   order       Int          @default(0)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model Route {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  dayOfWeek   String
+  visitOrder  Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, pharmacyId, dayOfWeek])
 }

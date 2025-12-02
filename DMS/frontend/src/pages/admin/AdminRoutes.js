@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { usersAPI, customerAssignmentsAPI, visitPlansAPI } from '../../services/api';
+import { usersAPI, customerAssignmentsAPI, visitPlansAPI, routesAPI } from '../../services/api';
+import * as XLSX from 'xlsx';
 import './AdminRoutes.css';
 
 // Fix Leaflet default icon issue
@@ -68,16 +69,41 @@ const AdminRoutes = () => {
         loadUsers();
     }, []);
 
-    // Load Customers when User Selected
+    // Load Customers and Routes when User Selected
     useEffect(() => {
         if (selectedUser) {
             loadCustomers(selectedUser);
-            // Reset plan
-            setRoutePlan({ 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] });
+            loadRoutes(selectedUser);
         } else {
             setCustomers([]);
+            setRoutePlan({ 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] });
         }
     }, [selectedUser]);
+
+    const loadRoutes = async (userId) => {
+        try {
+            const routes = await routesAPI.getAll({ userId });
+            const newPlan = { 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
+
+            routes.forEach(r => {
+                let dayInt;
+                if (r.dayOfWeek === 'CN') dayInt = 8; // Assuming 8 for Sunday in UI? UI has 2-7.
+                // UI only has 2-7 (Mon-Sat). If Sunday is needed, need to add it.
+                // For now, handle T2-T7.
+                else dayInt = parseInt(r.dayOfWeek.replace('T', ''));
+
+                if (newPlan[dayInt]) {
+                    newPlan[dayInt].push({
+                        ...r.pharmacy,
+                        frequency: 'F4'
+                    });
+                }
+            });
+            setRoutePlan(newPlan);
+        } catch (error) {
+            console.error('Error loading routes:', error);
+        }
+    };
 
     const loadUsers = async () => {
         try {
@@ -172,6 +198,27 @@ const AdminRoutes = () => {
         if (!selectedUser) return;
         setLoading(true);
         try {
+            // 1. Save to Route table (Persist configuration)
+            const user = users.find(u => u.id === selectedUser);
+            const routePayloads = [];
+            for (const [dayStr, customerList] of Object.entries(routePlan)) {
+                const day = parseInt(dayStr);
+                const dayCode = day === 8 ? 'CN' : `T${day}`;
+
+                customerList.forEach((c) => {
+                    routePayloads.push({
+                        employeeCode: user.employeeCode,
+                        customerCode: c.code,
+                        dayOfWeek: dayCode
+                    });
+                });
+            }
+
+            if (routePayloads.length > 0) {
+                await routesAPI.import({ data: routePayloads });
+            }
+
+            // 2. Generate Visit Plans
             const startDate = new Date();
             const endDate = new Date();
             endDate.setDate(endDate.getDate() + 28); // 4 weeks
@@ -196,12 +243,8 @@ const AdminRoutes = () => {
 
                     if (freq === 'F2-ODD') {
                         apiFreq = 'F2';
-                        // Logic: If current week is even, start next week (odd)
-                        // But simpler: Just send F2 and let backend handle or assume start date.
-                        // Let's assume start date is today.
                     } else if (freq === 'F2-EVEN') {
                         apiFreq = 'F2';
-                        // Start from next week
                         const nextWeek = new Date(startDate);
                         nextWeek.setDate(nextWeek.getDate() + 7);
                         effectiveStartDate = nextWeek;
@@ -229,6 +272,57 @@ const AdminRoutes = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleImportExcel = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(ws);
+
+                // Expected format: { "Mã NV": "TDV01", "Mã KH": "KH01", "Thứ": "T2" }
+                const payload = data.map(row => ({
+                    employeeCode: row['Mã NV'],
+                    customerCode: row['Mã KH'],
+                    dayOfWeek: row['Thứ']
+                })).filter(x => x.employeeCode && x.customerCode && x.dayOfWeek);
+
+                if (payload.length === 0) {
+                    alert('Không tìm thấy dữ liệu hợp lệ');
+                    return;
+                }
+
+                setLoading(true);
+                const res = await routesAPI.import({ data: payload });
+
+                alert(`Import xong: ${res.success} thành công. ${res.errors.length} lỗi.`);
+                if (selectedUser) loadRoutes(selectedUser);
+
+            } catch (err) {
+                console.error(err);
+                alert('Lỗi import');
+            } finally {
+                setLoading(false);
+                e.target.value = null;
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    const handleDownloadTemplate = () => {
+        const headers = [
+            { 'Mã NV': 'TDV001', 'Mã KH': 'KH001', 'Thứ': 'T2' },
+            { 'Mã NV': 'TDV001', 'Mã KH': 'KH002', 'Thứ': 'T3' }
+        ];
+        const ws = XLSX.utils.json_to_sheet(headers);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Template');
+        XLSX.writeFile(wb, 'Template_Tuyen.xlsx');
     };
 
     // Stats calculation
@@ -278,6 +372,15 @@ const AdminRoutes = () => {
                             <option key={u.id} value={u.id}>{u.name} ({u.employeeCode})</option>
                         ))}
                     </select>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+                        <button onClick={handleDownloadTemplate} style={{ padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                            📥 Template
+                        </button>
+                        <label style={{ padding: '8px 12px', background: '#3b82f6', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                            📤 Import
+                            <input type="file" accept=".xlsx" onChange={handleImportExcel} style={{ display: 'none' }} />
+                        </label>
+                    </div>
                 </div>
                 <div className="routes-stats">
                     <div className="stat-item">

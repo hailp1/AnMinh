@@ -154,6 +154,15 @@ export const permissionsAPI = {
   getMyPermissions: () => apiCall('/permissions/my-permissions')
 };
 
+// Routes API
+export const routesAPI = {
+  ...createCRUDEndpoints('routes'),
+  import: (data) => apiCall('/routes/import', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+};
+
 export default {
   pharmacies: pharmaciesAPI,
   products: productsAPI,
@@ -175,5 +184,6 @@ export default {
   users: usersAPI,
   messages: messagesAPI,
   permissions: permissionsAPI,
+  routes: routesAPI,
 };
 
