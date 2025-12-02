@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(data.user);
 
-      const redirectPath = data.user.role === 'ADMIN' ? '/Anminh/admin/dashboard' : '/home';
+      const redirectPath = data.user.role?.toUpperCase() === 'ADMIN' ? '/Anminh/admin/dashboard' : '/home';
       return { success: true, redirect: redirectPath };
     } catch (error) {
       if (error.name === 'AbortError') {

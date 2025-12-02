@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
-  // Force API URL for debugging - Temporary Public Link
-  const API_BASE = 'https://dms.ammedtech.com/api';
+  // Use relative path to avoid CORS issues (proxied by Nginx)
+  const API_BASE = '/api';
 
   const [formData, setFormData] = useState({
     username: '',
@@ -75,7 +75,7 @@ const AdminLogin = () => {
         throw new Error(data.message || `Lỗi ${response.status}: ${response.statusText}`);
       }
 
-      if (!data.user || data.user.role !== 'ADMIN') {
+      if (!data.user || data.user.role?.toUpperCase() !== 'ADMIN') {
         throw new Error('Tài khoản không có quyền ADMIN');
       }
 

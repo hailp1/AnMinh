@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TerritoryManagement from '../../components/TerritoryManagement';
+import PermissionManagement from '../../components/PermissionManagement';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState({
@@ -76,6 +77,7 @@ const AdminSettings = () => {
     { id: 'territory', label: '🗺️ Quản lý địa bàn', icon: '🗺️' },
     { id: 'notifications', label: '🔔 Thông báo', icon: '🔔' },
     { id: 'security', label: '🔒 Bảo mật', icon: '🔒' },
+    { id: 'permissions', label: '🛡️ Phân quyền', icon: '🛡️' },
     { id: 'advanced', label: '🔧 Nâng cao', icon: '🔧' }
   ];
 
@@ -800,6 +802,11 @@ const AdminSettings = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Permissions Settings */}
+        {activeTab === 'permissions' && (
+          <PermissionManagement isMobile={isMobile} />
         )}
 
         {/* Advanced Settings */}

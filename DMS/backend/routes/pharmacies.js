@@ -8,14 +8,14 @@ const router = express.Router();
 // Lấy danh sách nhà thuốc
 router.get('/', auth, async (req, res) => {
   try {
-    const { hub, search } = req.query;
+    const { search, territoryId } = req.query;
     const userId = req.user.id;
 
-    let where = { isActive: true };
+    let where = {};
 
-    // Nếu là PHARMACY_REP, chỉ lấy nhà thuốc được gán
-    if (req.user.role === 'PHARMACY_REP') {
-      const assignedPharmacies = await prisma.pharmacyRepPharmacy.findMany({
+    // Nếu là PHARMACY_REP (TDV), chỉ lấy nhà thuốc được gán
+    if (req.user.role === 'TDV') {
+      const assignedPharmacies = await prisma.customerAssignment.findMany({
         where: { userId },
         select: { pharmacyId: true },
       });
@@ -23,9 +23,9 @@ router.get('/', auth, async (req, res) => {
       where.id = { in: pharmacyIds };
     }
 
-    // Filter by hub
-    if (hub && hub !== 'all') {
-      where.hub = hub;
+    // Filter by territory
+    if (territoryId) {
+      where.territoryId = territoryId;
     }
 
     // Search by name or address
@@ -33,19 +33,22 @@ router.get('/', auth, async (req, res) => {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { address: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const pharmacies = await prisma.pharmacy.findMany({
       where,
       include: {
-        pharmacyReps: {
-          include: {
-            user: {
-              select: { id: true, name: true, phone: true },
-            },
-          },
+        territory: {
+          include: { region: true }
         },
+        customerSegment: true,
+        customerAssignments: {
+          include: {
+            user: { select: { id: true, name: true, employeeCode: true } }
+          }
+        }
       },
       orderBy: { name: 'asc' },
     });
@@ -63,10 +66,17 @@ router.get('/admin/all', adminAuth, async (req, res) => {
     const pharmacies = await prisma.pharmacy.findMany({
       include: {
         territory: {
-          select: { id: true, name: true, code: true }
+          include: {
+            region: true
+          }
         },
         customerSegment: {
           select: { id: true, name: true }
+        },
+        customerAssignments: {
+          include: {
+            user: { select: { id: true, name: true, employeeCode: true } }
+          }
         }
       },
       orderBy: { name: 'asc' }
@@ -84,31 +94,13 @@ router.get('/:id', auth, async (req, res) => {
     const pharmacy = await prisma.pharmacy.findUnique({
       where: { id: req.params.id },
       include: {
-        pharmacyReps: {
+        territory: { include: { region: true } },
+        customerSegment: true,
+        customerAssignments: {
           include: {
-            user: {
-              select: { id: true, name: true, phone: true, email: true },
-            },
-          },
-        },
-        orders: {
-          include: {
-            user: {
-              select: { id: true, name: true },
-            },
-            items: {
-              include: {
-                product: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        revenueStats: {
-          orderBy: [{ year: 'desc' }, { month: 'desc' }],
-          take: 12,
-        },
+            user: { select: { id: true, name: true, phone: true, email: true } }
+          }
+        }
       },
     });
 
@@ -137,13 +129,17 @@ router.post('/', auth, async (req, res) => {
       ward,
       latitude,
       longitude,
-      hub,
+      territoryId,
+      customerSegmentId,
+      type,
       description,
+      code
     } = req.body;
 
     const pharmacy = await prisma.pharmacy.create({
       data: {
         name,
+        code,
         ownerName,
         phone,
         email,
@@ -153,11 +149,10 @@ router.post('/', auth, async (req, res) => {
         ward,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        hub: hub || 'CENTRAL',
+        territoryId: territoryId || null,
+        customerSegmentId: customerSegmentId || null,
+        type: type || 'PHARMACY',
         description,
-        isVerified: false,
-        isActive: true,
-        images: [],
       },
     });
 
@@ -182,14 +177,18 @@ router.put('/:id', auth, async (req, res) => {
       ward,
       latitude,
       longitude,
-      hub,
+      territoryId,
+      customerSegmentId,
+      type,
       description,
+      code
     } = req.body;
 
     const pharmacy = await prisma.pharmacy.update({
       where: { id: req.params.id },
       data: {
         name,
+        code,
         ownerName,
         phone,
         email,
@@ -199,7 +198,9 @@ router.put('/:id', auth, async (req, res) => {
         ward,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        hub,
+        territoryId: territoryId || null,
+        customerSegmentId: customerSegmentId || null,
+        type,
         description,
       },
     });
@@ -210,9 +211,6 @@ router.put('/:id', auth, async (req, res) => {
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
-
-// Admin: Lấy tất cả nhà thuốc (không filter)
-
 
 // Admin: Xóa nhà thuốc
 router.delete('/:id', adminAuth, async (req, res) => {
@@ -228,4 +226,3 @@ router.delete('/:id', adminAuth, async (req, res) => {
 });
 
 export default router;
-

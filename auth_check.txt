@@ -62,9 +62,9 @@ router.post('/login', validateLogin, async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng nhập Tên đăng nhập và mật khẩu' });
         }
 
-        // Find user by username (mapped from employeeCode/username) - Case insensitive
-        const user = await prisma.user.findFirst({
-            where: { username: { equals: loginId.trim(), mode: 'insensitive' } }
+        // Find user by username (mapped from employeeCode/username)
+        const user = await prisma.user.findUnique({
+            where: { username: loginId.trim() }
         });
 
         if (!user) {

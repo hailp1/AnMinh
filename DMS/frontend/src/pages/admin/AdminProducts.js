@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
@@ -219,7 +220,7 @@ const AdminProducts = () => {
   };
 
   const handleSave = async () => {
-    if (editingGroup) {
+    if (modalType === 'group') {
       // Save group
       if (!formData.name) {
         alert('Vui lòng nhập tên danh mục');
@@ -234,23 +235,23 @@ const AdminProducts = () => {
           order: formData.order || 0,
         };
 
-        const url = editingGroup.id
+        const url = editingGroup
           ? `${API_BASE}/products/admin/groups/${editingGroup.id}`
           : `${API_BASE}/products/admin/groups`;
-        const method = editingGroup.id ? 'PUT' : 'POST';
+        const method = editingGroup ? 'PUT' : 'POST';
 
         const token = localStorage.getItem('token');
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'x-auth-token': token
           },
           body: JSON.stringify(payload),
         });
 
         if (response.ok) {
-          alert(editingGroup.id ? 'Cập nhật danh mục thành công!' : 'Tạo danh mục thành công!');
+          alert(editingGroup ? 'Cập nhật danh mục thành công!' : 'Tạo danh mục thành công!');
           setShowModal(false);
           setEditingGroup(null);
           setModalType('product');
@@ -293,7 +294,7 @@ const AdminProducts = () => {
           method,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'x-auth-token': token
           },
           body: JSON.stringify(payload),
         });
@@ -322,6 +323,108 @@ const AdminProducts = () => {
       style: 'currency',
       currency: 'VND'
     }).format(amount);
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = [
+      {
+        'Mã SP': 'SP001',
+        'Tên sản phẩm': 'Thuốc A',
+        'Danh mục': 'Thuốc kê đơn',
+        'Đơn vị': 'Hộp',
+        'Giá bán': 100000,
+        'Mô tả': 'Công dụng...'
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'Template_San_pham.xlsx');
+  };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          alert('File không có dữ liệu');
+          return;
+        }
+
+        if (!window.confirm(`Tìm thấy ${data.length} dòng dữ liệu. Bạn có muốn import không?`)) return;
+
+        setLoading(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const row of data) {
+          try {
+            // Lookup Group
+            const groupName = row['Danh mục'];
+            const group = productGroups.find(g => g.name === groupName);
+
+            if (!group) {
+              console.warn('Group not found:', groupName);
+              errorCount++;
+              continue;
+            }
+
+            const payload = {
+              code: row['Mã SP']?.toString(),
+              name: row['Tên sản phẩm'],
+              description: row['Mô tả'],
+              unit: row['Đơn vị'] || 'hộp',
+              price: parseFloat(row['Giá bán']),
+              groupId: group.id
+            };
+
+            if (!payload.name || !payload.price || !payload.groupId) {
+              console.warn('Skipping invalid row:', row);
+              errorCount++;
+              continue;
+            }
+
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/products/admin/products`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+          } catch (err) {
+            console.error('Error importing row:', err);
+            errorCount++;
+          }
+        }
+
+        alert(`Import hoàn tất!\nThành công: ${successCount}\nThất bại: ${errorCount}`);
+        loadProducts();
+      } catch (error) {
+        console.error('Error parsing excel:', error);
+        alert('Lỗi khi đọc file Excel');
+      } finally {
+        setLoading(false);
+        e.target.value = null;
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -355,6 +458,49 @@ const AdminProducts = () => {
           display: 'flex',
           gap: '12px'
         }}>
+          <button
+            onClick={handleDownloadTemplate}
+            style={{
+              padding: '12px 24px',
+              background: '#10b981',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>📥</span>
+            <span>Template</span>
+          </button>
+          <label
+            style={{
+              padding: '12px 24px',
+              background: '#3b82f6',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>📤</span>
+            <span>Import</span>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleImportExcel}
+              style={{ display: 'none' }}
+            />
+          </label>
           <button
             onClick={handleAddGroup}
             style={{

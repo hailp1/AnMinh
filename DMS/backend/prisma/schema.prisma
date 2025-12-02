@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,873 +7,123 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Model - Người dùng hệ thống
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  employeeCode String   @unique // Mã nhân viên - dùng để đăng nhập
-  routeCode    String?  // Mã tuyến phụ trách
-  email        String?  @unique
+  id           String   @id @default(uuid())
+  username     String   @unique
+  employeeCode String?  @unique
   password     String
-  phone        String?  @unique
-  role         Role     @default(TDV)
-  avatar       String?
+  name         String?
+  email        String?  @unique
+  phone        String?
+  role         String   @default("user")
   isActive     Boolean  @default(true)
+  routeCode    String?
+  channel      String?
+  
+  managerId    String?
+  manager      User?    @relation("ManagerToStaff", fields: [managerId], references: [id])
+  staff        User[]   @relation("ManagerToStaff")
+  
+  regionId     String?
+  region       Region?  @relation(fields: [regionId], references: [id])
+
+  customerAssignments CustomerAssignment[]
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  // Relations
-  pharmacyRepPharmacies PharmacyRepPharmacy[]  // Trình dược viên quản lý nhà thuốc
-  customerAssignments   CustomerAssignment[]   // Phân bổ khách hàng
-  visitPlans            VisitPlan[]           // Kế hoạch viếng thăm
-  orders                Order[]                // Đơn hàng đã tạo
-  sentMessages          Message[]              @relation("MessageSender")  // Tin nhắn đã gửi
-  receivedMessages      Message[]              @relation("MessageReceiver")  // Tin nhắn đã nhận
-  revenueStats          RevenueStat[]         // Thống kê doanh thu
-  kpiTargets            KPITarget[]          // Mục tiêu KPI
-  kpiResults            KPIResult[]          // Kết quả KPI
-  incentives            Incentive[]         // Thưởng
-  approvalRequests      ApprovalRequest[]    @relation("RequestCreator")  // Yêu cầu phê duyệt đã tạo
-  approvalActions       ApprovalAction[]     @relation("Approver")  // Hành động phê duyệt
-  tradeActivities        TradeActivity[]     // Hoạt động thương mại
-
-  @@map("users")
 }
 
-// Region Model - Vùng khu vực
 model Region {
-  id          String   @id @default(cuid())
-  code        String   @unique  // Mã vùng
-  name        String   // Tên vùng
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  businessUnits BusinessUnit[]
-  territories   Territory[]
-
-  @@map("regions")
-}
-
-// BusinessUnit Model - Khối kinh doanh
-model BusinessUnit {
-  id          String   @id @default(cuid())
-  code        String   @unique  // Mã khối
-  name        String   // Tên khối kinh doanh
-  regionId    String   // Thuộc vùng
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  region     Region     @relation(fields: [regionId], references: [id])
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  users     User[]
   territories Territory[]
-
-  @@map("business_units")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// Territory Model - Địa bàn
 model Territory {
-  id             String   @id @default(cuid())
-  code           String   @unique  // Mã địa bàn
-  name           String   // Tên địa bàn
-  regionId       String   // Thuộc vùng
-  businessUnitId String  // Thuộc khối kinh doanh
-  description    String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  region        Region        @relation(fields: [regionId], references: [id])
-  businessUnit  BusinessUnit  @relation(fields: [businessUnitId], references: [id])
-  customerAssignments CustomerAssignment[]
-  visitPlans    VisitPlan[]
-  pharmacies   Pharmacy[]  // Các nhà thuốc trong địa bàn
-
-  @@map("territories")
-}
-
-// Pharmacy Model - Nhà thuốc (Khách hàng)
-model Pharmacy {
-  id          String   @id @default(cuid())
-  code        String?  @unique  // Mã khách hàng
-  name        String
-  ownerName   String?
-  phone       String
-  email       String?
-  address     String
-  province    String?
-  district    String?
-  ward        String?
-  latitude    Float?
-  longitude   Float?
-  territoryId String?  // Thuộc địa bàn
-  customerSegmentId String?  // Phân nhóm khách hàng
-  images      String[] // Hình ảnh nhà thuốc
-  description String?
-  isVerified  Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  territory         Territory?          @relation(fields: [territoryId], references: [id])
-  customerSegment   CustomerSegment?   @relation(fields: [customerSegmentId], references: [id])
-  customerAssignments CustomerAssignment[]  // Phân bổ cho TDV
-  pharmacyReps      PharmacyRepPharmacy[]  // Trình dược viên phụ trách
-  orders            Order[]                // Đơn hàng
-  revenueStats      RevenueStat[]         // Thống kê doanh thu
-  visitPlans        VisitPlan[]           // Kế hoạch viếng thăm
-  loyaltyPoints     LoyaltyPoint[]      // Điểm tích lũy
-  promotionApplications PromotionApplication[]  // Áp dụng khuyến mãi
-  priceLists        PharmacyPrice[]     // Giá theo khách hàng
-  inventoryItems    InventoryItem[]    // Tồn kho
-  payments          Payment[]          // Thanh toán
-
-  @@map("pharmacies")
-}
-
-// CustomerAssignment Model - Phân bổ khách hàng cho TDV
-model CustomerAssignment {
-  id         String   @id @default(cuid())
-  userId     String   // Trình dược viên
-  pharmacyId String   // Khách hàng (Nhà thuốc)
-  territoryId String? // Địa bàn
-  assignedAt DateTime @default(now())
-  assignedBy String?  // Người phân bổ
-  notes      String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-  territory Territory? @relation(fields: [territoryId], references: [id])
-
-  @@unique([userId, pharmacyId])
-  @@map("customer_assignments")
-}
-
-// VisitPlan Model - Kế hoạch viếng thăm khách hàng
-model VisitPlan {
-  id          String   @id @default(cuid())
-  userId      String   // Trình dược viên
-  pharmacyId  String   // Khách hàng
-  territoryId String?  // Địa bàn
-  visitDate   DateTime // Ngày viếng thăm
-  visitTime   String?  // Giờ viếng thăm (HH:mm)
-  dayOfWeek   Int?     // Thứ trong tuần (1=CN, 2=T2, 3=T3, ..., 7=T7)
-  frequency   String?  // Tần suất: F1 (hàng tuần), F2 (2 tuần/lần), F4 (hàng tháng), F8 (2 tháng/lần)
-  purpose     String?  // Mục đích viếng thăm
-  notes       String?  // Ghi chú
-  status      VisitStatus @default(PLANNED)  // Trạng thái
-  completedAt DateTime?  // Thời gian hoàn thành
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-  territory Territory? @relation(fields: [territoryId], references: [id])
-
-  @@map("visit_plans")
-}
-
-// PharmacyRepPharmacy - Quan hệ nhiều-nhiều giữa Trình dược viên và Nhà thuốc
-model PharmacyRepPharmacy {
-  id         String   @id @default(cuid())
-  userId     String   // Trình dược viên
-  pharmacyId String   // Nhà thuốc
-  assignedAt DateTime @default(now())
-
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, pharmacyId])
-  @@map("pharmacy_rep_pharmacies")
-}
-
-// ProductGroup Model - Nhóm sản phẩm
-model ProductGroup {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  order       Int      @default(0)  // Thứ tự hiển thị
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  products Product[]
-
-  @@map("product_groups")
-}
-
-// Product Model - Sản phẩm
-model Product {
-  id            String   @id @default(cuid())
-  name          String
-  code          String?  @unique  // Mã sản phẩm
-  description   String?
-  groupId       String   // Nhóm sản phẩm
-  unit          String   @default("hộp")  // Đơn vị tính
-  price         Float    @default(0)  // Giá bán
-  image         String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  group      ProductGroup @relation(fields: [groupId], references: [id])
-  orderItems OrderItem[]
-  promotionItems PromotionItem[]  // Sản phẩm trong khuyến mãi
-  priceLists ProductPrice[]      // Giá sản phẩm
-
-  @@map("products")
-}
-
-// Order Model - Đơn hàng
-model Order {
-  id            String      @id @default(cuid())
-  orderNumber   String      @unique  // Số đơn hàng
-  userId        String      // Trình dược viên tạo đơn
-  pharmacyId    String      // Nhà thuốc
-  status        OrderStatus @default(PENDING)
-  totalAmount   Float       @default(0)
-  notes         String?
-  deliveryDate  DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  // Relations
-  user     User       @relation(fields: [userId], references: [id])
-  pharmacy Pharmacy   @relation(fields: [pharmacyId], references: [id])
-  items    OrderItem[]
-  promotionApplications PromotionApplication[]  // Khuyến mãi áp dụng
-  payments Payment[]  // Thanh toán
-  approvalRequest ApprovalRequest?  // Yêu cầu phê duyệt (nếu có)
-
-  @@map("orders")
-}
-
-// OrderItem Model - Chi tiết đơn hàng
-model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Float    // Giá tại thời điểm đặt hàng
-  subtotal  Float    // quantity * price
-  createdAt DateTime @default(now())
-
-  // Relations
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-
-  @@map("order_items")
-}
-
-// RevenueStat Model - Thống kê doanh thu
-model RevenueStat {
-  id         String   @id @default(cuid())
-  userId     String?  // Trình dược viên (null nếu là thống kê nhà thuốc)
-  pharmacyId String?  // Nhà thuốc (null nếu là thống kê trình dược viên)
-  month      Int      // Tháng (1-12)
-  year       Int      // Năm
-  totalAmount Float   @default(0)
-  orderCount  Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pharmacy Pharmacy? @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, pharmacyId, month, year])
-  @@map("revenue_stats")
-}
-
-// Message Model - Tin nhắn chat
-model Message {
-  id        String   @id @default(cuid())
-  senderId  String   // Người gửi
-  receiverId String  // Người nhận
-  content   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  // Relations
-  sender   User   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User   @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-
-  @@map("messages")
-}
-
-// Enums
-enum Role {
-  TDV    // Trình dược viên
-  QL     // Quản lý
-  KT     // Kế toán
-  ADMIN  // Quản trị viên
-}
-
-enum Hub {
-  CENTRAL    // Trung tâm
-  CU_CHI     // Củ Chi
-  DONG_NAI   // Đồng Nai
-}
-
-enum OrderStatus {
-  PENDING      // Chờ xử lý
-  CONFIRMED    // Đã xác nhận
-  PROCESSING   // Đang xử lý
-  SHIPPING     // Đang giao hàng
-  DELIVERED    // Đã giao hàng
-  CANCELLED    // Đã hủy
-}
-
-enum VisitStatus {
-  PLANNED      // Đã lên kế hoạch
-  IN_PROGRESS  // Đang thực hiện
-  COMPLETED    // Đã hoàn thành
-  CANCELLED    // Đã hủy
-  MISSED       // Bỏ lỡ
-}
-
-// ========== PROMOTIONS (KHUYẾN MÃI) ==========
-// Promotion Model - Chương trình khuyến mãi
-model Promotion {
-  id          String   @id @default(cuid())
-  code        String   @unique  // Mã chương trình
-  name        String   // Tên chương trình
-  description String?
-  type        PromotionType  // Loại khuyến mãi
-  discountType DiscountType?  // Loại giảm giá
-  discountValue Float?  // Giá trị giảm giá
-  minOrderAmount Float?  // Đơn hàng tối thiểu
-  maxDiscountAmount Float?  // Giảm giá tối đa
-  startDate   DateTime  // Ngày bắt đầu
-  endDate     DateTime  // Ngày kết thúc
-  applicableTo ApplicableTo @default(ALL)  // Áp dụng cho
-  customerSegmentIds String[]  // Phân nhóm khách hàng (nếu applicableTo = SEGMENT)
-  territoryIds String[]  // Địa bàn (nếu applicableTo = TERRITORY)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  items PromotionItem[]
-  applications PromotionApplication[]
-
-  @@map("promotions")
-}
-
-// PromotionItem Model - Sản phẩm trong khuyến mãi
-model PromotionItem {
-  id          String   @id @default(cuid())
-  promotionId String
-  productId   String
-  quantity    Int?     // Số lượng tối thiểu (nếu có)
-  discountValue Float?  // Giá trị giảm riêng cho sản phẩm
-  createdAt   DateTime @default(now())
-
-  // Relations
-  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
-  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([promotionId, productId])
-  @@map("promotion_items")
-}
-
-// PromotionApplication Model - Áp dụng khuyến mãi cho đơn hàng
-model PromotionApplication {
-  id          String   @id @default(cuid())
-  promotionId String
-  orderId     String?
-  pharmacyId  String?
-  discountAmount Float  // Số tiền giảm
-  appliedAt   DateTime @default(now())
-
-  // Relations
-  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
-  order     Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  pharmacy  Pharmacy? @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-
-  @@map("promotion_applications")
-}
-
-// ========== LOYALTY/POINTS (TÍCH LŨY) ==========
-// LoyaltyPoint Model - Điểm tích lũy của khách hàng
-model LoyaltyPoint {
-  id          String   @id @default(cuid())
-  pharmacyId  String
-  points      Float    @default(0)  // Tổng điểm hiện tại
-  earnedPoints Float   @default(0)  // Điểm đã tích lũy
-  usedPoints  Float   @default(0)  // Điểm đã sử dụng
-  expiredPoints Float @default(0)  // Điểm đã hết hạn
-  lastUpdated DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-  transactions LoyaltyTransaction[]
-  redemptions LoyaltyRedemption[]
-
-  @@unique([pharmacyId])
-  @@map("loyalty_points")
-}
-
-// LoyaltyTransaction Model - Giao dịch tích lũy điểm
-model LoyaltyTransaction {
-  id          String   @id @default(cuid())
-  loyaltyPointId String
-  orderId     String?  // Đơn hàng (nếu tích từ đơn hàng)
-  type        LoyaltyTransactionType
-  points      Float    // Số điểm
-  description String?
-  expiresAt   DateTime?  // Ngày hết hạn điểm
-  createdAt   DateTime @default(now())
-
-  // Relations
-  loyaltyPoint LoyaltyPoint @relation(fields: [loyaltyPointId], references: [id], onDelete: Cascade)
-
-  @@map("loyalty_transactions")
-}
-
-// LoyaltyReward Model - Phần thưởng đổi điểm
-model LoyaltyReward {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  pointsRequired Float  // Điểm cần thiết
-  rewardType RewardType
-  rewardValue String?  // Giá trị phần thưởng (mã voucher, sản phẩm, v.v.)
-  image       String?
-  stock       Int?     // Số lượng còn lại
-  isActive    Boolean  @default(true)
-  startDate   DateTime?
-  endDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  redemptions LoyaltyRedemption[]
-
-  @@map("loyalty_rewards")
-}
-
-// LoyaltyRedemption Model - Đổi điểm lấy thưởng
-model LoyaltyRedemption {
-  id          String   @id @default(cuid())
-  loyaltyPointId String
-  rewardId    String
-  pointsUsed  Float
-  status      RedemptionStatus @default(PENDING)
-  redeemedAt  DateTime?
-  createdAt   DateTime @default(now())
-
-  // Relations
-  loyaltyPoint LoyaltyPoint @relation(fields: [loyaltyPointId], references: [id], onDelete: Cascade)
-  reward      LoyaltyReward @relation(fields: [rewardId], references: [id])
-
-  @@map("loyalty_redemptions")
-}
-
-// ========== CUSTOMER SEGMENTATION (PHÂN NHÓM KHÁCH HÀNG) ==========
-// CustomerSegment Model - Phân nhóm khách hàng
-model CustomerSegment {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String   // VD: VIP, A, B, C
-  description String?
-  criteria    Json?    // Tiêu chí phân nhóm (JSON)
-  minOrderAmount Float?  // Đơn hàng tối thiểu
-  minOrderCount Int?     // Số đơn hàng tối thiểu
-  benefits    String[]  // Quyền lợi
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id])
   pharmacies Pharmacy[]
-
-  @@map("customer_segments")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// ========== TRADE ACTIVITIES (HOẠT ĐỘNG THƯƠNG MẠI) ==========
-// TradeActivity Model - Hoạt động thương mại
-model TradeActivity {
-  id          String   @id @default(cuid())
-  code        String   @unique
+model CustomerSegment {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  pharmacies Pharmacy[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pharmacy {
+  id        String   @id @default(uuid())
+  name      String
+  code      String?  @unique
+  address   String?
+  phone     String?
+  email     String?
+  ownerName String?
+  province  String?
+  district  String?
+  ward      String?
+  type      String?  @default("PHARMACY")
+  latitude  Float?
+  longitude Float?
+  description String?
+  
+  territoryId String?
+  territory   Territory? @relation(fields: [territoryId], references: [id])
+  
+  customerSegmentId String?
+  customerSegment   CustomerSegment? @relation(fields: [customerSegmentId], references: [id])
+
+  customerAssignments CustomerAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomerAssignment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  pharmacyId String
+  pharmacy  Pharmacy @relation(fields: [pharmacyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductGroup {
+  id          String    @id @default(uuid())
   name        String
-  type        TradeActivityType
+  code        String?
   description String?
-  location    String?
-  startDate   DateTime
-  endDate     DateTime
-  budget      Float?   // Ngân sách
-  actualCost  Float?   // Chi phí thực tế
-  status      TradeActivityStatus @default(PLANNED)
-  organizerId String?  // Người tổ chức
-  participants String[]  // Danh sách tham gia
-  results     String?  // Kết quả
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  organizer User? @relation(fields: [organizerId], references: [id])
-
-  @@map("trade_activities")
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
-// ========== KPI & INCENTIVE ==========
-// KPITarget Model - Mục tiêu KPI
-model KPITarget {
-  id          String   @id @default(cuid())
-  userId      String   // Trình dược viên
-  period      String   // Kỳ (VD: "2024-01", "2024-Q1")
-  periodType  PeriodType  // Loại kỳ (MONTH, QUARTER, YEAR)
-  targetSales Float    // Mục tiêu doanh số
-  targetOrders Int     // Mục tiêu số đơn hàng
-  targetVisits Int     // Mục tiêu số lần viếng thăm
-  targetNewCustomers Int  // Mục tiêu khách hàng mới
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  results KPIResult[]
-
-  @@unique([userId, period])
-  @@map("kpi_targets")
-}
-
-// KPIResult Model - Kết quả KPI
-model KPIResult {
-  id          String   @id @default(cuid())
-  targetId    String
-  userId      String
-  period      String
-  actualSales Float    @default(0)
-  actualOrders Int     @default(0)
-  actualVisits Int     @default(0)
-  actualNewCustomers Int @default(0)
-  achievementRate Float @default(0)  // Tỷ lệ đạt (%)
-  calculatedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  target KPITarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  incentives Incentive[]
-
-  @@unique([targetId])
-  @@map("kpi_results")
-}
-
-// Incentive Model - Thưởng/Incentive
-model Incentive {
-  id          String   @id @default(cuid())
-  userId      String
-  period      String
-  kpiResultId String?
-  type        IncentiveType
-  amount      Float
+model Product {
+  id          String       @id @default(uuid())
+  name        String
+  code        String?      @unique
   description String?
-  status      IncentiveStatus @default(PENDING)
-  paidAt      DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kpiResult KPIResult? @relation(fields: [kpiResultId], references: [id])
-
-  @@map("incentives")
-}
-
-// ========== APPROVAL WORKFLOW (QUY TRÌNH PHÊ DUYỆT) ==========
-// ApprovalRequest Model - Yêu cầu phê duyệt
-model ApprovalRequest {
-  id          String   @id @default(cuid())
-  requestType ApprovalRequestType
-  title       String
-  description String?
-  requesterId String   // Người yêu cầu
-  orderId     String?  @unique  // Đơn hàng (nếu là phê duyệt đơn hàng) - unique vì one-to-one
-  amount      Float?   // Số tiền (nếu là phê duyệt chi phí)
-  status      ApprovalStatus @default(PENDING)
-  priority    ApprovalPriority @default(NORMAL)
-  currentStep Int      @default(1)  // Bước hiện tại
-  totalSteps  Int      @default(1)   // Tổng số bước
-  approvedAt  DateTime?
-  rejectedAt  DateTime?
-  rejectionReason String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  requester User @relation("RequestCreator", fields: [requesterId], references: [id], onDelete: Cascade)
-  order     Order? @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  actions   ApprovalAction[]
-
-  @@map("approval_requests")
-}
-
-// ApprovalAction Model - Hành động phê duyệt
-model ApprovalAction {
-  id          String   @id @default(cuid())
-  requestId   String
-  approverId  String   // Người phê duyệt
-  action      ApprovalActionType
-  comment     String?
-  step        Int      // Bước phê duyệt
-  createdAt   DateTime @default(now())
-
-  // Relations
-  request  ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  approver User            @relation("Approver", fields: [approverId], references: [id], onDelete: Cascade)
-
-  @@map("approval_actions")
-}
-
-// ========== PRICE MANAGEMENT (QUẢN LÝ GIÁ) ==========
-// ProductPrice Model - Giá sản phẩm
-model ProductPrice {
-  id          String   @id @default(cuid())
-  productId   String
-  price       Float
-  effectiveDate DateTime @default(now())
-  expiryDate  DateTime?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@map("product_prices")
-}
-
-// PharmacyPrice Model - Giá theo khách hàng
-model PharmacyPrice {
-  id          String   @id @default(cuid())
-  pharmacyId  String
-  productId   String?
-  price       Float
-  effectiveDate DateTime @default(now())
-  expiryDate  DateTime?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-
-  @@map("pharmacy_prices")
-}
-
-// ========== INVENTORY (TỒN KHO) ==========
-// InventoryItem Model - Tồn kho tại nhà thuốc
-model InventoryItem {
-  id          String   @id @default(cuid())
-  pharmacyId  String
-  productId   String
-  quantity    Int      @default(0)
-  minStock    Int?     // Tồn kho tối thiểu
-  maxStock    Int?     // Tồn kho tối đa
-  lastUpdated DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-  transactions InventoryTransaction[]
-
-  @@unique([pharmacyId, productId])
-  @@map("inventory_items")
-}
-
-// InventoryTransaction Model - Giao dịch tồn kho
-model InventoryTransaction {
-  id          String   @id @default(cuid())
-  inventoryItemId String
-  type        InventoryTransactionType
-  quantity    Int      // Số lượng thay đổi (+/-)
-  referenceId String?  // ID tham chiếu (đơn hàng, v.v.)
-  referenceType String?  // Loại tham chiếu
-  notes       String?
-  createdAt   DateTime @default(now())
-
-  // Relations
-  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-
-  @@map("inventory_transactions")
-}
-
-// ========== PAYMENT (THANH TOÁN) ==========
-// Payment Model - Thanh toán
-model Payment {
-  id          String   @id @default(cuid())
-  orderId     String?
-  pharmacyId  String
-  amount      Float
-  paymentType PaymentType
-  paymentMethod PaymentMethod
-  reference   String?  // Số tham chiếu
-  status      PaymentStatus @default(PENDING)
-  paidAt      DateTime?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  order    Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  pharmacy Pharmacy  @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
-
-  @@map("payments")
-}
-
-// ========== ENUMS ==========
-enum PromotionType {
-  DISCOUNT      // Giảm giá
-  BUY_X_GET_Y   // Mua X tặng Y
-  COMBO         // Combo
-  FREE_SHIPPING // Miễn phí vận chuyển
-  POINT_BONUS   // Tặng điểm
-}
-
-enum DiscountType {
-  PERCENTAGE  // Phần trăm
-  FIXED       // Cố định
-}
-
-enum ApplicableTo {
-  ALL         // Tất cả
-  SEGMENT     // Phân nhóm
-  TERRITORY   // Địa bàn
-  SPECIFIC    // Cụ thể
-}
-
-enum LoyaltyTransactionType {
-  EARNED      // Tích lũy
-  USED        // Sử dụng
-  EXPIRED     // Hết hạn
-  ADJUSTED    // Điều chỉnh
-}
-
-enum RewardType {
-  DISCOUNT    // Giảm giá
-  PRODUCT     // Sản phẩm
-  VOUCHER     // Voucher
-  CASH        // Tiền mặt
-}
-
-enum RedemptionStatus {
-  PENDING     // Chờ xử lý
-  APPROVED    // Đã duyệt
-  REJECTED    // Từ chối
-  COMPLETED   // Hoàn thành
-}
-
-enum TradeActivityType {
-  EXHIBITION  // Triển lãm
-  SEMINAR     // Hội thảo
-  PROMOTION   // Khuyến mãi
-  TRAINING    // Đào tạo
-  EVENT       // Sự kiện
-}
-
-enum TradeActivityStatus {
-  PLANNED     // Đã lên kế hoạch
-  IN_PROGRESS // Đang diễn ra
-  COMPLETED   // Đã hoàn thành
-  CANCELLED   // Đã hủy
-}
-
-enum PeriodType {
-  MONTH       // Tháng
-  QUARTER     // Quý
-  YEAR        // Năm
-}
-
-enum IncentiveType {
-  SALES       // Thưởng doanh số
-  TARGET      // Thưởng đạt mục tiêu
-  BONUS       // Thưởng thêm
-  COMMISSION  // Hoa hồng
-}
-
-enum IncentiveStatus {
-  PENDING     // Chờ xử lý
-  APPROVED    // Đã duyệt
-  PAID        // Đã thanh toán
-  CANCELLED   // Đã hủy
-}
-
-enum ApprovalRequestType {
-  ORDER       // Phê duyệt đơn hàng
-  EXPENSE     // Phê duyệt chi phí
-  LEAVE       // Phê duyệt nghỉ phép
-  DISCOUNT    // Phê duyệt giảm giá
-  OTHER       // Khác
-}
-
-enum ApprovalStatus {
-  PENDING     // Chờ phê duyệt
-  APPROVED    // Đã phê duyệt
-  REJECTED    // Từ chối
-  CANCELLED   // Đã hủy
-}
-
-enum ApprovalPriority {
-  LOW         // Thấp
-  NORMAL      // Bình thường
-  HIGH        // Cao
-  URGENT      // Khẩn cấp
-}
-
-enum ApprovalActionType {
-  APPROVE     // Phê duyệt
-  REJECT      // Từ chối
-  RETURN      // Trả lại
-  COMMENT     // Bình luận
-}
-
-enum InventoryTransactionType {
-  IN          // Nhập
-  OUT         // Xuất
-  ADJUST      // Điều chỉnh
-  RETURN      // Trả lại
-}
-
-enum PaymentType {
-  DEPOSIT     // Đặt cọc
-  PARTIAL     // Thanh toán một phần
-  FULL        // Thanh toán đủ
-  REFUND      // Hoàn tiền
-}
-
-enum PaymentMethod {
-  CASH        // Tiền mặt
-  BANK_TRANSFER // Chuyển khoản
-  CARD        // Thẻ
-  CHEQUE      // Séc
-  OTHER       // Khác
-}
-
-enum PaymentStatus {
-  PENDING     // Chờ thanh toán
-  PROCESSING  // Đang xử lý
-  COMPLETED   // Đã thanh toán
-  FAILED      // Thất bại
-  CANCELLED   // Đã hủy
+  unit        String?
+  price       Float?
+  groupId     String?
+  group       ProductGroup? @relation(fields: [groupId], references: [id])
+  isActive    Boolean      @default(true)
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }

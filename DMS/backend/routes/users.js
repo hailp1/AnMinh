@@ -21,7 +21,9 @@ router.get('/', auth, async (req, res) => {
         role: true,
         phone: true,
         email: true,
-        routeCode: true
+        routeCode: true,
+        channel: true,
+        region: { select: { id: true, name: true } }
       }
     });
     res.json(users);
@@ -41,10 +43,12 @@ router.get('/profile', auth, async (req, res) => {
         name: true,
         email: true,
         role: true,
-        points: true,
         phone: true,
-        avatar: true,
-        createdAt: true
+        // avatar: true, // Removed as not in schema yet
+        createdAt: true,
+        manager: { select: { id: true, name: true } },
+        region: { select: { id: true, name: true } },
+        channel: true
       }
     });
     res.json(user);
@@ -67,67 +71,13 @@ router.put('/profile', auth, async (req, res) => {
         name: true,
         email: true,
         role: true,
-        points: true,
         phone: true,
-        avatar: true,
+        // avatar: true,
         createdAt: true
       }
     });
 
     res.json(user);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Lỗi server');
-  }
-});
-
-// Lấy danh sách trạm của owner
-router.get('/my-stations', auth, async (req, res) => {
-  try {
-    const stations = await prisma.chargingStation.findMany({
-      where: { ownerId: req.user.id }
-    });
-    res.json(stations);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Lỗi server');
-  }
-});
-
-// Tạo khuyến mãi cho trạm (chỉ owner)
-router.post('/stations/:id/promotions', auth, async (req, res) => {
-  try {
-    const { title, description, discount, validFrom, validTo } = req.body;
-
-    const station = await prisma.chargingStation.findFirst({
-      where: {
-        id: req.params.id,
-        ownerId: req.user.id
-      }
-    });
-
-    if (!station) {
-      return res.status(404).json({ message: 'Không tìm thấy trạm sạc hoặc bạn không có quyền' });
-    }
-
-    const currentPromotions = station.promotions || [];
-    const newPromotion = {
-      title,
-      description,
-      discount,
-      validFrom: new Date(validFrom),
-      validTo: new Date(validTo),
-      isActive: true
-    };
-
-    const updatedStation = await prisma.chargingStation.update({
-      where: { id: req.params.id },
-      data: {
-        promotions: [...currentPromotions, newPromotion]
-      }
-    });
-
-    res.json(updatedStation);
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Lỗi server');
@@ -142,13 +92,17 @@ router.get('/admin/users', adminAuth, async (req, res) => {
         id: true,
         name: true,
         employeeCode: true,
+        username: true,
         routeCode: true,
         email: true,
         role: true,
         phone: true,
         isActive: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        channel: true,
+        manager: { select: { id: true, name: true } },
+        region: { select: { id: true, name: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -162,7 +116,7 @@ router.get('/admin/users', adminAuth, async (req, res) => {
 // Admin: Tạo user mới
 router.post('/admin/users', adminAuth, async (req, res) => {
   try {
-    const { name, employeeCode, routeCode, email, phone, role, password } = req.body;
+    const { name, employeeCode, routeCode, email, phone, role, password, managerId, regionId, channel } = req.body;
 
     if (!name || !employeeCode || !role || !password) {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
@@ -175,13 +129,17 @@ router.post('/admin/users', adminAuth, async (req, res) => {
     const user = await prisma.user.create({
       data: {
         name,
+        username: employeeCode.toUpperCase(), // Username defaults to employeeCode
         employeeCode: employeeCode.toUpperCase(),
         routeCode: routeCode || null,
         email: email || null,
         phone: phone || null,
         role,
         password: hashedPassword,
-        isActive: true
+        isActive: true,
+        managerId: managerId || null,
+        regionId: regionId || null,
+        channel: channel || null
       },
       select: {
         id: true,
@@ -192,14 +150,17 @@ router.post('/admin/users', adminAuth, async (req, res) => {
         role: true,
         phone: true,
         isActive: true,
-        createdAt: true
+        createdAt: true,
+        channel: true,
+        manager: { select: { id: true, name: true } },
+        region: { select: { id: true, name: true } }
       }
     });
 
     res.status(201).json(user);
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Mã nhân viên đã tồn tại' });
+      return res.status(400).json({ error: 'Mã nhân viên hoặc Email đã tồn tại' });
     }
     console.error(error.message);
     res.status(500).json({ error: 'Lỗi server' });
@@ -209,16 +170,23 @@ router.post('/admin/users', adminAuth, async (req, res) => {
 // Admin: Cập nhật user
 router.put('/admin/users/:id', adminAuth, async (req, res) => {
   try {
-    const { name, employeeCode, routeCode, email, phone, role, password, isActive } = req.body;
+    const { name, employeeCode, routeCode, email, phone, role, password, isActive, managerId, regionId, channel } = req.body;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
-    if (employeeCode !== undefined) updateData.employeeCode = employeeCode.toUpperCase();
+    if (employeeCode !== undefined) {
+      updateData.employeeCode = employeeCode.toUpperCase();
+      updateData.username = employeeCode.toUpperCase(); // Sync username
+    }
     if (routeCode !== undefined) updateData.routeCode = routeCode || null;
     if (email !== undefined) updateData.email = email || null;
     if (phone !== undefined) updateData.phone = phone || null;
     if (role !== undefined) updateData.role = role;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (managerId !== undefined) updateData.managerId = managerId || null;
+    if (regionId !== undefined) updateData.regionId = regionId || null;
+    if (channel !== undefined) updateData.channel = channel || null;
+
     if (password) {
       const bcrypt = await import('bcryptjs');
       updateData.password = await bcrypt.default.hash(password, 10);
@@ -236,14 +204,17 @@ router.put('/admin/users/:id', adminAuth, async (req, res) => {
         role: true,
         phone: true,
         isActive: true,
-        createdAt: true
+        createdAt: true,
+        channel: true,
+        manager: { select: { id: true, name: true } },
+        region: { select: { id: true, name: true } }
       }
     });
 
     res.json(user);
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Mã nhân viên đã tồn tại' });
+      return res.status(400).json({ error: 'Mã nhân viên hoặc Email đã tồn tại' });
     }
     console.error(error.message);
     res.status(500).json({ error: 'Lỗi server' });
@@ -260,31 +231,6 @@ router.delete('/admin/users/:id', adminAuth, async (req, res) => {
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: 'Lỗi server' });
-  }
-});
-
-// Admin: Xác minh trạm sạc
-router.put('/admin/stations/:id/verify', adminAuth, async (req, res) => {
-  try {
-    const station = await prisma.chargingStation.update({
-      where: { id: req.params.id },
-      data: { isVerified: true }
-    });
-
-    if (!station) {
-      return res.status(404).json({ message: 'Không tìm thấy trạm sạc' });
-    }
-
-    // Thưởng điểm cho owner khi trạm được xác minh
-    await prisma.user.update({
-      where: { id: station.ownerId },
-      data: { points: { increment: 200 } }
-    });
-
-    res.json(station);
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Lỗi server');
   }
 });
 

@@ -144,6 +144,16 @@ export const messagesAPI = {
   }),
 };
 
+// Permissions API
+export const permissionsAPI = {
+  getAll: () => apiCall('/permissions'),
+  update: (role, permissions) => apiCall('/permissions', {
+    method: 'POST',
+    body: JSON.stringify({ role, permissions })
+  }),
+  getMyPermissions: () => apiCall('/permissions/my-permissions')
+};
+
 export default {
   pharmacies: pharmaciesAPI,
   products: productsAPI,
@@ -164,4 +174,6 @@ export default {
   approvals: approvalsAPI,
   users: usersAPI,
   messages: messagesAPI,
+  permissions: permissionsAPI,
 };
+

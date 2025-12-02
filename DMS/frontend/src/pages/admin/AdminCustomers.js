@@ -7,11 +7,15 @@ const AdminCustomers = () => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterHub, setFilterHub] = useState('all');
+  const [filterTerritory, setFilterTerritory] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Metadata
+  const [territories, setTerritories] = useState([]);
+  const [customerSegments, setCustomerSegments] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -20,6 +24,7 @@ const AdminCustomers = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -30,7 +35,9 @@ const AdminCustomers = () => {
     province: '',
     district: '',
     ward: '',
-    hub: 'CENTRAL',
+    territoryId: '',
+    customerSegmentId: '',
+    type: 'PHARMACY',
     latitude: '',
     longitude: '',
     description: ''
@@ -38,11 +45,30 @@ const AdminCustomers = () => {
 
   useEffect(() => {
     loadCustomers();
+    loadMetadata();
   }, []);
 
   useEffect(() => {
     filterCustomers();
-  }, [searchTerm, filterHub, customers]);
+  }, [searchTerm, filterTerritory, customers]);
+
+  const loadMetadata = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'x-auth-token': token };
+
+      const [terrRes, segRes] = await Promise.all([
+        fetch(`${API_BASE}/territories`, { headers }),
+        fetch(`${API_BASE}/customer-segments`, { headers })
+      ]);
+
+      if (terrRes.ok) setTerritories(await terrRes.json());
+      if (segRes.ok) setCustomerSegments(await segRes.json());
+
+    } catch (error) {
+      console.error('Error loading metadata:', error);
+    }
+  };
 
   const loadCustomers = async () => {
     try {
@@ -75,14 +101,14 @@ const AdminCustomers = () => {
     if (searchTerm) {
       filtered = filtered.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.code && c.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
         c.phone.includes(searchTerm) ||
         c.address.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    if (filterHub !== 'all') {
-      filtered = filtered.filter(c => (c.hub || 'CENTRAL') === filterHub);
+    if (filterTerritory !== 'all') {
+      filtered = filtered.filter(c => c.territoryId === filterTerritory);
     }
 
     setFilteredCustomers(filtered);
@@ -100,7 +126,9 @@ const AdminCustomers = () => {
       province: '',
       district: '',
       ward: '',
-      hub: 'CENTRAL',
+      territoryId: '',
+      customerSegmentId: '',
+      type: 'PHARMACY',
       latitude: '',
       longitude: '',
       description: ''
@@ -120,7 +148,9 @@ const AdminCustomers = () => {
       province: customer.province || '',
       district: customer.district || '',
       ward: customer.ward || '',
-      hub: customer.hub || 'CENTRAL',
+      territoryId: customer.territoryId || '',
+      customerSegmentId: customer.customerSegmentId || '',
+      type: customer.type || 'PHARMACY',
       latitude: customer.latitude?.toString() || '',
       longitude: customer.longitude?.toString() || '',
       description: customer.description || ''
@@ -166,6 +196,7 @@ const AdminCustomers = () => {
       setLoading(true);
       const payload = {
         name: formData.name,
+        code: formData.code || null,
         ownerName: formData.owner || null,
         phone: formData.phone,
         email: formData.email || null,
@@ -173,9 +204,11 @@ const AdminCustomers = () => {
         province: formData.province || null,
         district: formData.district || null,
         ward: formData.ward || null,
+        territoryId: formData.territoryId || null,
+        customerSegmentId: formData.customerSegmentId || null,
+        type: formData.type || 'PHARMACY',
         latitude: formData.latitude ? parseFloat(formData.latitude) : null,
         longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-        hub: formData.hub || 'CENTRAL',
         description: formData.description || null,
       };
 
@@ -211,94 +244,104 @@ const AdminCustomers = () => {
     }
   };
 
-  const hubs = ['CENTRAL', 'CUCHI', 'DONGNAI'];
-
   // Export to Excel
   const handleExportExcel = () => {
     const data = filteredCustomers.map(customer => ({
       'Mã': customer.code || '',
       'Tên': customer.name || '',
-      'Chủ sở hữu': customer.owner || '',
+      'Phân loại': customer.type || '',
+      'Phân nhóm': customer.customerSegment?.name || '',
+      'Địa bàn': customer.territory?.name || '',
+      'Vùng': customer.territory?.region?.name || '',
+      'TDV Phụ trách': customer.customerAssignments?.map(a => a.user.name).join(', ') || '',
+      'Chủ sở hữu': customer.ownerName || '',
       'Địa chỉ': customer.address || '',
       'Số điện thoại': customer.phone || '',
       'Email': customer.email || '',
-      'Hub': customer.hub || '',
       'Tỉnh/TP': customer.province || '',
       'Quận/Huyện': customer.district || '',
       'Phường/Xã': customer.ward || '',
-      'Vĩ độ': customer.latitude || '',
-      'Kinh độ': customer.longitude || ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách khách hàng');
-
-    // Auto-size columns
-    const colWidths = [
-      { wch: 10 }, // Mã
-      { wch: 30 }, // Tên
-      { wch: 20 }, // Chủ sở hữu
-      { wch: 40 }, // Địa chỉ
-      { wch: 15 }, // Số điện thoại
-      { wch: 25 }, // Email
-      { wch: 12 }, // Hub
-      { wch: 15 }, // Tỉnh/TP
-      { wch: 15 }, // Quận/Huyện
-      { wch: 15 }, // Phường/Xã
-      { wch: 12 }, // Vĩ độ
-      { wch: 12 }  // Kinh độ
-    ];
-    ws['!cols'] = colWidths;
-
     XLSX.writeFile(wb, `Danh_sach_khach_hang_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // Import from Excel
-  const handleImportExcel = (e) => {
+  const handleDownloadTemplate = () => {
+    const headers = [
+      {
+        'Mã KH': 'KH001',
+        'Tên KH': 'Nhà thuốc A',
+        'Số điện thoại': '0909000000',
+        'Địa chỉ': '123 Đường ABC',
+        'Chủ sở hữu': 'Nguyễn Văn B',
+        'Email': 'b@example.com',
+        'Phân loại': 'PHARMACY',
+        'Mã Địa bàn': 'DB01',
+        'Mã Phân nhóm': 'PN01',
+        'Mô tả': 'Ghi chú'
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'Template_Khach_hang.xlsx');
+  };
+
+  const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = async (evt) => {
       try {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
 
-        // Validate and map data
-        const importedCustomers = jsonData.map((row, index) => {
-          const code = (row['Mã'] || row['Code'] || '').toString().trim();
-          const name = (row['Tên'] || row['Tên nhà thuốc'] || row['Name'] || '').toString().trim();
+        if (data.length === 0) {
+          alert('File không có dữ liệu');
+          return;
+        }
 
-          if (!name) {
-            throw new Error(`Dòng ${index + 2}: Thiếu Tên khách hàng`);
-          }
+        if (!window.confirm(`Tìm thấy ${data.length} dòng dữ liệu. Bạn có muốn import không?`)) return;
 
-          return {
-            name,
-            ownerName: (row['Chủ sở hữu'] || row['Owner'] || '').toString().trim() || null,
-            address: (row['Địa chỉ'] || row['Address'] || '').toString().trim(),
-            phone: (row['Số điện thoại'] || row['Phone'] || '').toString().trim(),
-            email: (row['Email'] || '').toString().trim() || null,
-            hub: (row['Hub'] || 'CENTRAL').toString().trim(),
-            province: (row['Tỉnh/TP'] || row['Province'] || '').toString().trim() || null,
-            district: (row['Quận/Huyện'] || row['District'] || '').toString().trim() || null,
-            ward: (row['Phường/Xã'] || row['Ward'] || '').toString().trim() || null,
-            latitude: row['Vĩ độ'] || row['Latitude'] ? parseFloat(row['Vĩ độ'] || row['Latitude']) : null,
-            longitude: row['Kinh độ'] || row['Longitude'] ? parseFloat(row['Kinh độ'] || row['Longitude']) : null,
-            description: null
-          };
-        });
-
-        // Import customers via API
+        setLoading(true);
         let successCount = 0;
         let errorCount = 0;
 
-        for (const importedCustomer of importedCustomers) {
+        for (const row of data) {
           try {
+            // Lookup IDs
+            const territoryCode = row['Mã Địa bàn'];
+            const segmentCode = row['Mã Phân nhóm'];
+
+            const territory = territories.find(t => t.code === territoryCode || t.name === territoryCode);
+            const segment = customerSegments.find(s => s.code === segmentCode || s.name === segmentCode);
+
+            const payload = {
+              code: row['Mã KH']?.toString(),
+              name: row['Tên KH'],
+              phone: row['Số điện thoại']?.toString(),
+              address: row['Địa chỉ'],
+              ownerName: row['Chủ sở hữu'],
+              email: row['Email'],
+              type: row['Phân loại'] || 'PHARMACY',
+              territoryId: territory?.id || null,
+              customerSegmentId: segment?.id || null,
+              description: row['Mô tả']
+            };
+
+            if (!payload.name || !payload.phone || !payload.address) {
+              console.warn('Skipping invalid row:', row);
+              errorCount++;
+              continue;
+            }
+
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/pharmacies`, {
               method: 'POST',
@@ -306,65 +349,40 @@ const AdminCustomers = () => {
                 'Content-Type': 'application/json',
                 'x-auth-token': token
               },
-              body: JSON.stringify(importedCustomer),
+              body: JSON.stringify(payload),
             });
 
             if (response.ok) {
               successCount++;
             } else {
               errorCount++;
-              const error = await response.json();
-              console.error(`Error importing customer ${importedCustomer.name}:`, error.error);
             }
-          } catch (error) {
+          } catch (err) {
+            console.error('Error importing row:', err);
             errorCount++;
-            console.error(`Error importing customer ${importedCustomer.name}:`, error);
           }
         }
 
-        alert(`Đã import ${successCount} khách hàng thành công${errorCount > 0 ? `, ${errorCount} lỗi` : ''}!`);
-        loadCustomers(); // Reload customers from API
-        e.target.value = ''; // Reset input
+        alert(`Import hoàn tất!\nThành công: ${successCount}\nThất bại: ${errorCount}`);
+        loadCustomers();
       } catch (error) {
-        alert(`Lỗi import: ${error.message}`);
-        e.target.value = ''; // Reset input
+        console.error('Error parsing excel:', error);
+        alert('Lỗi khi đọc file Excel');
+      } finally {
+        setLoading(false);
+        e.target.value = null;
       }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsBinaryString(file);
   };
 
-  // Download template Excel
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        'Mã': 'NT001',
-        'Tên': 'Nhà thuốc ABC',
-        'Chủ sở hữu': 'Nguyễn Văn A',
-        'Địa chỉ': '123 Đường ABC, Quận 1, TP.HCM',
-        'Số điện thoại': '0901234567',
-        'Email': 'nt001@example.com',
-        'Hub': 'Trung tâm',
-        'Tỉnh/TP': 'TP.HCM',
-        'Quận/Huyện': 'Quận 1',
-        'Phường/Xã': 'Phường 1',
-        'Vĩ độ': '10.7769',
-        'Kinh độ': '106.7009'
-      }
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-
-    const colWidths = [
-      { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 40 }, { wch: 15 },
-      { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-      { wch: 12 }, { wch: 12 }
-    ];
-    ws['!cols'] = colWidths;
-
-    XLSX.writeFile(wb, 'Template_Import_Khach_Hang.xlsx');
-  };
+  const pharmacyTypes = [
+    { value: 'PHARMACY', label: 'Nhà thuốc' },
+    { value: 'CLINIC', label: 'Phòng khám' },
+    { value: 'HOSPITAL', label: 'Bệnh viện' },
+    { value: 'DRUGSTORE', label: 'Quầy thuốc' },
+    { value: 'WHOLESALER', label: 'Đại lý/Sỉ' }
+  ];
 
   return (
     <div style={{ padding: isMobile ? '0' : '0' }}>
@@ -399,49 +417,6 @@ const AdminCustomers = () => {
           flexWrap: 'wrap'
         }}>
           <button
-            onClick={handleDownloadTemplate}
-            style={{
-              padding: isMobile ? '10px 16px' : '12px 24px',
-              background: '#3b82f6',
-              border: 'none',
-              borderRadius: isMobile ? '10px' : '12px',
-              color: '#fff',
-              fontSize: isMobile ? '13px' : '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <span>📥</span>
-            <span>Template</span>
-          </button>
-          <label style={{
-            padding: isMobile ? '10px 16px' : '12px 24px',
-            background: '#10b981',
-            border: 'none',
-            borderRadius: isMobile ? '10px' : '12px',
-            color: '#fff',
-            fontSize: isMobile ? '13px' : '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            whiteSpace: 'nowrap'
-          }}>
-            <span>📤</span>
-            <span>Import Excel</span>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleImportExcel}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <button
             onClick={handleExportExcel}
             style={{
               padding: isMobile ? '10px 16px' : '12px 24px',
@@ -461,6 +436,51 @@ const AdminCustomers = () => {
             <span>📊</span>
             <span>Export Excel</span>
           </button>
+          <button
+            onClick={handleDownloadTemplate}
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#10b981',
+              border: 'none',
+              borderRadius: isMobile ? '10px' : '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>📥</span>
+            <span>Template</span>
+          </button>
+          <label
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#3b82f6',
+              border: 'none',
+              borderRadius: isMobile ? '10px' : '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>📤</span>
+            <span>Import</span>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleImportExcel}
+              style={{ display: 'none' }}
+            />
+          </label>
           <button
             onClick={handleAdd}
             style={{
@@ -511,8 +531,8 @@ const AdminCustomers = () => {
           }}
         />
         <select
-          value={filterHub}
-          onChange={(e) => setFilterHub(e.target.value)}
+          value={filterTerritory}
+          onChange={(e) => setFilterTerritory(e.target.value)}
           style={{
             padding: isMobile ? '10px 14px' : '12px 16px',
             border: '2px solid #e5e7eb',
@@ -524,80 +544,84 @@ const AdminCustomers = () => {
             boxSizing: 'border-box'
           }}
         >
-          <option value="all">Tất cả Hub</option>
-          {hubs.map(hub => (
-            <option key={hub} value={hub}>{hub}</option>
+          <option value="all">Tất cả Địa bàn</option>
+          {territories.map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
           ))}
         </select>
       </div>
 
-      {/* Mobile Card View */}
-      {isMobile ? (
+      {/* Desktop Table View */}
+      <div style={{
+        background: '#fff',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        overflowX: 'auto'
+      }}>
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
+          display: 'grid',
+          gridTemplateColumns: '50px 80px 150px 100px 120px 100px 120px 1fr 100px',
+          gap: '16px',
+          padding: '16px 20px',
+          background: '#f9fafb',
+          borderBottom: '2px solid #e5e7eb',
+          fontWeight: '600',
+          fontSize: '14px',
+          color: '#1a1a2e',
+          minWidth: '1000px'
         }}>
+          <div>STT</div>
+          <div>Mã</div>
+          <div>Tên KH</div>
+          <div>Phân loại</div>
+          <div>Địa bàn</div>
+          <div>Vùng</div>
+          <div>TDV</div>
+          <div>Địa chỉ</div>
+          <div>Thao tác</div>
+        </div>
+        <div style={{ maxHeight: '600px', overflowY: 'auto', minWidth: '1000px' }}>
           {filteredCustomers.map((customer, index) => (
             <div
               key={customer.id}
               style={{
-                background: '#fff',
-                borderRadius: '12px',
-                padding: '16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: '1px solid #e5e7eb'
+                display: 'grid',
+                gridTemplateColumns: '50px 80px 150px 100px 120px 100px 120px 1fr 100px',
+                gap: '16px',
+                padding: '16px 20px',
+                borderBottom: '1px solid #e5e7eb',
+                alignItems: 'center',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#fff';
               }}
             >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'start',
-                marginBottom: '12px'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1E4A8B',
-                    marginBottom: '4px'
-                  }}>
-                    {customer.code}
-                  </div>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1a1a2e',
-                    marginBottom: '8px'
-                  }}>
-                    {customer.name}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    📍 {customer.address}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    👤 {customer.owner}
-                  </div>
-                </div>
-                <span style={{
-                  padding: '4px 10px',
-                  background: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#F29E2E15' : '#1E4A8B15',
-                  color: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#F29E2E' : '#1E4A8B',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {customer.hub}
-                </span>
+              <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>
+                {customer.code}
+              </div>
+              <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
+                {customer.name}
+              </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>
+                {pharmacyTypes.find(t => t.value === customer.type)?.label || customer.type}
+              </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>
+                {customer.territory?.name}
+              </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>
+                {customer.territory?.region?.name}
+              </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>
+                {customer.customerAssignments?.map(a => a.user.name).join(', ')}
+              </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>
+                {customer.address.length > 30 ? customer.address.substring(0, 30) + '...' : customer.address}
               </div>
               <div style={{
                 display: 'flex',
@@ -606,151 +630,36 @@ const AdminCustomers = () => {
                 <button
                   onClick={() => handleEdit(customer)}
                   style={{
-                    flex: 1,
-                    padding: '10px',
+                    padding: '6px 12px',
                     background: '#FBC93D15',
                     border: '1px solid #FBC93D',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     color: '#FBC93D',
-                    fontSize: '13px',
-                    fontWeight: '600',
+                    fontSize: '12px',
                     cursor: 'pointer'
                   }}
                 >
-                  ✏️ Sửa
+                  ✏️
                 </button>
                 <button
                   onClick={() => handleDelete(customer.id)}
                   style={{
-                    flex: 1,
-                    padding: '10px',
+                    padding: '6px 12px',
                     background: '#fee2e2',
                     border: '1px solid #fecaca',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     color: '#dc2626',
-                    fontSize: '13px',
-                    fontWeight: '600',
+                    fontSize: '12px',
                     cursor: 'pointer'
                   }}
                 >
-                  🗑️ Xóa
+                  🗑️
                 </button>
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        /* Desktop Table View */
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '80px 120px 1fr 200px 150px 120px 120px',
-            gap: '16px',
-            padding: '16px 20px',
-            background: '#f9fafb',
-            borderBottom: '2px solid #e5e7eb',
-            fontWeight: '600',
-            fontSize: '14px',
-            color: '#1a1a2e'
-          }}>
-            <div>STT</div>
-            <div>Mã</div>
-            <div>Tên nhà thuốc</div>
-            <div>Địa chỉ</div>
-            <div>Chủ sở hữu</div>
-            <div>Hub</div>
-            <div>Thao tác</div>
-          </div>
-          <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
-            {filteredCustomers.map((customer, index) => (
-              <div
-                key={customer.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '80px 120px 1fr 200px 150px 120px 120px',
-                  gap: '16px',
-                  padding: '16px 20px',
-                  borderBottom: '1px solid #e5e7eb',
-                  alignItems: 'center',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f9fafb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#fff';
-                }}
-              >
-                <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>
-                  {customer.code}
-                </div>
-                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
-                  {customer.name}
-                </div>
-                <div style={{ fontSize: '13px', color: '#666' }}>
-                  {customer.address.length > 30 ? customer.address.substring(0, 30) + '...' : customer.address}
-                </div>
-                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
-                  {customer.owner}
-                </div>
-                <div>
-                  <span style={{
-                    padding: '4px 12px',
-                    background: customer.hub === 'Củ Chi' ? '#F29E2E15' :
-                      customer.hub === 'Đồng Nai' ? '#F29E2E15' : '#1E4A8B15',
-                    color: customer.hub === 'Củ Chi' ? '#F29E2E' :
-                      customer.hub === 'Đồng Nai' ? '#F29E2E' : '#1E4A8B',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {customer.hub}
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '8px'
-                }}>
-                  <button
-                    onClick={() => handleEdit(customer)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#FBC93D15',
-                      border: '1px solid #FBC93D',
-                      borderRadius: '6px',
-                      color: '#FBC93D',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(customer.id)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#fee2e2',
-                      border: '1px solid #fecaca',
-                      borderRadius: '6px',
-                      color: '#dc2626',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Modal */}
       {showModal && (
@@ -774,7 +683,7 @@ const AdminCustomers = () => {
               borderRadius: isMobile ? '12px' : '16px',
               padding: isMobile ? '20px' : '32px',
               width: '90%',
-              maxWidth: '600px',
+              maxWidth: '800px',
               maxHeight: '90vh',
               overflowY: 'auto',
               boxSizing: 'border-box'
@@ -791,248 +700,113 @@ const AdminCustomers = () => {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
               gap: '16px',
               marginBottom: '16px'
             }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Mã khách hàng
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Mã KH</label>
                 <input
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Hub
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Tên KH *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Phân loại</label>
                 <select
-                  value={formData.hub}
-                  onChange={(e) => setFormData({ ...formData, hub: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 >
-                  {hubs.map(hub => (
-                    <option key={hub} value={hub}>{hub}</option>
+                  {pharmacyTypes.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                marginBottom: '8px',
-                color: '#1a1a2e'
-              }}>
-                Tên nhà thuốc *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#1a1a2e',
-                  background: '#fff'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '600',
-                marginBottom: '8px',
-                color: '#1a1a2e'
-              }}>
-                Địa chỉ *
-              </label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#1a1a2e',
-                  background: '#fff'
-                }}
-              />
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '16px'
-            }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Số điện thoại *
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Phân nhóm</label>
+                <select
+                  value={formData.customerSegmentId}
+                  onChange={(e) => setFormData({ ...formData, customerSegmentId: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                >
+                  <option value="">-- Chọn phân nhóm --</option>
+                  {customerSegments.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Chủ sở hữu
-                </label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Địa bàn</label>
+                <select
+                  value={formData.territoryId}
+                  onChange={(e) => setFormData({ ...formData, territoryId: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                >
+                  <option value="">-- Chọn địa bàn --</option>
+                  {territories.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Chủ sở hữu</label>
                 <input
                   type="text"
                   value={formData.owner}
                   onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Số điện thoại *</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Địa chỉ *</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
               </div>
             </div>
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '24px'
-            }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Vĩ độ
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.latitude}
-                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
-                  color: '#1a1a2e'
-                }}>
-                  Kinh độ
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.longitude}
-                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end'
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
-                  padding: '12px 24px',
+                  padding: '10px 24px',
                   background: '#f3f4f6',
                   border: 'none',
                   borderRadius: '8px',
-                  fontSize: '14px',
+                  color: '#4b5563',
                   fontWeight: '600',
                   cursor: 'pointer'
                 }}
@@ -1041,18 +815,19 @@ const AdminCustomers = () => {
               </button>
               <button
                 onClick={handleSave}
+                disabled={loading}
                 style={{
-                  padding: '12px 24px',
-                  background: '#F29E2E',
+                  padding: '10px 24px',
+                  background: '#3b82f6',
                   border: 'none',
                   borderRadius: '8px',
                   color: '#fff',
-                  fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  opacity: loading ? 0.7 : 1
                 }}
               >
-                Lưu
+                {loading ? 'Đang lưu...' : 'Lưu'}
               </button>
             </div>
           </div>
@@ -1063,4 +838,3 @@ const AdminCustomers = () => {
 };
 
 export default AdminCustomers;
-

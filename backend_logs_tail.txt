@@ -1,0 +1,166 @@
+2025-12-02 06:00:09 [31merror[39m: [31m[39m
+[31mInvalid `prisma.user.findUnique()` invocation:[39m
+
+[31m{[39m
+[31m  where: {[39m
+[31m    employeeCode: "ADMIN",[39m
+[31m    ~~~~~~~~~~~~[39m
+[31m?   id?: String,[39m
+[31m?   username?: String,[39m
+[31m?   AND?: UserWhereInput | UserWhereInput[],[39m
+[31m?   OR?: UserWhereInput[],[39m
+[31m?   NOT?: UserWhereInput | UserWhereInput[],[39m
+[31m?   password?: StringFilter | String,[39m
+[31m?   role?: StringFilter | String,[39m
+[31m?   createdAt?: DateTimeFilter | DateTime,[39m
+[31m?   updatedAt?: DateTimeFilter | DateTime[39m
+[31m  }[39m
+[31m}[39m
+
+[31mUnknown argument `employeeCode`. Available options are marked with ?.[39m
+PrismaClientValidationError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+{
+  where: {
+    employeeCode: "ADMIN",
+    ~~~~~~~~~~~~
+?   id?: String,
+?   username?: String,
+?   AND?: UserWhereInput | UserWhereInput[],
+?   OR?: UserWhereInput[],
+?   NOT?: UserWhereInput | UserWhereInput[],
+?   password?: StringFilter | String,
+?   role?: StringFilter | String,
+?   createdAt?: DateTimeFilter | DateTime,
+?   updatedAt?: DateTimeFilter | DateTime
+  }
+}
+
+Unknown argument `employeeCode`. Available options are marked with ?.
+    at wn (/app/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/app/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/app/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/app/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/app/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async file:///app/routes/auth.js:86:22
+🚀 Starting DMS Backend...
+⏳ Waiting for PostgreSQL...
+postgres:5432 - accepting connections
+✅ PostgreSQL is ready!
+📦 Generating Prisma Client...
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 58ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to react to database changes in your app as they happen? Discover how with Pulse: https://pris.ly/tip-1-pulse
+
+🔄 Running database migrations...
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "anminh_db", schema "public" at "postgres:5432"
+
+The database is already in sync with the Prisma schema.
+
+✅ Database ready!
+2025-12-02 06:03:30 [32minfo[39m: [32mLogger initialized in production mode[39m
+2025-12-02 06:03:30 [32minfo[39m: [32mRegistering routes...[39m
+2025-12-02 06:03:30 [32minfo[39m: [32mServer đang chạy trên port 5000[39m
+2025-12-02 06:03:30 [32minfo[39m: [32mEnvironment: production[39m
+2025-12-02 06:03:30 [32minfo[39m: [32mJWT_SECRET: ✅ Đã cấu hình[39m
+2025-12-02 06:03:30 [32minfo[39m: [32mDATABASE_URL: ✅ Đã cấu hình[39m
+2025-12-02 06:04:03 [31merror[39m: [31m[39m
+[31mInvalid `prisma.user.findUnique()` invocation:[39m
+
+[31m{[39m
+[31m  where: {[39m
+[31m    employeeCode: "ADMIN",[39m
+[31m    ~~~~~~~~~~~~[39m
+[31m?   id?: String,[39m
+[31m?   username?: String,[39m
+[31m?   AND?: UserWhereInput | UserWhereInput[],[39m
+[31m?   OR?: UserWhereInput[],[39m
+[31m?   NOT?: UserWhereInput | UserWhereInput[],[39m
+[31m?   password?: StringFilter | String,[39m
+[31m?   role?: StringFilter | String,[39m
+[31m?   createdAt?: DateTimeFilter | DateTime,[39m
+[31m?   updatedAt?: DateTimeFilter | DateTime[39m
+[31m  }[39m
+[31m}[39m
+
+[31mUnknown argument `employeeCode`. Available options are marked with ?.[39m
+PrismaClientValidationError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+{
+  where: {
+    employeeCode: "ADMIN",
+    ~~~~~~~~~~~~
+?   id?: String,
+?   username?: String,
+?   AND?: UserWhereInput | UserWhereInput[],
+?   OR?: UserWhereInput[],
+?   NOT?: UserWhereInput | UserWhereInput[],
+?   password?: StringFilter | String,
+?   role?: StringFilter | String,
+?   createdAt?: DateTimeFilter | DateTime,
+?   updatedAt?: DateTimeFilter | DateTime
+  }
+}
+
+Unknown argument `employeeCode`. Available options are marked with ?.
+    at wn (/app/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/app/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/app/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/app/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/app/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async file:///app/routes/auth.js:86:22
+2025-12-02 06:06:22 [31merror[39m: [31m[39m
+[31mInvalid `prisma.user.findUnique()` invocation:[39m
+
+[31m{[39m
+[31m  where: {[39m
+[31m    employeeCode: "ADMIN",[39m
+[31m    ~~~~~~~~~~~~[39m
+[31m?   id?: String,[39m
+[31m?   username?: String,[39m
+[31m?   AND?: UserWhereInput | UserWhereInput[],[39m
+[31m?   OR?: UserWhereInput[],[39m
+[31m?   NOT?: UserWhereInput | UserWhereInput[],[39m
+[31m?   password?: StringFilter | String,[39m
+[31m?   role?: StringFilter | String,[39m
+[31m?   createdAt?: DateTimeFilter | DateTime,[39m
+[31m?   updatedAt?: DateTimeFilter | DateTime[39m
+[31m  }[39m
+[31m}[39m
+
+[31mUnknown argument `employeeCode`. Available options are marked with ?.[39m
+PrismaClientValidationError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+{
+  where: {
+    employeeCode: "ADMIN",
+    ~~~~~~~~~~~~
+?   id?: String,
+?   username?: String,
+?   AND?: UserWhereInput | UserWhereInput[],
+?   OR?: UserWhereInput[],
+?   NOT?: UserWhereInput | UserWhereInput[],
+?   password?: StringFilter | String,
+?   role?: StringFilter | String,
+?   createdAt?: DateTimeFilter | DateTime,
+?   updatedAt?: DateTimeFilter | DateTime
+  }
+}
+
+Unknown argument `employeeCode`. Available options are marked with ?.
+    at wn (/app/node_modules/@prisma/client/runtime/library.js:29:1363)
+    at $n.handleRequestError (/app/node_modules/@prisma/client/runtime/library.js:121:6958)
+    at $n.handleAndLogRequestError (/app/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/app/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/app/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async file:///app/routes/auth.js:86:22

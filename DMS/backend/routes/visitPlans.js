@@ -213,13 +213,23 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Helper: Tính tuần của tháng (1-5)
+const getWeekOfMonth = (date) => {
+  const day = date.getDate();
+  return Math.ceil(day / 7);
+};
+
 // Helper function to generate plans
-const generateVisitPlans = async ({ userId, pharmacyId, daysOfWeek, startDate, endDate, frequency }) => {
+const generateVisitPlans = async ({ userId, pharmacyId, daysOfWeek, startDate, endDate, frequency, visitTime }) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
+  // Reset giờ để tránh lỗi so sánh
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+
   const plans = [];
 
-  // Xóa plan cũ chưa thực hiện
+  // Xóa plan cũ chưa thực hiện trong khoảng thời gian này
   await prisma.visitPlan.deleteMany({
     where: {
       userId,
@@ -229,20 +239,38 @@ const generateVisitPlans = async ({ userId, pharmacyId, daysOfWeek, startDate, e
     }
   });
 
+  // Loop qua từng ngày
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const jsDay = d.getDay();
-    const schemaDay = jsDay === 0 ? 1 : jsDay + 1;
+    const jsDay = d.getDay(); // 0=CN, 1=T2...
+    const schemaDay = jsDay === 0 ? 1 : jsDay + 1; // 1=CN, 2=T2...
 
-    if (daysOfWeek.includes(schemaDay)) {
-      plans.push({
-        userId,
-        pharmacyId,
-        visitDate: new Date(d),
-        dayOfWeek: schemaDay,
-        status: 'PLANNED',
-        frequency: frequency || 'F4'
-      });
+    // 1. Check Thứ (Day of Week)
+    if (!daysOfWeek.includes(schemaDay)) continue;
+
+    // 2. Check Tần suất (Frequency)
+    if (frequency === 'F2-ODD' || frequency === 'F2-EVEN') {
+      const weekNum = getWeekOfMonth(d);
+      const isOddWeek = weekNum % 2 !== 0; // Tuần 1, 3, 5
+
+      if (frequency === 'F2-ODD' && !isOddWeek) continue; // F2-Lẻ mà gặp tuần Chẵn -> Bỏ
+      if (frequency === 'F2-EVEN' && isOddWeek) continue; // F2-Chẵn mà gặp tuần Lẻ -> Bỏ
     }
+
+    // F1 (Tháng 1 lần) - Chỉ chọn tuần đầu tiên của tháng làm mẫu
+    if (frequency === 'F1') {
+      const weekNum = getWeekOfMonth(d);
+      if (weekNum !== 1) continue; // Chỉ đi tuần 1
+    }
+
+    plans.push({
+      userId,
+      pharmacyId,
+      visitDate: new Date(d),
+      dayOfWeek: schemaDay,
+      status: 'PLANNED',
+      frequency: frequency || 'F4',
+      visitTime: visitTime || '08:00'
+    });
   }
 
   if (plans.length > 0) {
@@ -257,15 +285,26 @@ router.post('/generate', async (req, res) => {
     const { userId, pharmacyIds, daysOfWeek, startDate, endDate, frequency } = req.body;
     let totalCreated = 0;
 
+    // Khởi tạo thời gian bắt đầu là 08:00
+    let currentTime = new Date();
+    currentTime.setHours(8, 0, 0);
+
     for (const pharmacyId of pharmacyIds) {
+      // Format HH:mm
+      const timeString = currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
       const count = await generateVisitPlans({
         userId,
         pharmacyId,
         daysOfWeek,
         startDate,
         endDate,
-        frequency
+        frequency,
+        visitTime: timeString
       });
+
+      // Tăng 30 phút cho khách tiếp theo
+      currentTime.setMinutes(currentTime.getMinutes() + 30);
       totalCreated += count;
     }
 
@@ -443,4 +482,3 @@ router.get('/current/:userId', async (req, res) => {
 });
 
 export default router;
-

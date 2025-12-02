@@ -1,0 +1,49 @@
+🚀 Starting DMS Backend...
+⏳ Waiting for PostgreSQL...
+postgres:5432 - accepting connections
+✅ PostgreSQL is ready!
+📦 Generating Prisma Client...
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 59ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+
+🔄 Running database migrations...
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "anminh_db", schema "public" at "postgres:5432"
+
+The database is already in sync with the Prisma schema.
+
+✅ Database ready!
+2025-12-02 06:30:32 [32minfo[39m: [32mLogger initialized in production mode[39m
+2025-12-02 06:30:32 [32minfo[39m: [32mServer running on port 5000[39m
+2025-12-02 06:30:34 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:30:52 [32minfo[39m: [32mOPTIONS /api/auth/login[39m
+2025-12-02 06:31:04 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:31:34 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:31:59 [32minfo[39m: [32mOPTIONS /api/auth/login[39m
+2025-12-02 06:32:04 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:32:25 [32minfo[39m: [32mOPTIONS /api/auth/login[39m
+2025-12-02 06:32:34 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:33:04 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:33:34 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:34:04 [32minfo[39m: [32mOPTIONS /api/auth/login[39m
+2025-12-02 06:34:04 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:34:29 [32minfo[39m: [32mOPTIONS /api/auth/login[39m
+2025-12-02 06:34:35 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:34:42 [32minfo[39m: [32mOPTIONS /api/auth/login[39m
+2025-12-02 06:35:02 [32minfo[39m: [32mOPTIONS /api/auth/login?nocache=1[39m
+2025-12-02 06:35:05 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:35:35 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:36:05 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:36:27 [32minfo[39m: [32mPOST /api/auth/login[39m
+2025-12-02 06:36:27 [32minfo[39m: [32mLOGIN FAILED: User not found: "ADMIN"[39m
+2025-12-02 06:36:35 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:37:05 [32minfo[39m: [32mGET /api[39m
+2025-12-02 06:37:25 [32minfo[39m: [32mGET /api/auth/login[39m
+2025-12-02 06:37:35 [32minfo[39m: [32mGET /api[39m

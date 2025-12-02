@@ -7,17 +7,6 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const regions = await prisma.region.findMany({
-      where: { isActive: true },
-      include: {
-        businessUnits: {
-          where: { isActive: true },
-          include: {
-            territories: {
-              where: { isActive: true }
-            }
-          }
-        }
-      },
       orderBy: { code: 'asc' }
     });
     res.json(regions);
@@ -31,14 +20,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const region = await prisma.region.findUnique({
-      where: { id: req.params.id },
-      include: {
-        businessUnits: {
-          include: {
-            territories: true
-          }
-        }
-      }
+      where: { id: req.params.id }
     });
     if (!region) {
       return res.status(404).json({ message: 'Không tìm thấy vùng' });
@@ -53,9 +35,9 @@ router.get('/:id', async (req, res) => {
 // Tạo vùng mới
 router.post('/', async (req, res) => {
   try {
-    const { code, name, description } = req.body;
+    const { code, name } = req.body;
     const region = await prisma.region.create({
-      data: { code, name, description }
+      data: { code, name }
     });
     res.json(region);
   } catch (error) {
@@ -70,10 +52,10 @@ router.post('/', async (req, res) => {
 // Cập nhật vùng
 router.put('/:id', async (req, res) => {
   try {
-    const { code, name, description, isActive } = req.body;
+    const { code, name } = req.body;
     const region = await prisma.region.update({
       where: { id: req.params.id },
-      data: { code, name, description, isActive }
+      data: { code, name }
     });
     res.json(region);
   } catch (error) {
@@ -85,9 +67,8 @@ router.put('/:id', async (req, res) => {
 // Xóa vùng
 router.delete('/:id', async (req, res) => {
   try {
-    await prisma.region.update({
-      where: { id: req.params.id },
-      data: { isActive: false }
+    await prisma.region.delete({
+      where: { id: req.params.id }
     });
     res.json({ message: 'Đã xóa vùng' });
   } catch (error) {
@@ -97,4 +78,3 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
-

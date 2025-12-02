@@ -6,20 +6,17 @@ const router = express.Router();
 // Lấy danh sách địa bàn
 router.get('/', async (req, res) => {
   try {
-    const { regionId, businessUnitId } = req.query;
-    const where = { isActive: true };
+    const { regionId } = req.query;
+    const where = {};
     if (regionId) where.regionId = regionId;
-    if (businessUnitId) where.businessUnitId = businessUnitId;
 
     const territories = await prisma.territory.findMany({
       where,
       include: {
         region: true,
-        businessUnit: true,
         _count: {
           select: {
-            customerAssignments: true,
-            visitPlans: true
+            pharmacies: true
           }
         }
       },
@@ -35,12 +32,11 @@ router.get('/', async (req, res) => {
 // Tạo địa bàn mới
 router.post('/', async (req, res) => {
   try {
-    const { code, name, regionId, businessUnitId, description } = req.body;
+    const { code, name, regionId } = req.body;
     const territory = await prisma.territory.create({
-      data: { code, name, regionId, businessUnitId, description },
+      data: { code, name, regionId },
       include: {
-        region: true,
-        businessUnit: true
+        region: true
       }
     });
     res.json(territory);
@@ -56,13 +52,12 @@ router.post('/', async (req, res) => {
 // Cập nhật địa bàn
 router.put('/:id', async (req, res) => {
   try {
-    const { code, name, regionId, businessUnitId, description, isActive } = req.body;
+    const { code, name, regionId } = req.body;
     const territory = await prisma.territory.update({
       where: { id: req.params.id },
-      data: { code, name, regionId, businessUnitId, description, isActive },
+      data: { code, name, regionId },
       include: {
-        region: true,
-        businessUnit: true
+        region: true
       }
     });
     res.json(territory);
@@ -75,9 +70,8 @@ router.put('/:id', async (req, res) => {
 // Xóa địa bàn
 router.delete('/:id', async (req, res) => {
   try {
-    await prisma.territory.update({
-      where: { id: req.params.id },
-      data: { isActive: false }
+    await prisma.territory.delete({
+      where: { id: req.params.id }
     });
     res.json({ message: 'Đã xóa địa bàn' });
   } catch (error) {
@@ -87,4 +81,3 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
-

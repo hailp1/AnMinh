@@ -12,6 +12,11 @@ const AdminUsers = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Metadata
+  const [regions, setRegions] = useState([]);
+  const [managers, setManagers] = useState([]);
+
   const [formData, setFormData] = useState({
     name: '',
     employeeCode: '',
@@ -19,7 +24,10 @@ const AdminUsers = () => {
     phone: '',
     email: '',
     role: 'TDV',
-    password: ''
+    password: '',
+    managerId: '',
+    regionId: '',
+    channel: ''
   });
 
   useEffect(() => {
@@ -32,11 +40,29 @@ const AdminUsers = () => {
 
   useEffect(() => {
     loadUsers();
+    loadMetadata();
   }, []);
 
   useEffect(() => {
     filterUsers();
   }, [searchTerm, filterRole, users]);
+
+  const loadMetadata = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'x-auth-token': token };
+
+      const regRes = await fetch(`${API_BASE}/regions`, { headers });
+      if (regRes.ok) setRegions(await regRes.json());
+
+      // Managers are users with role QL or ADMIN
+      // We can reuse users list if loaded, but better fetch specifically if needed
+      // For simplicity, we filter from the main users list after it's loaded, 
+      // or fetch a separate list if the main list is paginated (currently it's all users)
+    } catch (error) {
+      console.error('Error loading metadata:', error);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -51,6 +77,8 @@ const AdminUsers = () => {
       if (response.ok) {
         const data = await response.json();
         setUsers(Array.isArray(data) ? data : []);
+        // Update managers list from users
+        setManagers(data.filter(u => ['QL', 'ADMIN'].includes(u.role)));
       } else {
         console.warn('Failed to load users:', response.status);
         setUsers([]);
@@ -92,7 +120,10 @@ const AdminUsers = () => {
       phone: '',
       email: '',
       role: 'TDV',
-      password: ''
+      password: '',
+      managerId: '',
+      regionId: '',
+      channel: ''
     });
     setShowModal(true);
   };
@@ -106,7 +137,10 @@ const AdminUsers = () => {
       phone: user.phone || '',
       email: user.email || '',
       role: user.role || 'TDV',
-      password: ''
+      password: '',
+      managerId: user.manager?.id || '',
+      regionId: user.region?.id || '',
+      channel: user.channel || ''
     });
     setShowModal(true);
   };
@@ -160,6 +194,9 @@ const AdminUsers = () => {
         phone: formData.phone || null,
         email: formData.email || null,
         role: formData.role,
+        managerId: formData.managerId || null,
+        regionId: formData.regionId || null,
+        channel: formData.channel || null
       };
 
       if (formData.password) {
@@ -221,6 +258,9 @@ const AdminUsers = () => {
       'Số điện thoại': user.phone || '',
       'Email': user.email || '',
       'Vai trò': user.role || '',
+      'Quản lý trực tiếp': user.manager?.name || '',
+      'Vùng': user.region?.name || '',
+      'Kênh': user.channel || '',
       'Trạng thái': user.isActive ? 'Hoạt động' : 'Không hoạt động',
       'Ngày tạo': user.createdAt ? formatDate(user.createdAt) : ''
     }));
@@ -228,130 +268,110 @@ const AdminUsers = () => {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách nhân viên');
-
-    // Auto-size columns
-    const colWidths = [
-      { wch: 12 }, // Mã NV
-      { wch: 25 }, // Tên
-      { wch: 12 }, // Mã tuyến
-      { wch: 15 }, // Số điện thoại
-      { wch: 25 }, // Email
-      { wch: 15 }, // Vai trò
-      { wch: 12 }, // Trạng thái
-      { wch: 20 }  // Lần đăng nhập cuối
-    ];
-    ws['!cols'] = colWidths;
-
     XLSX.writeFile(wb, `Danh_sach_nhan_vien_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  // Import from Excel
-  const handleImportExcel = (e) => {
+  const handleDownloadTemplate = () => {
+    const headers = [
+      {
+        'Tên': 'Nguyễn Văn A',
+        'Mã NV': 'NV001',
+        'Mật khẩu': '123456',
+        'Vai trò': 'TDV',
+        'SĐT': '0909000000',
+        'Email': 'a@example.com',
+        'Mã tuyến': 'T01',
+        'Kênh': 'OTC'
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(headers);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, 'Template_Nguoi_dung.xlsx');
+  };
+
+  const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = async (evt) => {
       try {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
 
-        // Validate and map data
-        const importedUsers = jsonData.map((row, index) => {
-          const employeeCode = (row['Mã NV'] || row['Mã nhân viên'] || '').toString().trim().toUpperCase();
-          const name = (row['Tên'] || row['Họ tên'] || '').toString().trim();
-          const role = (row['Vai trò'] || row['Role'] || 'TDV').toString().toUpperCase();
+        if (data.length === 0) {
+          alert('File không có dữ liệu');
+          return;
+        }
 
-          if (!employeeCode || !name) {
-            throw new Error(`Dòng ${index + 2}: Thiếu Mã NV hoặc Tên`);
-          }
+        if (!window.confirm(`Tìm thấy ${data.length} dòng dữ liệu. Bạn có muốn import không?`)) return;
 
-          return {
-            employeeCode,
-            name,
-            routeCode: (row['Mã tuyến'] || row['Mã tuyến phụ trách'] || '').toString().trim() || null,
-            phone: (row['Số điện thoại'] || row['Phone'] || '').toString().trim() || null,
-            email: (row['Email'] || '').toString().trim() || null,
-            role: ['TDV', 'QL', 'KT', 'ADMIN'].includes(role) ? role : 'TDV',
-            password: '123456' // Default password
-          };
-        });
-
-        // Import users via API
+        setLoading(true);
         let successCount = 0;
         let errorCount = 0;
 
-        const token = localStorage.getItem('token');
-        for (const importedUser of importedUsers) {
+        for (const row of data) {
           try {
+            const payload = {
+              name: row['Tên'],
+              employeeCode: row['Mã NV']?.toString().toUpperCase(),
+              password: row['Mật khẩu']?.toString(),
+              role: row['Vai trò'] || 'TDV',
+              phone: row['SĐT']?.toString(),
+              email: row['Email'],
+              routeCode: row['Mã tuyến']?.toString(),
+              channel: row['Kênh']
+            };
+
+            if (!payload.name || !payload.employeeCode || !payload.password) {
+              console.warn('Skipping invalid row:', row);
+              errorCount++;
+              continue;
+            }
+
+            const token = localStorage.getItem('token');
             const response = await fetch(`${API_BASE}/users/admin/users`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { 'x-auth-token': token } : {}),
+                'x-auth-token': token
               },
-              body: JSON.stringify(importedUser),
+              body: JSON.stringify(payload),
             });
 
             if (response.ok) {
               successCount++;
             } else {
               errorCount++;
-              const error = await response.json();
-              console.error(`Error importing user ${importedUser.employeeCode}:`, error.error);
             }
-          } catch (error) {
+          } catch (err) {
+            console.error('Error importing row:', err);
             errorCount++;
-            console.error(`Error importing user ${importedUser.employeeCode}:`, error);
           }
         }
 
-        alert(`Đã import ${successCount} người dùng thành công${errorCount > 0 ? `, ${errorCount} lỗi` : ''}!`);
-        loadUsers(); // Reload users from API
-        e.target.value = ''; // Reset input
+        alert(`Import hoàn tất!\nThành công: ${successCount}\nThất bại: ${errorCount}`);
+        loadUsers();
       } catch (error) {
-        alert(`Lỗi import: ${error.message}`);
-        e.target.value = ''; // Reset input
+        console.error('Error parsing excel:', error);
+        alert('Lỗi khi đọc file Excel');
+      } finally {
+        setLoading(false);
+        e.target.value = null;
       }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsBinaryString(file);
   };
 
-  // Download template Excel
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        'Mã NV': 'TDV001',
-        'Tên': 'Nguyễn Văn A',
-        'Mã tuyến': 'T001',
-        'Số điện thoại': '0901234567',
-        'Email': 'tdv001@anminh.com',
-        'Vai trò': 'TDV'
-      },
-      {
-        'Mã NV': 'QL001',
-        'Tên': 'Trần Thị B',
-        'Mã tuyến': '',
-        'Số điện thoại': '0912345678',
-        'Email': 'ql001@anminh.com',
-        'Vai trò': 'QL'
-      }
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-
-    const colWidths = [
-      { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 15 }
-    ];
-    ws['!cols'] = colWidths;
-
-    XLSX.writeFile(wb, 'Template_Import_Nhan_Vien.xlsx');
-  };
+  const channels = [
+    { value: 'OTC', label: 'OTC' },
+    { value: 'ETC', label: 'ETC' },
+    { value: 'MT', label: 'MT (Modern Trade)' }
+  ];
 
   return (
     <div style={{ padding: isMobile ? '16px' : '0' }}>
@@ -386,49 +406,6 @@ const AdminUsers = () => {
           flexWrap: 'wrap'
         }}>
           <button
-            onClick={handleDownloadTemplate}
-            style={{
-              padding: isMobile ? '10px 16px' : '12px 24px',
-              background: '#3b82f6',
-              border: 'none',
-              borderRadius: '12px',
-              color: '#fff',
-              fontSize: isMobile ? '13px' : '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <span>📥</span>
-            <span>Template</span>
-          </button>
-          <label style={{
-            padding: isMobile ? '10px 16px' : '12px 24px',
-            background: '#10b981',
-            border: 'none',
-            borderRadius: '12px',
-            color: '#fff',
-            fontSize: isMobile ? '13px' : '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            whiteSpace: 'nowrap'
-          }}>
-            <span>📤</span>
-            <span>Import Excel</span>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleImportExcel}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <button
             onClick={handleExportExcel}
             style={{
               padding: isMobile ? '10px 16px' : '12px 24px',
@@ -448,6 +425,51 @@ const AdminUsers = () => {
             <span>📊</span>
             <span>Export Excel</span>
           </button>
+          <button
+            onClick={handleDownloadTemplate}
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#10b981',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>📥</span>
+            <span>Template</span>
+          </button>
+          <label
+            style={{
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              background: '#3b82f6',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: isMobile ? '13px' : '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span>📤</span>
+            <span>Import</span>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleImportExcel}
+              style={{ display: 'none' }}
+            />
+          </label>
           <button
             onClick={handleAdd}
             style={{
@@ -516,72 +538,65 @@ const AdminUsers = () => {
         </select>
       </div>
 
-      {/* Users List - Mobile Card View */}
-      {isMobile ? (
+      {/* Desktop Table View */}
+      <div style={{
+        background: '#fff',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        overflowX: 'auto'
+      }}>
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
+          display: 'grid',
+          gridTemplateColumns: '50px 150px 100px 100px 100px 120px 120px 100px 100px 100px',
+          gap: '16px',
+          padding: '16px 20px',
+          background: '#f9fafb',
+          borderBottom: '2px solid #e5e7eb',
+          fontWeight: '600',
+          fontSize: '14px',
+          color: '#1a1a2e',
+          minWidth: '1200px'
         }}>
-          {filteredUsers.map(user => (
+          <div>STT</div>
+          <div>Tên</div>
+          <div>Mã NV</div>
+          <div>Vai trò</div>
+          <div>Quản lý</div>
+          <div>Vùng</div>
+          <div>Kênh</div>
+          <div>SĐT</div>
+          <div>Trạng thái</div>
+          <div>Thao tác</div>
+        </div>
+        <div style={{ maxHeight: '600px', overflowY: 'auto', minWidth: '1200px' }}>
+          {filteredUsers.map((user, index) => (
             <div
               key={user.id}
               style={{
-                background: '#fff',
-                borderRadius: '12px',
-                padding: '16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: `2px solid ${user.isOnline ? '#10b981' : '#e5e7eb'}`
+                display: 'grid',
+                gridTemplateColumns: '50px 150px 100px 100px 100px 120px 120px 100px 100px 100px',
+                gap: '16px',
+                padding: '16px 20px',
+                borderBottom: '1px solid #e5e7eb',
+                alignItems: 'center',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f9fafb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#fff';
               }}
             >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'start',
-                marginBottom: '12px'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1a1a2e',
-                    marginBottom: '4px'
-                  }}>
-                    {user.name}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    📞 {user.phone}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '8px'
-                  }}>
-                    📧 {user.email}
-                  </div>
-                </div>
-                <div style={{
-                  padding: '4px 10px',
-                  background: user.isOnline ? '#10b98115' : '#e5e7eb',
-                  color: user.isOnline ? '#10b981' : '#666',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {user.isOnline ? '🟢 Online' : '⚫ Offline'}
-                </div>
+              <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>
+                {user.name}
               </div>
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                marginBottom: '12px',
-                flexWrap: 'wrap'
-              }}>
+              <div style={{ fontSize: '13px', color: '#1E4A8B', fontWeight: '600' }}>
+                {user.employeeCode || '-'}
+              </div>
+              <div>
                 <span style={{
                   padding: '4px 10px',
                   background: '#1E4A8B15',
@@ -592,23 +607,22 @@ const AdminUsers = () => {
                 }}>
                   {getRoleLabel(user.role)}
                 </span>
+              </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{user.manager?.name || '-'}</div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{user.region?.name || '-'}</div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{user.channel || '-'}</div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{user.phone || '-'}</div>
+              <div>
                 <span style={{
                   padding: '4px 10px',
-                  background: '#F29E2E15',
-                  color: '#F29E2E',
+                  background: user.isOnline ? '#10b98115' : '#e5e7eb',
+                  color: user.isOnline ? '#10b981' : '#666',
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: '600'
                 }}>
-                  🏢 {user.hub}
+                  {user.isOnline ? '🟢 Online' : '⚫ Offline'}
                 </span>
-              </div>
-              <div style={{
-                fontSize: '12px',
-                color: '#999',
-                marginBottom: '12px'
-              }}>
-                Đăng nhập cuối: {formatDate(user.lastLogin)}
               </div>
               <div style={{
                 display: 'flex',
@@ -617,490 +631,227 @@ const AdminUsers = () => {
                 <button
                   onClick={() => handleEdit(user)}
                   style={{
-                    flex: 1,
-                    padding: '10px',
+                    padding: '6px 12px',
                     background: '#FBC93D15',
                     border: '1px solid #FBC93D',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     color: '#FBC93D',
-                    fontSize: '13px',
-                    fontWeight: '600',
+                    fontSize: '12px',
                     cursor: 'pointer'
                   }}
                 >
-                  ✏️ Sửa
+                  ✏️
                 </button>
                 <button
                   onClick={() => handleDelete(user.id)}
                   style={{
-                    flex: 1,
-                    padding: '10px',
+                    padding: '6px 12px',
                     background: '#fee2e2',
                     border: '1px solid #fecaca',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     color: '#dc2626',
-                    fontSize: '13px',
-                    fontWeight: '600',
+                    fontSize: '12px',
                     cursor: 'pointer'
                   }}
                 >
-                  🗑️ Xóa
+                  🗑️
                 </button>
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        /* Desktop Table View */
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '60px 1fr 150px 180px 120px 120px 150px 120px',
-            gap: '16px',
-            padding: '16px 20px',
-            background: '#f9fafb',
-            borderBottom: '2px solid #e5e7eb',
-            fontWeight: '600',
-            fontSize: '14px',
-            color: '#1a1a2e'
-          }}>
-            <div>STT</div>
-            <div>Tên</div>
-            <div>Số điện thoại</div>
-            <div>Email</div>
-            <div>Vai trò</div>
-            <div>Trạng thái</div>
-            <div>Thao tác</div>
-          </div>
-          <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
-            {filteredUsers.map((user, index) => (
-              <div
-                key={user.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '60px 1fr 120px 120px 150px 120px 120px 120px 120px',
-                  gap: '12px',
-                  padding: '16px 20px',
-                  borderBottom: '1px solid #e5e7eb',
-                  alignItems: 'center',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f9fafb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#fff';
-                }}
-              >
-                <div style={{ fontSize: '14px', color: '#666' }}>{index + 1}</div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>
-                  {user.name}
-                </div>
-                <div style={{ fontSize: '13px', color: '#1E4A8B', fontWeight: '600' }}>
-                  {user.employeeCode || '-'}
-                </div>
-                <div style={{ fontSize: '13px', color: '#666' }}>
-                  {user.routeCode || '-'}
-                </div>
-                <div style={{ fontSize: '14px', color: '#1a1a2e' }}>{user.phone || '-'}</div>
-                <div style={{ fontSize: '13px', color: '#666' }}>{user.email || '-'}</div>
-                <div>
-                  <span style={{
-                    padding: '4px 10px',
-                    background: '#1E4A8B15',
-                    color: '#1E4A8B',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {getRoleLabel(user.role)}
-                  </span>
-                </div>
-                <div>
-                  <span style={{
-                    padding: '4px 10px',
-                    background: user.isOnline ? '#10b98115' : '#e5e7eb',
-                    color: user.isOnline ? '#10b981' : '#666',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {user.isOnline ? '🟢 Online' : '⚫ Offline'}
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: '8px'
-                }}>
-                  <button
-                    onClick={() => handleEdit(user)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#FBC93D15',
-                      border: '1px solid #FBC93D',
-                      borderRadius: '6px',
-                      color: '#FBC93D',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(user.id)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#fee2e2',
-                      border: '1px solid #fecaca',
-                      borderRadius: '6px',
-                      color: '#dc2626',
-                      fontSize: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div >
-      )}
+      </div>
 
       {/* Modal */}
-      {
-        showModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-            Click={() => setShowModal(false)}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: isMobile ? '12px' : '16px',
+              padding: isMobile ? '20px' : '32px',
+              width: '90%',
+              maxWidth: '800px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxSizing: 'border-box'
+            }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                background: '#fff',
-                borderRadius: '16px',
-                padding: isMobile ? '24px' : '32px',
-                width: '90%',
-                maxWidth: '600px',
-                maxHeight: '90vh',
-                overflowY: 'auto'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{
-                fontSize: isMobile ? '18px' : '20px',
-                fontWeight: '600',
-                marginBottom: '24px'
-              }}>
-                {editingUser ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
-              </h2>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              marginBottom: '24px'
+            }}>
+              {editingUser ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}
+            </h2>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px'
-                }}>
-                  Tên người dùng *
-                </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+              gap: '16px',
+              marginBottom: '16px'
+            }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Họ tên *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    color: '#1a1a2e',
-                    background: '#fff'
-                  }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
               </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                gap: '16px',
-                marginBottom: '16px'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Mã nhân viên *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.employeeCode}
-                    onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value.toUpperCase() })}
-                    placeholder="TDV001"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      textTransform: 'uppercase',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Mã tuyến phụ trách
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.routeCode}
-                    onChange={(e) => setFormData({ ...formData, routeCode: e.target.value.toUpperCase() })}
-                    placeholder="T001"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      textTransform: 'uppercase',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Mã nhân viên *</label>
+                <input
+                  type="text"
+                  value={formData.employeeCode}
+                  onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
               </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                gap: '16px',
-                marginBottom: '16px'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-                gap: '16px',
-                marginBottom: '16px'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Vai trò *
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  >
-                    <option value="TDV">👨‍⚕️ Trình dược viên</option>
-                    <option value="QL">👔 Quản lý</option>
-                    <option value="KT">📊 Kế toán</option>
-                    <option value="ADMIN">👑 Quản trị viên</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder={editingUser ? "Để trống nếu không đổi" : "Nhập mật khẩu"}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {!editingUser && (
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: '#1a1a2e'
-                  }}>
-                    Mật khẩu {editingUser ? '(để trống nếu không đổi)' : '*'}
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder={editingUser ? 'Nhập mật khẩu mới' : 'Nhập mật khẩu'}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      color: '#1a1a2e',
-                      background: '#fff'
-                    }}
-                  />
-                </div>
-              )}
-
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end',
-                marginTop: '24px',
-                flexWrap: 'wrap'
-              }}>
-                <button
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#f3f4f6',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    flex: isMobile ? '1' : 'none'
-                  }}
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Vai trò *</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleSave}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#F29E2E',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    flex: isMobile ? '1' : 'none'
-                  }}
+                  <option value="TDV">Trình dược viên</option>
+                  <option value="QL">Quản lý</option>
+                  <option value="KT">Kế toán</option>
+                  <option value="ADMIN">Quản trị viên</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Quản lý trực tiếp</label>
+                <select
+                  value={formData.managerId}
+                  onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 >
-                  Lưu
-                </button>
+                  <option value="">-- Chọn quản lý --</option>
+                  {managers.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Vùng phụ trách</label>
+                <select
+                  value={formData.regionId}
+                  onChange={(e) => setFormData({ ...formData, regionId: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                >
+                  <option value="">-- Chọn vùng --</option>
+                  {regions.map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Kênh</label>
+                <select
+                  value={formData.channel}
+                  onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                >
+                  <option value="">-- Chọn kênh --</option>
+                  {channels.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Mã tuyến</label>
+                <input
+                  type="text"
+                  value={formData.routeCode}
+                  onChange={(e) => setFormData({ ...formData, routeCode: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Số điện thoại</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  {editingUser ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu *'}
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
               </div>
             </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  padding: '10px 24px',
+                  background: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#4b5563',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                style={{
+                  padding: '10px 24px',
+                  background: '#3b82f6',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  opacity: loading ? 0.7 : 1
+                }}
+              >
+                {loading ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+    </div>
   );
 };
 
 export default AdminUsers;
-

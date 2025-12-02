@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  employeeCode String?  @unique
+  password     String
+  name         String?
+  email        String?  @unique
+  phone        String?
+  role         String   @default("user")
+  isActive     Boolean  @default(true)
+  routeCode    String?
+  channel      String?
+  
+  managerId    String?
+  manager      User?    @relation("ManagerToStaff", fields: [managerId], references: [id])
+  staff        User[]   @relation("ManagerToStaff")
+  
+  regionId     String?
+  region       Region?  @relation(fields: [regionId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Region {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Pharmacy {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
