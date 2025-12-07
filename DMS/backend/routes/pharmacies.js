@@ -5,6 +5,30 @@ import adminAuth from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
+// Lấy tổng quan số lượng nhà thuốc
+router.get('/summary', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    let where = {};
+
+    if (req.user.role === 'TDV') {
+      const assignedPharmacies = await prisma.customerAssignment.findMany({
+        where: { userId },
+        select: { pharmacyId: true },
+      });
+      const pharmacyIds = assignedPharmacies.map(ap => ap.pharmacyId);
+      where.id = { in: pharmacyIds };
+    }
+
+    const count = await prisma.pharmacy.count({ where });
+
+    res.json({ count });
+  } catch (error) {
+    console.error('Error fetching pharmacy summary:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 // Lấy danh sách nhà thuốc
 router.get('/', auth, async (req, res) => {
   try {
@@ -100,6 +124,15 @@ router.get('/:id', auth, async (req, res) => {
           include: {
             user: { select: { id: true, name: true, phone: true, email: true } }
           }
+        },
+        visitPlans: {
+          take: 3,
+          orderBy: { visitDate: 'desc' },
+          where: { status: 'COMPLETED' }
+        },
+        orders: {
+          take: 3,
+          orderBy: { createdAt: 'desc' }
         }
       },
     });

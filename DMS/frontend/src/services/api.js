@@ -55,7 +55,10 @@ const createCRUDEndpoints = (resource) => ({
 });
 
 // Pharmacies API
-export const pharmaciesAPI = createCRUDEndpoints('pharmacies');
+export const pharmaciesAPI = {
+  ...createCRUDEndpoints('pharmacies'),
+  getSummary: () => apiCall('/pharmacies/summary'),
+};
 
 // Products API
 export const productsAPI = {
@@ -66,6 +69,10 @@ export const productsAPI = {
 // Orders API
 export const ordersAPI = {
   ...createCRUDEndpoints('orders'),
+  getSummary: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/orders/summary${query ? `?${query}` : ''}`);
+  },
   updateStatus: (id, status) => apiCall(`/orders/${id}/status`, {
     method: 'PUT',
     body: JSON.stringify({ status })
@@ -130,7 +137,13 @@ export const promotionsAPI = {
 export const loyaltyAPI = createCRUDEndpoints('loyalty');
 export const customerSegmentsAPI = createCRUDEndpoints('customer-segments');
 export const tradeActivitiesAPI = createCRUDEndpoints('trade-activities');
-export const kpiAPI = createCRUDEndpoints('kpi');
+export const kpiAPI = {
+  ...createCRUDEndpoints('kpi'),
+  getSummary: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/kpi/summary?${query}`);
+  }
+};
 export const approvalsAPI = createCRUDEndpoints('approvals');
 export const usersAPI = createCRUDEndpoints('users');
 
@@ -161,6 +174,18 @@ export const routesAPI = {
     method: 'POST',
     body: JSON.stringify(data)
   })
+};
+
+// Reports API
+export const reportsAPI = {
+  getSales: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/sales?${query}`);
+  },
+  getVisits: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/visits?${query}`);
+  }
 };
 
 export default {

@@ -4,6 +4,45 @@ import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Lấy tổng quan đơn hàng (cho Dashboard)
+router.get('/summary', auth, async (req, res) => {
+  try {
+    const { userId } = req.query;
+    let where = {};
+
+    if (req.user.role === 'PHARMACY_REP') {
+      where.userId = req.user.id;
+    } else if (req.user.role === 'PHARMACY') {
+      const pharmacy = await prisma.pharmacy.findFirst({
+        where: { phone: req.user.phone },
+      });
+      if (pharmacy) {
+        where.pharmacyId = pharmacy.id;
+      } else {
+        return res.json({ count: 0, revenue: 0 });
+      }
+    } else if (userId) {
+      where.userId = userId;
+    }
+
+    const count = await prisma.order.count({ where });
+    const aggregations = await prisma.order.aggregate({
+      where,
+      _sum: {
+        totalAmount: true,
+      },
+    });
+
+    res.json({
+      count,
+      revenue: aggregations._sum.totalAmount || 0
+    });
+  } catch (error) {
+    console.error('Error fetching order summary:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 // Lấy danh sách đơn hàng
 router.get('/', auth, async (req, res) => {
   try {
@@ -48,7 +87,18 @@ router.get('/', auth, async (req, res) => {
           select: { id: true, name: true, phone: true },
         },
         pharmacy: {
-          select: { id: true, name: true, phone: true, address: true },
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            address: true,
+            code: true,
+            territory: {
+              include: {
+                businessUnit: true
+              }
+            }
+          },
         },
         items: {
           include: {
