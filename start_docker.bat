@@ -1,6 +1,0 @@
-@echo off
-echo Starting Docker Desktop...
-start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-echo Waiting for Docker to initialize...
-timeout /t 30
-docker ps

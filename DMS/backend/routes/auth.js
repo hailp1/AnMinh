@@ -64,7 +64,12 @@ router.post('/login', validateLogin, async (req, res) => {
 
         // Find user by username (mapped from employeeCode/username) - Case insensitive
         const user = await prisma.user.findFirst({
-            where: { username: { equals: loginId.trim(), mode: 'insensitive' } }
+            where: {
+                OR: [
+                    { username: { equals: loginId.trim(), mode: 'insensitive' } },
+                    { employeeCode: { equals: loginId.trim(), mode: 'insensitive' } }
+                ]
+            }
         });
 
         if (!user) {

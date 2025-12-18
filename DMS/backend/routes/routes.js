@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
 // Create/Update Route
 router.post('/', async (req, res) => {
     try {
-        const { userId, pharmacyId, dayOfWeek, visitOrder } = req.body;
+        const { userId, pharmacyId, dayOfWeek, visitOrder, frequency } = req.body;
 
         // Check if exists
         const existing = await prisma.route.findFirst({
@@ -40,11 +40,11 @@ router.post('/', async (req, res) => {
         if (existing) {
             route = await prisma.route.update({
                 where: { id: existing.id },
-                data: { isActive: true, visitOrder }
+                data: { isActive: true, visitOrder, frequency: req.body.frequency }
             });
         } else {
             route = await prisma.route.create({
-                data: { userId, pharmacyId, dayOfWeek, visitOrder }
+                data: { userId, pharmacyId, dayOfWeek, visitOrder, frequency: req.body.frequency }
             });
         }
         res.json(route);
@@ -88,11 +88,12 @@ router.post('/import', async (req, res) => {
                             dayOfWeek: item.dayOfWeek
                         }
                     },
-                    update: { isActive: true },
+                    update: { isActive: true, frequency: item.frequency },
                     create: {
                         userId: user.id,
                         pharmacyId: pharmacy.id,
-                        dayOfWeek: item.dayOfWeek
+                        dayOfWeek: item.dayOfWeek,
+                        frequency: item.frequency
                     }
                 });
                 success++;

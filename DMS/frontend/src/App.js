@@ -21,6 +21,7 @@ import OrderInvoice from './pages/OrderInvoice';
 import Customers from './pages/Customers';
 import Visit from './pages/Visit';
 import EditCustomer from './pages/EditCustomer';
+import KPI from './pages/KPI';
 
 // Admin imports
 import AdminLogin from './pages/admin/AdminLogin';
@@ -41,6 +42,7 @@ import AdminCustomerSegments from './pages/admin/AdminCustomerSegments';
 import AdminTradeActivities from './pages/admin/AdminTradeActivities';
 import AdminKPI from './pages/admin/AdminKPI';
 import AdminApprovals from './pages/admin/AdminApprovals';
+import AdminInventory from './pages/admin/AdminInventory';
 
 const AppContent = () => {
   const location = useLocation();
@@ -52,7 +54,6 @@ const AppContent = () => {
   // Redirect old /admin routes to /Anminh/admin
   if (isOldAdminRoute) {
     const newPath = location.pathname.replace('/admin', '/Anminh/admin');
-    // Use window.location for hard redirect to ensure clean state
     window.location.replace(newPath);
     return null;
   }
@@ -61,10 +62,7 @@ const AppContent = () => {
   if (isAdminRoute) {
     return (
       <Routes>
-        {/* Admin Login - Standalone Full Screen Page */}
         <Route path="/Anminh/admin" element={<AdminLogin />} />
-
-        {/* Protected Admin Routes - Wrapped in Dashboard Layout */}
         <Route path="/Anminh/admin/*" element={
           <AdminWrapper>
             <Routes>
@@ -84,6 +82,7 @@ const AppContent = () => {
               <Route path="trade-activities" element={<AdminTradeActivities />} />
               <Route path="kpi" element={<AdminKPI />} />
               <Route path="approvals" element={<AdminApprovals />} />
+              <Route path="inventory" element={<AdminInventory />} />
             </Routes>
           </AdminWrapper>
         } />
@@ -106,7 +105,7 @@ const AppContent = () => {
         width: '480px',
         maxWidth: '100%',
         backgroundColor: '#fff',
-        height: '87%', // Adjusted for zoom 1.15
+        height: '87%',
         position: 'relative',
         boxShadow: '0 0 20px rgba(0,0,0,0.3)',
         display: 'flex',
@@ -130,7 +129,6 @@ const AppContent = () => {
               <Route path="/edit-pharmacy/:id" element={<CreatePharmacy />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
-
               <Route path="/chat/:userId" element={<Chat />} />
               <Route path="/create-order" element={<CreateOrder />} />
               <Route path="/order/create/:id" element={<CreateOrder />} />
@@ -139,6 +137,7 @@ const AppContent = () => {
               <Route path="/customer/edit/:id" element={<EditCustomer />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/order-summary" element={<OrderSummary />} />
+              <Route path="/kpi" element={<KPI />} />
             </Routes>
           </PageTransition>
         </div>

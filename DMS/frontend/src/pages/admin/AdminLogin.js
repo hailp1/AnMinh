@@ -70,13 +70,22 @@ const AdminLogin = () => {
         })
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text.substring(0, 200));
+        throw new Error('Lỗi kết nối đến server. Vui lòng kiểm tra lại.');
+      }
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || `Lỗi ${response.status}: ${response.statusText}`);
       }
 
-      if (!data.user || data.user.role?.toUpperCase() !== 'ADMIN') {
-        throw new Error('Tài khoản không có quyền ADMIN');
+      const allowedRoles = ['ADMIN', 'QL', 'KT'];
+      if (!data.user || !allowedRoles.includes(data.user.role?.toUpperCase())) {
+        throw new Error('Tài khoản không có quyền truy cập trang Quản trị');
       }
 
       // Save token for admin API calls

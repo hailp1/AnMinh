@@ -28,6 +28,10 @@ import revenueRoutes from './routes/revenue.js';
 import messagesRoutes from './routes/messages.js';
 import permissionsRoutes from './routes/permissions.js';
 import routesRoutes from './routes/routes.js';
+import inventoryRoutes from './routes/inventory.js';
+import uploadRoutes from './routes/upload.js';
+import reportsRoutes from './routes/reports.js';
+import systemRoutes from './routes/system.js';
 
 config();
 
@@ -40,18 +44,32 @@ app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS handled by Nginx now
-// app.use(cors()); 
+// Serve static uploads
+app.use('/uploads', express.static('uploads'));
+
+// CORS
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3599',
+    'https://dms.ammedtech.com',
+    'https://ammedtech.com'
+  ],
+  credentials: true
+}));
 
 // Helmet
 app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
-// Rate limiting
+// Rate limiting - Adjusted for production security
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per windowMs (reduced from 1000)
+  message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use(limiter);
 
@@ -83,6 +101,10 @@ app.use('/api/revenue', revenueRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/permissions', permissionsRoutes);
 app.use('/api/routes', routesRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/system', systemRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {

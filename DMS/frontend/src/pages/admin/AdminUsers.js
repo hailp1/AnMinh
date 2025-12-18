@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { usersAPI } from '../../services/api';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
@@ -67,25 +68,17 @@ const AdminUsers = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/users/admin/users`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'x-auth-token': token } : {}),
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(Array.isArray(data) ? data : []);
-        // Update managers list from users
-        setManagers(data.filter(u => ['QL', 'ADMIN'].includes(u.role)));
-      } else {
-        console.warn('Failed to load users:', response.status);
-        setUsers([]);
-      }
+      const data = await usersAPI.getAllAdmin();
+      setUsers(Array.isArray(data) ? data : []);
+      // Update managers list from users
+      setManagers((data || []).filter(u => ['QL', 'ADMIN'].includes(u.role)));
     } catch (error) {
       console.error('Error loading users:', error);
-      alert(`Lỗi khi tải danh sách người dùng: ${error.message}`);
+      if (error.message.includes('403')) {
+        alert('Bạn không có quyền truy cập danh sách người dùng (Yêu cầu quyền Admin).');
+      } else {
+        alert(`Lỗi khi tải danh sách người dùng: ${error.message}`);
+      }
       setUsers([]);
     } finally {
       setLoading(false);
@@ -97,7 +90,7 @@ const AdminUsers = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(u =>
-        u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (u.employeeCode && u.employeeCode.toUpperCase().includes(searchTerm.toUpperCase())) ||
         (u.phone && u.phone.includes(searchTerm)) ||
         (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -150,24 +143,12 @@ const AdminUsers = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/users/admin/users/${id}`, {
-        method: 'DELETE',
-        headers: {
-          ...(token ? { 'x-auth-token': token } : {}),
-        },
-      });
-
-      if (response.ok) {
-        alert('Xóa người dùng thành công!');
-        loadUsers();
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Lỗi khi xóa người dùng');
-      }
+      await usersAPI.delete(id);
+      alert('Xóa người dùng thành công!');
+      loadUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Lỗi khi xóa người dùng');
+      alert(error.message || 'Lỗi khi xóa người dùng');
     } finally {
       setLoading(false);
     }
@@ -186,7 +167,7 @@ const AdminUsers = () => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+
       const payload = {
         name: formData.name,
         employeeCode: formData.employeeCode.toUpperCase(),
@@ -203,32 +184,20 @@ const AdminUsers = () => {
         payload.password = formData.password;
       }
 
-      const url = editingUser
-        ? `${API_BASE}/users/admin/users/${editingUser.id}`
-        : `${API_BASE}/users/admin/users`;
-      const method = editingUser ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'x-auth-token': token } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        alert(editingUser ? 'Cập nhật người dùng thành công!' : 'Tạo người dùng thành công!');
-        setShowModal(false);
-        setEditingUser(null);
-        loadUsers();
+      if (editingUser) {
+        await usersAPI.update(editingUser.id, payload);
       } else {
-        const error = await response.json();
-        alert(error.error || 'Lỗi khi lưu người dùng');
+        await usersAPI.create(payload);
       }
+
+      alert(editingUser ? 'Cập nhật người dùng thành công!' : 'Tạo người dùng thành công!');
+      setShowModal(false);
+      setEditingUser(null);
+      loadUsers();
+
     } catch (error) {
       console.error('Error saving user:', error);
-      alert('Lỗi khi lưu người dùng');
+      alert(error.message || 'Lỗi khi lưu người dùng');
     } finally {
       setLoading(false);
     }
@@ -276,12 +245,16 @@ const AdminUsers = () => {
       {
         'Tên': 'Nguyễn Văn A',
         'Mã NV': 'NV001',
+        'Username': 'tdv001',
         'Mật khẩu': '123456',
         'Vai trò': 'TDV',
         'SĐT': '0909000000',
         'Email': 'a@example.com',
+        'Mã Miền': 'REGION01',
+        'Mã Quản lý': 'QL001',
         'Mã tuyến': 'T01',
-        'Kênh': 'OTC'
+        'Kênh': 'OTC',
+        'Trạng thái': 'true'
       }
     ];
     const ws = XLSX.utils.json_to_sheet(headers);
@@ -333,21 +306,9 @@ const AdminUsers = () => {
               continue;
             }
 
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/users/admin/users`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token
-              },
-              body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-              successCount++;
-            } else {
-              errorCount++;
-            }
+            // Using usersAPI.create which returns the created user on success
+            await usersAPI.create(payload);
+            successCount++;
           } catch (err) {
             console.error('Error importing row:', err);
             errorCount++;

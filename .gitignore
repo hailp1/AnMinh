@@ -1,92 +1,84 @@
 # Dependencies
 node_modules/
-client/node_modules/
-
-# Production builds
-client/build/
-dist/
+*/node_modules/
 
 # Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+*.env.local
+.env.*.local
+
+# Build outputs
+build/
+dist/
+*/build/
+*/dist/
 
 # Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-logs/
 *.log
+logs/
+*.log.*
+npm-debug.log*
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-
-# Uploads
-uploads/
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
 
 # IDE
 .vscode/
 .idea/
+*.sublime-*
 
-# OS
-.DS_Store
-Thumbs.db
+# Docker volumes
+postgres-data/
+pgdata/
 
-# Vercel
-.vercel# Secrets
-.env
-client/.env*
-*.env.local
-*.env.development.local
-uploads/
-# Dependencies
-node_modules/
-client/node_modules/
-# Build
-client/build/
-# Logs
-*.log
-client/npm-debug.log*
-# OS
-.DS_Store
-Thumbs.db
+# Uploads
+uploads/*
+!uploads/.gitkeep
 
+# Backups
+backups/
+*.sql
+*.sql.gz
 
-cloudflared.exe
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test files (keep structure docs)
+test_*.js
+check_*.js
+fix_*.js
+assign_*.js
+verify_*.js
+create_*.js
+*.txt
+
+# Sensitive
+tunnel-creds.json
+credentials/
+secrets/
+
+# Cache
+.cache/
+.parcel-cache/
 .next/
-am-medtech-web/.next/
-mobile/node_modules/
+.nuxt/
 
-postgres_data/
-PRE_AMMED/
-DMS_BACKUP/
+# Mobile
+DMS/mobile/android/.gradle
+DMS/mobile/android/app/build
+DMS/mobile/ios/Pods
+DMS/mobile/ios/build
 
+# Prisma
+prisma/migrations/**/migration.sql
+
+# Misc
+.terraform/
+*.tfstate
+*.tfstate.backup

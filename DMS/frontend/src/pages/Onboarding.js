@@ -11,17 +11,23 @@ const Onboarding = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { isTransitioning, navigateWithTransition } = usePageTransition();
+
+  useEffect(() => {
+    if (user) {
+      navigateWithTransition('/home');
+    }
+  }, [user, navigateWithTransition]);
 
   useEffect(() => {
     // Update time every second
     const updateTime = () => {
       const now = new Date();
-      const timeString = now.toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
+      const timeString = now.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: false 
+        hour12: false
       });
       setCurrentTime(timeString);
     };
@@ -34,12 +40,12 @@ const Onboarding = () => {
 
   const handleChange = (e) => {
     let value = e.target.value;
-    
+
     // Format employee code - chuyển thành chữ hoa và loại bỏ khoảng trắng
     if (e.target.name === 'employeeCode') {
       value = value.toUpperCase().trim();
     }
-    
+
     setFormData({
       ...formData,
       [e.target.name]: value
@@ -66,7 +72,7 @@ const Onboarding = () => {
     }
 
     const result = await login(formData.employeeCode.trim(), formData.password);
-    
+
     if (result.success) {
       setShowSuccess(true);
       setTimeout(() => {
@@ -75,11 +81,11 @@ const Onboarding = () => {
     } else {
       // Hiển thị error với hướng dẫn nếu backend down
       let errorMessage = result.message || 'Đăng nhập thất bại';
-      
+
       if (result.backendDown) {
         errorMessage += '\n\n💡 Giải pháp:\n- Khởi động backend: node server.js\n- Hoặc double-click: start-backend.bat\n- Hoặc dùng script: .\\scripts\\start-all.bat';
       }
-      
+
       setError(errorMessage);
       setLoading(false);
     }
@@ -108,9 +114,9 @@ const Onboarding = () => {
             marginBottom: '1.5rem',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
           }}>
-            <img 
-              src="/image/logo.webp" 
-              alt="Logo" 
+            <img
+              src="/image/logo.webp"
+              alt="Logo"
               className="onboarding-logo"
               style={{
                 width: '100%',
@@ -133,8 +139,8 @@ const Onboarding = () => {
         </div>
 
         {/* Login Form */}
-        <div className="onboarding-actions" style={{ 
-          width: '100%', 
+        <div className="onboarding-actions" style={{
+          width: '100%',
           maxWidth: '420px',
           background: 'rgba(255, 255, 255, 0.08)',
           borderRadius: '20px',
@@ -269,11 +275,11 @@ const Onboarding = () => {
               />
             </div>
 
-            <button 
+            <button
               type="submit"
               className="onboarding-btn onboarding-btn-primary"
               disabled={loading || isTransitioning}
-              style={{ 
+              style={{
                 width: '100%',
                 fontSize: '16px',
                 fontWeight: '600',

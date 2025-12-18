@@ -3,11 +3,99 @@ import { prisma } from '../lib/prisma.js';
 
 const router = express.Router();
 
+// GET /api/kpi/summary - Get KPI Summary for User
+router.get('/summary', async (req, res) => {
+  try {
+    const { userId, period } = req.query; // period: 'month', 'quarter', 'year'
+
+    const now = new Date();
+    let startDate, endDate;
+    let periodKey; // YYYY-MM for target lookup
+
+    if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      periodKey = now.getFullYear().toString(); // Assuming targets can be yearly? Schema says period is String.
+    } else if (period === 'quarter') {
+      const q = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), q * 3, 1);
+      endDate = new Date(now.getFullYear(), (q + 1) * 3, 0, 23, 59, 59);
+      periodKey = `${now.getFullYear()}-Q${q + 1}`;
+    } else {
+      // Month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      periodKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // 1. Get Target
+    // Note: Schema has period as String. We assume YYYY-MM for monthly.
+    // If period is 'year', we might need to sum up monthly targets or find a yearly target.
+    // For simplicity, we'll try to find a target matching the key, or sum up if not found?
+    // Let's just look for the monthly target for now if period is month.
+
+    let target = await prisma.kpiTarget.findFirst({
+      where: { userId, period: periodKey }
+    });
+
+    // 2. Calculate Actuals
+    const orders = await prisma.order.findMany({
+      where: {
+        userId,
+        createdAt: { gte: startDate, lte: endDate },
+        status: { not: 'CANCELLED' }
+      }
+    });
+
+    const actualSales = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const actualOrders = orders.length;
+
+    const visits = await prisma.visitPlan.findMany({
+      where: {
+        userId,
+        visitDate: { gte: startDate, lte: endDate },
+        status: 'COMPLETED'
+      }
+    });
+    const actualVisits = visits.length;
+
+    // New Customers (assignedAt or createdAt?)
+    // Schema: CustomerAssignment.createdAt
+    const newCustomers = await prisma.customerAssignment.findMany({
+      where: {
+        userId,
+        createdAt: { gte: startDate, lte: endDate }
+      }
+    });
+    const actualNewCustomers = newCustomers.length;
+
+    // SKU Coverage (Distinct products sold)
+    const orderIds = orders.map(o => o.id);
+    const orderItems = await prisma.orderItem.findMany({
+      where: { orderId: { in: orderIds } },
+      select: { productId: true }
+    });
+    const actualSkuCoverage = new Set(orderItems.map(i => i.productId)).size;
+
+    res.json({
+      sales: { target: target?.targetSales || 0, actual: actualSales, unit: 'VND' },
+      visits: { target: target?.targetVisits || 0, actual: actualVisits, unit: 'Lượt' },
+      newCustomers: { target: target?.targetNewCustomers || 0, actual: actualNewCustomers, unit: 'KH' },
+      orders: { target: target?.targetOrders || 0, actual: actualOrders, unit: 'Đơn' },
+      skuCoverage: { target: 50, actual: actualSkuCoverage, unit: 'SKU' } // Hardcoded target for SKU for now
+    });
+
+  } catch (error) {
+    console.error('Error fetching KPI summary:', error);
+    res.status(500).json({ error: 'Lỗi khi lấy dữ liệu KPI' });
+  }
+});
+
 // GET /api/kpi/targets - Lấy danh sách mục tiêu KPI
 router.get('/targets', async (req, res) => {
   try {
     const { userId, period, periodType } = req.query;
-    
+
     const where = {};
     if (userId) where.userId = userId;
     if (period) where.period = period;
@@ -81,7 +169,7 @@ router.post('/targets', async (req, res) => {
 router.get('/results', async (req, res) => {
   try {
     const { userId, period } = req.query;
-    
+
     const where = {};
     if (userId) where.userId = userId;
     if (period) where.period = period;
@@ -177,8 +265,8 @@ router.post('/calculate/:targetId', async (req, res) => {
     const actualNewCustomers = newCustomers.length;
 
     // Tính tỷ lệ đạt
-    const achievementRate = target.targetSales > 0 
-      ? (actualSales / target.targetSales) * 100 
+    const achievementRate = target.targetSales > 0
+      ? (actualSales / target.targetSales) * 100
       : 0;
 
     // Tạo hoặc cập nhật kết quả
@@ -219,7 +307,7 @@ router.post('/calculate/:targetId', async (req, res) => {
 router.get('/incentives', async (req, res) => {
   try {
     const { userId, period, status } = req.query;
-    
+
     const where = {};
     if (userId) where.userId = userId;
     if (period) where.period = period;

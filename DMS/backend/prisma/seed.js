@@ -228,7 +228,7 @@ async function main() {
   for (const dist of hcmDistricts) {
     const territory = await prisma.territory.create({
       data: {
-        code: dist.code,
+        code: `HCM_${dist.code}`,
         name: dist.name,
         regionId: regions[0].id,
         businessUnitId: businessUnits[dist.buIndex].id,
@@ -242,7 +242,7 @@ async function main() {
   for (const dist of dnDistricts) {
     const territory = await prisma.territory.create({
       data: {
-        code: dist.code,
+        code: `DN_${dist.code}`,
         name: dist.name,
         regionId: regions[1].id,
         businessUnitId: businessUnits[dist.buIndex].id,
@@ -256,7 +256,7 @@ async function main() {
   for (const dist of bdDistricts) {
     const territory = await prisma.territory.create({
       data: {
-        code: dist.code,
+        code: `BD_${dist.code}`,
         name: dist.name,
         regionId: regions[2].id,
         businessUnitId: businessUnits[dist.buIndex].id,
@@ -414,7 +414,8 @@ async function main() {
   // Tạo pharmacies cho từng territory
   let pharmacyCounter = 1;
   for (const territory of territories) {
-    const coords = hcmCoordinates[territory.code] || dnCoordinates[territory.code] || bdCoordinates[territory.code];
+    const originalCode = territory.code.split('_')[1];
+    const coords = hcmCoordinates[originalCode] || dnCoordinates[originalCode] || bdCoordinates[originalCode];
     if (!coords) continue;
 
     // Mỗi territory có 5-10 nhà thuốc
@@ -434,25 +435,31 @@ async function main() {
 
       const phone = `0${28 + Math.floor(Math.random() * 3)}${String(coords.base + i).padStart(7, '0')}`;
 
-      const pharmacy = await prisma.pharmacy.create({
-        data: {
-          code: `NT${String(pharmacyCounter).padStart(4, '0')}`,
-          name: pharmacyName,
-          ownerName: ownerName,
-          phone: phone,
-          email: `nt${pharmacyCounter}@example.com`,
-          address: `${Math.floor(Math.random() * 999) + 1} Đường ${lastNames[lastNameIndex]}, ${territory.name}`,
-          province: territory.regionId === regions[0].id ? 'TP.HCM' : (territory.regionId === regions[1].id ? 'Đồng Nai' : 'Bình Dương'),
-          district: territory.name,
-          ward: `Phường ${Math.floor(Math.random() * 20) + 1}`,
-          latitude: lat,
-          longitude: lng,
-          territoryId: territory.id,
-          isVerified: Math.random() > 0.3,
-          isActive: true,
-          images: [],
-        },
-      });
+      let pharmacy;
+      try {
+        pharmacy = await prisma.pharmacy.create({
+          data: {
+            code: `NT${String(pharmacyCounter).padStart(4, '0')}`,
+            name: pharmacyName,
+            ownerName: ownerName,
+            phone: phone,
+            email: `nt${pharmacyCounter}@example.com`,
+            address: `${Math.floor(Math.random() * 999) + 1} Đường ${lastNames[lastNameIndex]}, ${territory.name}`,
+            province: territory.regionId === regions[0].id ? 'TP.HCM' : (territory.regionId === regions[1].id ? 'Đồng Nai' : 'Bình Dương'),
+            district: territory.name,
+            ward: `Phường ${Math.floor(Math.random() * 20) + 1}`,
+            latitude: lat,
+            longitude: lng,
+            territory: { connect: { id: territory.id } },
+            isVerified: Math.random() > 0.3,
+            isActive: true,
+            images: [],
+          },
+        });
+      } catch (err) {
+        console.error('Error creating pharmacy:', err);
+        throw err;
+      }
       pharmacies.push(pharmacy);
       pharmacyCounter++;
     }
@@ -800,7 +807,7 @@ async function main() {
           kpiResultId: result.id,
           type: 'SALES',
           amount: incentiveAmount,
-          description: `Thưởng doanh số tháng ${currentMonth}/${currentYear}`,
+
           status: 'PENDING',
         },
       });
@@ -820,24 +827,11 @@ async function main() {
     });
   }
 
+  /* 
   // 12. Tạo Inventory Items
-  console.log('📦 Tạo inventory items...');
-  for (const pharmacy of pharmacies) {
-    for (let i = 0; i < 5; i++) {
-      const product = products[Math.floor(Math.random() * products.length)];
-      const quantity = Math.floor(Math.random() * 100) + 10;
-
-      await prisma.inventoryItem.create({
-        data: {
-          pharmacyId: pharmacy.id,
-          productId: product.id,
-          quantity: quantity,
-          minStock: 10,
-          maxStock: 200,
-        },
-      });
-    }
-  }
+  // Skipped due to schema incompatibility (InventoryItem requires Warehouse)
+  console.log('📦 Tạo inventory items... SKIPPED');
+  */
 
   // 13. Tạo Orders và OrderItems
   console.log('📋 Tạo orders...');
@@ -895,12 +889,9 @@ async function main() {
       await prisma.payment.create({
         data: {
           orderId: orders[i].id,
-          pharmacyId: orders[i].pharmacyId,
           amount: orders[i].totalAmount,
-          paymentType: 'FULL',
-          paymentMethod: 'BANK_TRANSFER',
+          method: 'BANK_TRANSFER',
           status: 'COMPLETED',
-          paidAt: new Date(orders[i].createdAt.getTime() + 24 * 60 * 60 * 1000), // 1 ngày sau
         },
       });
     }
@@ -928,10 +919,11 @@ async function main() {
         await prisma.revenueStat.create({
           data: {
             userId: rep.id,
-            month,
-            year: currentYear,
-            totalAmount,
-            orderCount: monthOrders.length,
+            period: `${revenueCurrentYear}-${String(month).padStart(2, '0')}`,
+            periodType: 'MONTH',
+            totalRevenue: totalAmount,
+            totalOrders: monthOrders.length,
+            totalCustomers: 0, // Placeholder
           },
         });
       }

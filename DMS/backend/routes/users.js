@@ -41,17 +41,56 @@ router.get('/profile', auth, async (req, res) => {
       select: {
         id: true,
         name: true,
+        employeeCode: true,
+        routeCode: true,
         email: true,
         role: true,
         phone: true,
-        // avatar: true, // Removed as not in schema yet
         createdAt: true,
         manager: { select: { id: true, name: true } },
         region: { select: { id: true, name: true } },
         channel: true
       }
     });
-    res.json(user);
+
+    // Calculate KPI Stats for Current Month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const [salesStats, visitStats, visitTarget] = await Promise.all([
+      prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        _count: { id: true },
+        where: {
+          userId: req.user.id,
+          createdAt: { gte: startOfMonth, lte: endOfMonth },
+          status: { not: 'CANCELLED' }
+        }
+      }),
+      prisma.visitPlan.count({
+        where: {
+          userId: req.user.id,
+          visitDate: { gte: startOfMonth, lte: endOfMonth },
+          status: 'COMPLETED'
+        }
+      }),
+      prisma.visitPlan.count({
+        where: {
+          userId: req.user.id,
+          visitDate: { gte: startOfMonth, lte: endOfMonth }
+        }
+      })
+    ]);
+
+    const stats = {
+      monthlySales: salesStats._sum.totalAmount || 0,
+      monthlyOrders: salesStats._count.id || 0,
+      visitCount: visitStats || 0,
+      visitTarget: visitTarget || 0
+    };
+
+    res.json({ ...user, stats });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Lỗi server');
@@ -72,7 +111,6 @@ router.put('/profile', auth, async (req, res) => {
         email: true,
         role: true,
         phone: true,
-        // avatar: true,
         createdAt: true
       }
     });

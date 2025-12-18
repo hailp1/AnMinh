@@ -10,7 +10,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import CustomerDetailScreen from './src/screens/CustomerDetailScreen';
 import CreateOrderScreen from './src/screens/CreateOrderScreen';
-
+import VisitScheduleScreen from './src/screens/VisitScheduleScreen';
 import MapScreen from './src/screens/MapScreen';
 
 const Stack = createNativeStackNavigator();
@@ -31,6 +31,7 @@ const AppNavigator = () => {
       {user ? (
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="VisitSchedule" component={VisitScheduleScreen} />
           <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
           <Stack.Screen name="CreateOrder" component={CreateOrderScreen} />
           <Stack.Screen name="Map" component={MapScreen} />

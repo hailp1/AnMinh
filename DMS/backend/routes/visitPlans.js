@@ -481,4 +481,82 @@ router.get('/current/:userId', async (req, res) => {
   }
 });
 
+// Route Summary for Manager View
+router.get('/route-summary', async (req, res) => {
+  try {
+    const { userId, date } = req.query;
+    if (!userId || !date) {
+      return res.status(400).json({ message: 'Missing userId or date' });
+    }
+
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    const startOfYear = new Date(targetDate.getFullYear(), 0, 1);
+
+    // 1. Get Visit Plans
+    const visitPlans = await prisma.visitPlan.findMany({
+      where: {
+        userId,
+        visitDate: { gte: startOfDay, lte: endOfDay },
+        status: { not: 'CANCELLED' }
+      },
+      include: {
+        pharmacy: true
+      },
+      orderBy: { visitTime: 'asc' }
+    });
+
+    // 2. Get Orders for the day
+    const dailyOrders = await prisma.order.findMany({
+      where: {
+        userId,
+        createdAt: { gte: startOfDay, lte: endOfDay }
+      }
+    });
+
+    // 3. Enrich with Stats
+    const summary = await Promise.all(visitPlans.map(async (visit) => {
+      // Find order for this visit
+      const order = dailyOrders.find(o => o.pharmacyId === visit.pharmacyId);
+
+      // Calculate MTD Sales
+      const mtdSales = await prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: {
+          pharmacyId: visit.pharmacyId,
+          createdAt: { gte: startOfMonth },
+          status: { not: 'CANCELLED' }
+        }
+      });
+
+      // Calculate YTD Sales
+      const ytdSales = await prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: {
+          pharmacyId: visit.pharmacyId,
+          createdAt: { gte: startOfYear },
+          status: { not: 'CANCELLED' }
+        }
+      });
+
+      return {
+        ...visit,
+        order: order || null,
+        stats: {
+          mtd: mtdSales._sum.totalAmount || 0,
+          ytd: ytdSales._sum.totalAmount || 0
+        }
+      };
+    }));
+
+    res.json(summary);
+  } catch (error) {
+    console.error('Error fetching route summary:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 export default router;

@@ -3,10 +3,6 @@
   "appName": "An Minh",
   "webDir": "build",
   "bundledWebRuntime": false,
-  "server": {
-    "url": "https://sales.ammedtech.com",
-    "cleartext": false
-  },
   "ios": {
     "scheme": "anminh",
     "contentInset": "automatic"
@@ -24,4 +20,3 @@
     }
   }
 }
-

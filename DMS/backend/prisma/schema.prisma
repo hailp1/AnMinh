@@ -7,15 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- CORE SYSTEM ---
+
 model User {
   id           String   @id @default(uuid())
-  username     String   @unique
+  username     String?  @unique // Optional for now as employeeCode is main identifier
   employeeCode String?  @unique
   password     String
   name         String?
   email        String?  @unique
   phone        String?
-  role         String   @default("user")
+  role         String   @default("user") // ADMIN, TDV, QL, KT, PHARMACY, DELIVERY
   isActive     Boolean  @default(true)
   routeCode    String?
   channel      String?
@@ -27,8 +29,21 @@ model User {
   regionId     String?
   region       Region?  @relation(fields: [regionId], references: [id])
 
+  // Relations
   customerAssignments CustomerAssignment[]
-  routes Route[]
+  routes              Route[]
+  orders              Order[]
+  visitPlans          VisitPlan[]
+  kpiTargets          KpiTarget[]
+  kpiResults          KpiResult[]
+  incentives          Incentive[]
+  sentMessages        Message[] @relation("SentMessages")
+  receivedMessages    Message[] @relation("ReceivedMessages")
+  approvalRequests    ApprovalRequest[] @relation("Requester")
+  approvalActions     ApprovalAction[]
+  organizedActivities TradeActivity[]
+  pharmacyRepPharmacies PharmacyRepPharmacy[]
+  managedWarehouses     Warehouse[]
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -38,28 +53,62 @@ model Region {
   id        String   @id @default(uuid())
   name      String
   code      String   @unique
+  description String?
+  
   users     User[]
   territories Territory[]
+  businessUnits BusinessUnit[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model BusinessUnit {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  regionId    String
+  region      Region   @relation(fields: [regionId], references: [id])
+  territories Territory[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Territory {
   id        String   @id @default(uuid())
   name      String
   code      String   @unique
+  description String?
+  
   regionId  String
   region    Region   @relation(fields: [regionId], references: [id])
+  
+  businessUnitId String?
+  businessUnit   BusinessUnit? @relation(fields: [businessUnitId], references: [id])
+  
   pharmacies Pharmacy[]
+  visitPlans VisitPlan[]
+  customerAssignments CustomerAssignment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// --- CUSTOMER MANAGEMENT ---
 
 model CustomerSegment {
   id        String   @id @default(uuid())
   name      String
   code      String   @unique
+  description String?
+  minOrderAmount Float?
+  minOrderCount Int?
+  benefits    String[]
+  
   pharmacies Pharmacy[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -79,6 +128,22 @@ model Pharmacy {
   latitude  Float?
   longitude Float?
   description String?
+  isVerified Boolean @default(false)
+  isActive   Boolean @default(true)
+  tier       String?  @default("C") // A: VIP, B: Medium, C: Small
+  images    String[]
+
+  // Imported fields from AM_Cus
+  classification   String? // Loai khach
+  channel          String? // Kenh
+  rawRegion        String? // Khu vuc (raw)
+  organizationType String? // Hinh thuc to chuc
+  pharmacistName   String? // Duoc si phu trach
+  staffName        String? // Nhan vien ban thuoc
+  orderPhone       String? // DT Dat hang
+  orderFrequency   String? // Tan do dat hang
+  linkCode         String? // LK Toan phan
+  isChain          Boolean? @default(false) // Chain
   
   territoryId String?
   territory   Territory? @relation(fields: [territoryId], references: [id])
@@ -86,11 +151,25 @@ model Pharmacy {
   customerSegmentId String?
   customerSegment   CustomerSegment? @relation(fields: [customerSegmentId], references: [id])
 
+  // Relations
   customerAssignments CustomerAssignment[]
-  routes Route[]
+  routes              Route[]
+  orders              Order[]
+  visitPlans          VisitPlan[]
+  loyaltyPoints       LoyaltyPoint[]
+  loyaltyTransactions LoyaltyTransaction[]
+  loyaltyRedemptions  LoyaltyRedemption[]
+  promotionApplications PromotionApplication[]
+  pharmacyPrices      PharmacyProductPrice[]
+  pharmacyRepPharmacies PharmacyRepPharmacy[]
+
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@index([province, district])
+  @@index([territoryId])
+  @@index([createdAt])
 }
 
 model CustomerAssignment {
@@ -99,9 +178,33 @@ model CustomerAssignment {
   user      User     @relation(fields: [userId], references: [id])
   pharmacyId String
   pharmacy  Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  territoryId String?
+  territory   Territory? @relation(fields: [territoryId], references: [id])
+  
+  assignedBy String?
+  notes      String?
+  isActive   Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Support table for many-to-many relation compatibility
+model PharmacyRepPharmacy {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  pharmacyId String
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, pharmacyId])
+}
+
+// --- PRODUCT MANAGEMENT ---
 
 model ProductGroup {
   id          String    @id @default(uuid())
@@ -117,18 +220,297 @@ model ProductGroup {
 
 model Product {
   id          String       @id @default(uuid())
+  
+  // Basic Information
   name        String
   code        String?      @unique
-  description String?
-  unit        String?
-  price       Float?
+  genericName String?      // Tên hoạt chất
+  description String?      @db.Text
+  unit        String?      // Chai, Hộp, Viên, Gói
+  packingSpec String?      // Chai 40 viên, Hộp 3 vỉ x 10 viên
+  
+  // Classification
   groupId     String?
   group       ProductGroup? @relation(fields: [groupId], references: [id])
-  isActive    Boolean      @default(true)
-  order       Int          @default(0)
+  categoryId  String?
+  category    Category?     @relation(fields: [categoryId], references: [id])
+  
+  // Manufacturer
+  manufacturer    String?   // NADYPHAR, SANOFI...
+  countryOfOrigin String?   // Việt Nam, Pháp...
+  
+  // Pricing
+  price           Float?    // Giá bán chính
+  costPrice       Float?    // Giá nhập
+  wholesalePrice  Float?    // Giá bán sỉ
+  retailPrice     Float?    // Giá bán lẻ
+  
+  // Identification
+  barcode         String?   @unique
+  sku             String?   @unique
+  registrationNo  String?   // Số đăng ký VD-xxxxx-xx
+  
+  // Stock Management
+  minStock        Int?      @default(10)
+  maxStock        Int?      @default(1000)
+  reorderPoint    Int?      @default(20)
+  
+  // Attributes
+  isPrescription  Boolean   @default(false) // Thuốc kê đơn (ETC)
+  isControlled    Boolean   @default(false)
+  isRefrigerated  Boolean   @default(false)
+  storageCondition String?
+  
+  // Pharma Details
+  concentration     String?   // Hàm lượng
+  usage             String?   // Đường dùng (Uống, Tiêm...)
+  indications       String?   @db.Text // Chỉ định
+  contraindications String?   @db.Text // Chống chỉ định
+  dosage            String?   @db.Text // Liều dùng
+  sideEffects       String?   @db.Text // Tác dụng phụ
+  shelfLife         String?   // Hạn dùng
+  vat               Float?    // VAT
+  
+  // Status
+  isActive        Boolean   @default(true)
+  order           Int       @default(0)
+  images          String[]
+  imageUrl        String?
+  
+  // Metadata
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  // Relations
+  orderItems      OrderItem[]
+  promotionItems  PromotionItem[]
+  inventoryItems  InventoryItem[]
+  productPrices   ProductPrice[]
+  batches         ProductBatch[]
+  pharmacyPrices  PharmacyProductPrice[]
+  inventoryTransactions InventoryTransaction[]
+
+  @@index([name])
+  @@index([manufacturer])
+  @@index([groupId])
 }
+
+model ProductPrice {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  price       Float
+  currency    String   @default("VND")
+  effectiveDate DateTime
+  endDate     DateTime?
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PharmacyProductPrice {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  price       Float
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Category {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  name            String
+  description     String?
+  parentId        String?
+  
+  order           Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  parent          Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryHierarchy")
+  products        Product[]
+}
+
+model ProductBatch {
+  id              String    @id @default(uuid())
+  productId       String
+  batchNumber     String
+  expiryDate      DateTime
+  manufacturingDate DateTime?
+  
+  initialQuantity Int
+  currentQuantity Int
+  costPrice       Float?
+  
+  warehouseId     String?
+  location        String?
+  status          String    @default("ACTIVE")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  product         Product   @relation(fields: [productId], references: [id])
+  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
+  
+  @@unique([productId, batchNumber])
+}
+
+model Warehouse {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  name            String
+  type            String?
+  
+  address         String?
+  province        String?
+  district        String?
+  
+  managerId       String?
+  managerName     String?
+  phone           String?
+  
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  manager         User?     @relation(fields: [managerId], references: [id])
+  inventoryItems  InventoryItem[]
+  batches         ProductBatch[]
+  inventoryTransactions InventoryTransaction[]
+}
+
+model InventoryItem {
+  id              String    @id @default(uuid())
+  productId       String
+  warehouseId     String
+  
+  beginningQty    Int       @default(0)
+  receivedQty     Int       @default(0)
+  issuedQty       Int       @default(0)
+  currentQty      Int       @default(0)
+  
+  avgCostPrice    Float?
+  totalValue      Float?
+  location        String?
+  
+  isLowStock      Boolean   @default(false)
+  isOverStock     Boolean   @default(false)
+  hasExpiringSoon Boolean   @default(false)
+  
+  lastCountDate   DateTime?
+  lastUpdated     DateTime  @updatedAt
+  
+  product         Product   @relation(fields: [productId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  
+  @@unique([productId, warehouseId])
+}
+
+model InventoryTransaction {
+  id              String    @id @default(uuid())
+  type            String
+  transactionNo   String    @unique
+  
+  productId       String
+  batchNumber     String?
+  expiryDate      DateTime?
+  
+  warehouseId     String
+  fromWarehouseId String?
+  toWarehouseId   String?
+  
+  quantity        Int
+  orderedQty      Int?
+  deliveredQty    Int?
+  
+  unitPrice       Float?
+  discountedPrice Float?
+  totalAmount     Float?
+  
+  reason          String?
+  notes           String?
+  
+  orderId         String?
+  supplierId      String?
+  
+  createdBy       String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  
+  transactionDate DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  
+  product         Product   @relation(fields: [productId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  order           Order?    @relation(fields: [orderId], references: [id])
+
+  @@index([warehouseId])
+  @@index([productId])
+  @@index([transactionDate])
+  @@index([type])
+}
+
+// --- SALES & ORDERS ---
+
+model Order {
+  id          String   @id @default(uuid())
+  orderNumber String   @unique
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  status      String   @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPING, COMPLETED, CANCELLED
+  totalAmount Float
+  notes       String?
+  
+  items       OrderItem[]
+  inventoryTransactions InventoryTransaction[]
+  promotionApplications PromotionApplication[]
+  
+  deliveryDate DateTime?
+  paymentStatus String @default("UNPAID")
+  paymentMethod String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([pharmacyId])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  quantity    Int
+  price       Float
+  subtotal    Float
+  discount    Float    @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- VISIT & ROUTE MANAGEMENT ---
 
 model Route {
   id          String   @id @default(uuid())
@@ -136,11 +518,363 @@ model Route {
   user        User     @relation(fields: [userId], references: [id])
   pharmacyId  String
   pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
-  dayOfWeek   String
+  dayOfWeek   Int      // 1=Sun, 2=Mon, ...
   visitOrder  Int?
   isActive    Boolean  @default(true)
+  frequency   String?  // F1, F2, F4, F8
+  callObjective String? // e.g., "Introduce new product", "Collect payment", "Check inventory"
+  notes       String?  // Pre-call notes or last visit summary
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([userId, pharmacyId, dayOfWeek])
+}
+
+model VisitPlan {
+  id          String   @id @default(uuid())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  territoryId String?
+  territory   Territory? @relation(fields: [territoryId], references: [id])
+  
+  visitDate   DateTime
+  visitTime   String?
+  dayOfWeek   Int?
+  frequency   String?
+  
+  status      String   @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED, MISSED
+  purpose     String?
+  notes       String?
+  
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  checkInLat   Float?
+  checkInLng   Float?
+  checkOutLat  Float?
+  checkOutLng  Float?
+  
+  images      String[]
+  completedAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- PROMOTIONS & LOYALTY ---
+
+model Promotion {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  type        String   // DISCOUNT, BUY_X_GET_Y, FREE_SHIPPING, GIFT
+  
+  discountType String? // PERCENTAGE, FIXED_AMOUNT
+  discountValue Float?
+  
+  minOrderAmount Float?
+  maxDiscountAmount Float?
+  
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  
+  applicableTo String  @default("ALL") // ALL, SEGMENT, TERRITORY, PHARMACY
+  customerSegmentIds String[]
+  territoryIds String[]
+  
+  items       PromotionItem[]
+  applications PromotionApplication[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PromotionItem {
+  id          String   @id @default(uuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  quantity    Int      // Quantity required or gifted
+  discountValue Float? // Specific discount for this item
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PromotionApplication {
+  id          String   @id @default(uuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  discountAmount Float
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LoyaltyPoint {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  points      Int      @default(0)
+  earnedPoints Int     @default(0)
+  usedPoints   Int     @default(0)
+  expiredPoints Int    @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([pharmacyId])
+}
+
+model LoyaltyTransaction {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  type        String   // EARN, REDEEM, EXPIRE, ADJUST
+  points      Int
+  referenceId String?  // Order ID or other ref
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LoyaltyReward {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  pointsRequired Int
+  rewardType     String   // VOUCHER, PRODUCT, DISCOUNT
+  rewardValue    String   // Voucher code, Product ID, or discount %
+  stock          Int?
+  isActive       Boolean  @default(true)
+  
+  redemptions    LoyaltyRedemption[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model LoyaltyRedemption {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  
+  rewardId    String
+  reward      LoyaltyReward @relation(fields: [rewardId], references: [id])
+  
+  pointsUsed  Int
+  status      String   @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- KPI & PERFORMANCE ---
+
+model KpiTarget {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  period      String   // YYYY-MM
+  periodType  String   @default("MONTH") // MONTH, QUARTER, YEAR
+  
+  targetSales Float
+  targetOrders Int
+  targetVisits Int
+  targetNewCustomers Int
+  
+  results     KpiResult[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, period])
+}
+
+model KpiResult {
+  id          String   @id @default(uuid())
+  targetId    String
+  target      KpiTarget @relation(fields: [targetId], references: [id])
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  period      String
+  
+  actualSales Float    @default(0)
+  actualOrders Int     @default(0)
+  actualVisits Int     @default(0)
+  actualNewCustomers Int @default(0)
+  
+  achievementRate Float @default(0)
+  
+  incentives  Incentive[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Incentive {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  period      String
+  kpiResultId String?
+  kpiResult   KpiResult? @relation(fields: [kpiResultId], references: [id])
+  
+  amount      Float
+  type        String   // COMMISSION, BONUS, ALLOWANCE
+  status      String   @default("PENDING") // PENDING, PAID
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- TRADE MARKETING & ACTIVITIES ---
+
+model TradeActivity {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  type        String   // EXHIBITION, SEMINAR, WORKSHOP, SPONSORSHIP
+  description String?
+  location    String?
+  
+  startDate   DateTime
+  endDate     DateTime
+  
+  budget      Float?
+  status      String   @default("PLANNED") // PLANNED, APPROVED, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  organizerId String?
+  organizer   User?    @relation(fields: [organizerId], references: [id])
+  
+  participants String[] // List of user IDs or Pharmacy IDs
+  images      String[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+
+// --- COMMUNICATION & APPROVALS ---
+
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  
+  subject     String?
+  content     String
+  isRead      Boolean  @default(false)
+  type        String   @default("TEXT") // TEXT, NOTIFICATION, SYSTEM
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ApprovalRequest {
+  id          String   @id @default(uuid())
+  requesterId String
+  requester   User     @relation("Requester", fields: [requesterId], references: [id])
+  
+  type        String   // LEAVE, EXPENSE, PROMOTION, ORDER
+  referenceId String?
+  details     String? // JSON string
+  
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  currentApproverId String?
+  
+  actions     ApprovalAction[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ApprovalAction {
+  id          String   @id @default(uuid())
+  requestId   String
+  request     ApprovalRequest @relation(fields: [requestId], references: [id])
+  
+  approverId  String
+  approver    User     @relation(fields: [approverId], references: [id])
+  
+  action      String   // APPROVE, REJECT, COMMENT
+  comment     String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --- ANALYTICS & REPORTING ---
+
+model RevenueStat {
+  id          String   @id @default(uuid())
+  period      String   // YYYY-MM-DD or YYYY-MM
+  periodType  String   // DAY, MONTH, YEAR
+  
+  totalRevenue Float
+  totalOrders  Int
+  totalCustomers Int
+  
+  regionId    String?
+  territoryId String?
+  userId      String?
+  productId   String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  orderId     String
+  amount      Float
+  method      String   // CASH, BANK_TRANSFER, MOMO, ZALOPAY
+  status      String   // PENDING, COMPLETED, FAILED
+  transactionId String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model PermissionConfig {
+  id          String   @id @default(uuid())
+  role        String   @unique
+  permissions Json     // Stores module-action mapping
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

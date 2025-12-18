@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">An Minh</string>
+    <string name="title_activity_main">An Minh</string>
+    <string name="package_name">com.ammedtech.anminh</string>
+    <string name="custom_url_scheme">com.ammedtech.anminh</string>
+</resources>

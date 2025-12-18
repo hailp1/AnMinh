@@ -73,6 +73,7 @@ services:
     container_name: dms_frontend
     environment:
       REACT_APP_API_URL: /api
+      PROXY_URL: http://backend:5000
     ports:
       - "3099:80"
     depends_on:

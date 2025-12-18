@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # ===================================
+  # PostgreSQL Database (Preprod)
+  # ===================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: preprod_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-anminh_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - preprod_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5455:5432"
+    networks:
+      - preprod_dms_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ===================================
+  # Backend API (Preprod)
+  # ===================================
+  backend:
+    build:
+      context: ./DMS/backend
+      dockerfile: Dockerfile
+    container_name: preprod_backend
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-anminh_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-preprod_secret_key_change_this}
+      FRONTEND_ORIGIN: http://localhost:3599
+    ports:
+      - "5555:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - preprod_dms_network
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5000/api" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===================================
+  # Frontend (React) (Preprod)
+  # ===================================
+  frontend:
+    build:
+      context: ./DMS/frontend
+      dockerfile: Dockerfile
+    container_name: preprod_frontend
+    environment:
+      REACT_APP_API_URL: /api
+    ports:
+      - "3599:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - preprod_dms_network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===================================
+  # Landing Page (Next.js) (Preprod)
+  # ===================================
+  landing:
+    build:
+      context: ./home/landing
+      dockerfile: Dockerfile
+    container_name: preprod_landing
+    ports:
+      - "3500:3000"
+    networks:
+      - preprod_dms_network
+    restart: unless-stopped
+
+  # ===================================
+  # Web App (Next.js) (Preprod)
+  # ===================================
+  webapp:
+    build:
+      context: ./DMS/portal
+      dockerfile: Dockerfile
+    container_name: preprod_webapp
+    ports:
+      - "3501:3000"
+    networks:
+      - preprod_dms_network
+    restart: unless-stopped
+
+  # ===================================
+  # Redis (Cache Service) (Preprod)
+  # ===================================
+  redis:
+    image: redis:alpine
+    container_name: preprod_redis
+    ports:
+      - "6355:6379"
+    networks:
+      - preprod_dms_network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ===================================
+# Volumes
+# ===================================
+volumes:
+  preprod_postgres_data:
+    driver: local
+
+# ===================================
+# Networks
+# ===================================
+networks:
+  preprod_dms_network:
+    driver: bridge

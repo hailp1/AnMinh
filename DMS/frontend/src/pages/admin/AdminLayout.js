@@ -6,6 +6,7 @@ const AdminLayout = ({ children }) => {
   const [adminUser, setAdminUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [expandedMenus, setExpandedMenus] = useState({}); // Track expanded sub-menus
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,18 +46,19 @@ const AdminLayout = ({ children }) => {
     navigate('/Anminh/admin');
   };
 
+  const toggleMenu = (menuId) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuId]: !prev[menuId]
+    }));
+  };
+
   const menuItems = [
     {
       id: 'dashboard',
-      label: '📊 Dashboard',
+      label: '📊 Admin Dashboard',
       path: '/Anminh/admin/dashboard',
       icon: '📊'
-    },
-    {
-      id: 'customers',
-      label: '👥 Quản lý khách hàng',
-      path: '/Anminh/admin/customers',
-      icon: '👥'
     },
     {
       id: 'routes',
@@ -66,15 +68,34 @@ const AdminLayout = ({ children }) => {
     },
     {
       id: 'map',
-      label: '📍 Bản đồ định vị',
+      label: '📍 Bản đồ Định Vị',
       path: '/Anminh/admin/map',
       icon: '📍'
     },
     {
       id: 'reports',
-      label: '📈 Báo cáo & Thống kê',
+      label: '📈 Báo cáo thống kê',
       path: '/Anminh/admin/reports',
       icon: '📈'
+    },
+    {
+      id: 'customer_mngt',
+      label: '👥 Quản lý khách hàng',
+      icon: '👥',
+      subItems: [
+        { id: 'cust_list', label: 'Danh sách khách hàng', path: '/Anminh/admin/customers' },
+        { id: 'cust_seg', label: 'Nhóm khách hàng', path: '/Anminh/admin/segments' },
+        { id: 'cust_approve', label: 'Duyệt yêu cầu', path: '/Anminh/admin/approvals' }
+      ]
+    },
+    {
+      id: 'product_mngt',
+      label: '💊 Quản lý sản phẩm',
+      icon: '💊',
+      subItems: [
+        { id: 'prod_list', label: 'Danh sách sản phẩm', path: '/Anminh/admin/products' },
+        { id: 'prod_group', label: 'Danh mục & Nhóm', path: '/Anminh/admin/products' }
+      ]
     },
     {
       id: 'orders',
@@ -83,10 +104,10 @@ const AdminLayout = ({ children }) => {
       icon: '📦'
     },
     {
-      id: 'products',
-      label: '💊 Quản lý sản phẩm',
-      path: '/Anminh/admin/products',
-      icon: '💊'
+      id: 'inventory',
+      label: '🏭 Quản lý kho',
+      path: '/Anminh/admin/inventory',
+      icon: '🏭'
     },
     {
       id: 'users',
@@ -95,46 +116,23 @@ const AdminLayout = ({ children }) => {
       icon: '👤'
     },
     {
-      id: 'settings',
-      label: '⚙️ Cài đặt hệ thống',
-      path: '/Anminh/admin/settings',
-      icon: '⚙️'
+      id: 'trade_mngt',
+      label: '🎯 Quản lý HTTM',
+      icon: '🎯',
+      subItems: [
+        { id: 'tm_promo', label: 'Chương trình KM', path: '/Anminh/admin/promotions' },
+        { id: 'tm_loyalty', label: 'Tích lũy & Đổi quà', path: '/Anminh/admin/loyalty' },
+        { id: 'tm_act', label: 'Hoạt động thương mại', path: '/Anminh/admin/trade-activities' }
+      ]
     },
     {
-      id: 'promotions',
-      label: '🎁 Quản lý khuyến mãi',
-      path: '/Anminh/admin/promotions',
-      icon: '🎁'
-    },
-    {
-      id: 'loyalty',
-      label: '💎 Quản lý tích lũy',
-      path: '/Anminh/admin/loyalty',
-      icon: '💎'
-    },
-    {
-      id: 'customer-segments',
-      label: '🏷️ Phân nhóm khách hàng',
-      path: '/Anminh/admin/segments',
-      icon: '🏷️'
-    },
-    {
-      id: 'trade-activities',
-      label: '🎯 Hoạt động thương mại',
-      path: '/Anminh/admin/trade-activities',
-      icon: '🎯'
-    },
-    {
-      id: 'kpi',
-      label: '📊 KPI & Thưởng',
-      path: '/Anminh/admin/kpi',
-      icon: '📊'
-    },
-    {
-      id: 'approvals',
-      label: '✅ Quản lý Phê duyệt',
-      path: '/Anminh/admin/approvals',
-      icon: '✅'
+      id: 'system',
+      label: '⚙️ Hệ thống',
+      icon: '⚙️',
+      subItems: [
+        { id: 'sys_kpi', label: 'KPI & Thưởng', path: '/Anminh/admin/kpi' },
+        { id: 'sys_settings', label: 'Cài đặt chung', path: '/Anminh/admin/settings' }
+      ]
     }
   ];
 
@@ -142,7 +140,24 @@ const AdminLayout = ({ children }) => {
     return null; // Will redirect to login
   }
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    if (!path) return false;
+    // Check exact path match or query param match
+    if (location.pathname === path) return true;
+    if (path.includes('?')) {
+      const param = path.split('?')[1];
+      return location.search.includes(param);
+    }
+    return false;
+  };
+
+  const isParentActive = (item) => {
+    if (isActive(item.path)) return true;
+    if (item.subItems) {
+      return item.subItems.some(sub => isActive(sub.path));
+    }
+    return false;
+  };
 
   return (
     <div className="admin-layout">
@@ -190,22 +205,67 @@ const AdminLayout = ({ children }) => {
 
         {/* Menu Items */}
         <nav className="admin-nav">
-          {menuItems.map(item => (
-            <div
-              key={item.id}
-              onClick={() => navigate(item.path)}
-              className={`admin-nav-item ${isActive(item.path) ? 'active' : ''}`}
-            >
-              <span className="admin-nav-icon">
-                {item.icon}
-              </span>
-              {sidebarOpen && (
-                <span className="admin-nav-label">
-                  {item.label.replace(/^[^\s]+\s/, '')}
-                </span>
-              )}
-            </div>
-          ))}
+          {menuItems.map(item => {
+            const isExpanded = expandedMenus[item.id];
+            const hasSubItems = item.subItems && item.subItems.length > 0;
+            const active = isParentActive(item);
+
+            return (
+              <div key={item.id}>
+                <div
+                  onClick={() => hasSubItems ? toggleMenu(item.id) : navigate(item.path)}
+                  className={`admin-nav-item ${active ? 'active' : ''}`}
+                  style={{ cursor: 'pointer', justifyContent: 'space-between' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span className="admin-nav-icon">
+                      {item.icon}
+                    </span>
+                    {sidebarOpen && (
+                      <span className="admin-nav-label">
+                        {item.label.replace(/^[^\s]+\s/, '')}
+                      </span>
+                    )}
+                  </div>
+                  {sidebarOpen && hasSubItems && (
+                    <span style={{ fontSize: '10px', color: '#999' }}>
+                      {isExpanded ? '▲' : '▼'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Sub Items */}
+                {sidebarOpen && hasSubItems && isExpanded && (
+                  <div style={{ paddingLeft: '40px', background: 'rgba(0,0,0,0.02)' }}>
+                    {item.subItems.map(sub => (
+                      <div
+                        key={sub.id}
+                        onClick={() => navigate(sub.path)}
+                        style={{
+                          padding: '10px 0',
+                          fontSize: '13px',
+                          color: isActive(sub.path) ? '#60a5fa' : 'rgba(255,255,255,0.7)',
+                          fontWeight: isActive(sub.path) ? '600' : '400',
+                          cursor: 'pointer',
+                          borderLeft: isActive(sub.path) ? '2px solid #60a5fa' : '2px solid transparent',
+                          paddingLeft: '10px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive(sub.path)) e.target.style.color = '#fff';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive(sub.path)) e.target.style.color = 'rgba(255,255,255,0.7)';
+                        }}
+                      >
+                        {sub.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Toggle Sidebar (footer) - visible on desktop */}
@@ -280,4 +340,3 @@ const AdminLayout = ({ children }) => {
 };
 
 export default AdminLayout;
-

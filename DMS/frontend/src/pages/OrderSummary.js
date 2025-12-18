@@ -101,16 +101,7 @@ const OrderSummary = () => {
       navigate(`/order/invoice/${orderId}`, { state: { order: fullOrder } });
     } catch (error) {
       console.error('Error creating order:', error);
-      const mockId = 'MOCK-' + Date.now();
-      const mockOrder = {
-        id: mockId,
-        customer: pharmacy,
-        items: cartItems,
-        totalAmount: finalTotal,
-        createdAt: new Date().toISOString()
-      };
-      alert('Tạo đơn hàng thành công (Giả lập)');
-      navigate(`/order/invoice/${mockId}`, { state: { order: mockOrder } });
+      alert('Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }

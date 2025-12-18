@@ -29,10 +29,25 @@ const apiCall = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+
+    // Check if response is JSON
+    let data;
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || 'Có lỗi xảy ra');
+      // Handle validation errors array
+      if (data.errors && Array.isArray(data.errors)) {
+        const errorMessages = data.errors.map(e => e.msg || e.message || e).join(', ');
+        throw new Error(errorMessages);
+      }
+      // Handle single error message
+      throw new Error(data.error || data.message || `Server error: ${response.status}`);
     }
 
     return data;
@@ -62,8 +77,18 @@ export const pharmaciesAPI = {
 
 // Products API
 export const productsAPI = {
-  ...createCRUDEndpoints('products'),
+  getAll: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/products${query ? `?${query}` : ''}`);
+  },
+  getById: (id) => apiCall(`/products/${id}`),
+  create: (data) => apiCall('/products/admin/products', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiCall(`/products/admin/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiCall(`/products/admin/products/${id}`, { method: 'DELETE' }),
   getGroups: () => apiCall('/products/groups'),
+  createGroup: (data) => apiCall('/products/admin/groups', { method: 'POST', body: JSON.stringify(data) }),
+  updateGroup: (id, data) => apiCall(`/products/admin/groups/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteGroup: (id) => apiCall(`/products/admin/groups/${id}`, { method: 'PUT', body: JSON.stringify({ isActive: false }) }),
 };
 
 // Orders API
@@ -145,7 +170,13 @@ export const kpiAPI = {
   }
 };
 export const approvalsAPI = createCRUDEndpoints('approvals');
-export const usersAPI = createCRUDEndpoints('users');
+export const usersAPI = {
+  ...createCRUDEndpoints('users'),
+  getAllAdmin: () => apiCall('/users/admin/users'), // Full list for admins
+  create: (data) => apiCall('/users/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiCall(`/users/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiCall(`/users/admin/users/${id}`, { method: 'DELETE' }),
+};
 
 // Messages API
 export const messagesAPI = {
@@ -176,6 +207,35 @@ export const routesAPI = {
   })
 };
 
+// Inventory API
+export const inventoryAPI = {
+  getWarehouses: () => apiCall('/inventory/warehouses'),
+  createWarehouse: (data) => apiCall('/inventory/warehouses', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateWarehouse: (id, data) => apiCall(`/inventory/warehouses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  getStock: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/inventory/stock?${query}`);
+  },
+  getBatches: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/inventory/batches?${query}`);
+  },
+  getTransactions: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/inventory/transactions?${query}`);
+  },
+  createTransaction: (data) => apiCall('/inventory/transactions', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+};
+
 // Reports API
 export const reportsAPI = {
   getSales: (params) => {
@@ -185,7 +245,20 @@ export const reportsAPI = {
   getVisits: (params) => {
     const query = new URLSearchParams(params).toString();
     return apiCall(`/reports/visits?${query}`);
+  },
+  getDashboard: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/dashboard?${query}`);
   }
+};
+
+// System API
+export const systemAPI = {
+  getSettings: () => apiCall('/system/settings'),
+  updateSettings: (settings) => apiCall('/system/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings)
+  })
 };
 
 export default {
@@ -210,5 +283,8 @@ export default {
   messages: messagesAPI,
   permissions: permissionsAPI,
   routes: routesAPI,
+  routes: routesAPI,
+  inventory: inventoryAPI,
+  system: systemAPI,
 };
 

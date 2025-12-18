@@ -77,6 +77,12 @@ const HomeScreen = () => {
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
                         style={styles.iconButton}
+                        onPress={() => navigation.navigate('VisitSchedule')}
+                    >
+                        <Text style={styles.iconButtonText}>📅</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.iconButton}
                         onPress={() => navigation.navigate('Map')}
                     >
                         <Text style={styles.iconButtonText}>🗺️</Text>

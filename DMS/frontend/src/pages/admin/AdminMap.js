@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import { pharmaciesAPI, visitPlansAPI } from '../../services/api';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { usersAPI, visitPlansAPI } from '../../services/api';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix cho marker icons
+// Fix icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -12,511 +12,162 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
-// Custom icons
-const createCustomIcon = (color, iconText) => {
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="
-      background: ${color};
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 3px solid #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    ">${iconText}</div>`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
-  });
-};
-
-const hubIcon = createCustomIcon('#F29E2E', '🏢');
-const pharmacyIcon = createCustomIcon('#1E4A8B', '💊');
-const tdvIcon = createCustomIcon('#22c55e', '🛵');
-
-// Hub locations
-const hubs = [
-  {
-    id: 'hub_cuchi',
-    name: 'Hub Củ Chi',
-    latitude: 10.9733,
-    longitude: 106.4933,
-    address: 'Củ Chi, TP.HCM'
-  },
-  {
-    id: 'hub_quan4',
-    name: 'Hub Quận 4 - HCM',
-    latitude: 10.7570,
-    longitude: 106.7010,
-    address: 'Quận 4, TP.HCM'
-  },
-  {
-    id: 'hub_bienhoa',
-    name: 'Hub Biên Hòa',
-    latitude: 10.9444,
-    longitude: 106.8244,
-    address: 'Biên Hòa, Đồng Nai'
-  }
-];
+const createCustomIcon = (color, text) => L.divIcon({
+  className: 'custom-marker',
+  html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff;box-shadow:0 2px 5px rgba(0,0,0,0.3)">${text}</div>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
+});
 
 const AdminMap = () => {
-  const [customers, setCustomers] = useState([]);
-  const [activeVisits, setActiveVisits] = useState([]);
-  const [selectedHub, setSelectedHub] = useState('all');
-  const [mapCenter, setMapCenter] = useState([10.7769, 106.7009]);
-  const [mapZoom, setMapZoom] = useState(11);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [tdvs, setTdvs] = useState([]);
+  const [selectedTdv, setSelectedTdv] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [routeData, setRouteData] = useState([]);
+  const [mapCenter, setMapCenter] = useState([10.7769, 106.7009]); // HCM
+  const [zoom, setZoom] = useState(12);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    loadTdvs();
   }, []);
 
   useEffect(() => {
-    loadCustomers();
-    loadActiveVisits();
+    if (selectedTdv && selectedDate) {
+      loadRoute();
+    }
+  }, [selectedTdv, selectedDate]);
 
-    // Refresh active visits every 30 seconds
-    const interval = setInterval(loadActiveVisits, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadCustomers = async () => {
+  const loadTdvs = async () => {
     try {
-      const data = await pharmaciesAPI.getAll();
-      if (Array.isArray(data)) {
-        // Filter customers with valid coordinates
-        const validCustomers = data.filter(c =>
-          c.latitude && c.longitude &&
-          !isNaN(parseFloat(c.latitude)) && !isNaN(parseFloat(c.longitude))
-        );
-        setCustomers(validCustomers);
-      }
+      const data = await usersAPI.getAll({ role: 'TDV' });
+      setTdvs(data);
+      if (data.length > 0) setSelectedTdv(data[0].id);
     } catch (error) {
-      console.error('Error loading customers for map:', error);
+      console.error('Error loading TDVs:', error);
     }
   };
 
-  const loadActiveVisits = async () => {
+  const loadRoute = async () => {
     try {
-      // Assuming we have an endpoint to get all active visits or we filter from all plans
-      // For now, let's fetch all plans for today and filter IN_PROGRESS
-      const today = new Date().toISOString().split('T')[0];
-      const data = await visitPlansAPI.getAll({ visitDate: today, status: 'IN_PROGRESS' });
+      // Use the new endpoint we just created
+      // Note: We need to add this method to api.js or call fetch directly
+      const response = await fetch(`${process.env.REACT_APP_API_URL || '/api'}/visit-plans/route-summary?userId=${selectedTdv}&date=${selectedDate}`, {
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+      });
+      const data = await response.json();
 
       if (Array.isArray(data)) {
-        // We need user info and coordinates. 
-        // The check-in stores coordinates in 'notes' as "Check-in: ... @ [lat, long]"
-        // This is a bit hacky, ideally we should have lat/long columns in VisitPlan or a separate Tracking table.
-        // Let's parse the notes for now.
-
-        const visitsWithLocation = data.map(visit => {
-          const match = visit.notes?.match(/@ \[([\d.]+), ([\d.]+)\]/);
-          if (match) {
-            return {
-              ...visit,
-              latitude: parseFloat(match[1]),
-              longitude: parseFloat(match[2])
-            };
-          }
-          return null;
-        }).filter(v => v !== null);
-
-        setActiveVisits(visitsWithLocation);
+        setRouteData(data);
+        // Center map on first visit if available
+        const firstValid = data.find(v => v.pharmacy?.latitude);
+        if (firstValid) {
+          setMapCenter([firstValid.pharmacy.latitude, firstValid.pharmacy.longitude]);
+        }
       }
     } catch (error) {
-      console.error('Error loading active visits:', error);
+      console.error('Error loading route:', error);
     }
   };
 
-  const filteredCustomers = selectedHub === 'all'
-    ? customers
-    : customers.filter(c => c.hub === selectedHub);
+  const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
-  const handleHubClick = (hub) => {
-    setMapCenter([hub.latitude, hub.longitude]);
-    setMapZoom(13);
-    setSelectedHub(hub.id);
+  const getMarkerColor = (visit) => {
+    if (visit.status === 'COMPLETED') {
+      return visit.order ? '#10b981' : '#f59e0b'; // Green if order, Orange if no order
+    }
+    if (visit.status === 'CANCELLED') return '#ef4444'; // Red
+    return '#6b7280'; // Gray for Planned
   };
+
+  const polylinePositions = routeData
+    .filter(v => v.pharmacy?.latitude && v.pharmacy?.longitude)
+    .map(v => [v.pharmacy.latitude, v.pharmacy.longitude]);
 
   return (
-    <div style={{ padding: isMobile ? '0' : '0' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: isMobile ? '16px' : '24px'
-      }}>
-        <div>
-          <h1 style={{
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '600',
-            color: '#1a1a2e',
-            marginBottom: '8px'
-          }}>
-            Bản đồ định vị
-          </h1>
-          <p style={{
-            fontSize: isMobile ? '13px' : '14px',
-            color: '#666'
-          }}>
-            {filteredCustomers.length} nhà thuốc • {hubs.length} Hub
-          </p>
-        </div>
-      </div>
-
-      {/* Hub Filter */}
-      <div style={{
-        background: '#fff',
-        borderRadius: isMobile ? '10px' : '12px',
-        padding: isMobile ? '16px' : '20px',
-        marginBottom: isMobile ? '16px' : '24px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        display: 'flex',
-        gap: isMobile ? '8px' : '12px',
-        flexWrap: 'wrap'
-      }}>
-        <button
-          onClick={() => {
-            setSelectedHub('all');
-            setMapCenter([10.7769, 106.7009]);
-            setMapZoom(11);
-          }}
-          style={{
-            padding: isMobile ? '8px 14px' : '10px 20px',
-            background: selectedHub === 'all'
-              ? 'linear-gradient(135deg, #1E4A8B, #FBC93D)'
-              : '#f3f4f6',
-            border: 'none',
-            borderRadius: isMobile ? '6px' : '8px',
-            color: selectedHub === 'all' ? '#fff' : '#666',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
+    <div style={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
+      {/* Controls */}
+      <div style={{ padding: '15px', background: '#fff', display: 'flex', gap: '15px', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', zIndex: 10 }}>
+        <select
+          value={selectedTdv}
+          onChange={e => setSelectedTdv(e.target.value)}
+          style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
         >
-          Tất cả
-        </button>
-        {hubs.map(hub => (
-          <button
-            key={hub.id}
-            onClick={() => handleHubClick(hub)}
-            style={{
-              padding: isMobile ? '8px 14px' : '10px 20px',
-              background: selectedHub === hub.id
-                ? '#F29E2E'
-                : '#fff',
-              border: `2px solid ${selectedHub === hub.id ? '#F29E2E' : '#e5e7eb'}`,
-              borderRadius: isMobile ? '6px' : '8px',
-              color: selectedHub === hub.id ? '#fff' : '#1a1a2e',
-              fontSize: isMobile ? '12px' : '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '6px' : '8px'
-            }}
-          >
-            <span>🏢</span>
-            <span>{hub.name}</span>
-          </button>
-        ))}
+          <option value="">Chọn TDV</option>
+          {tdvs.map(u => <option key={u.id} value={u.id}>{u.name} ({u.employeeCode})</option>)}
+        </select>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={e => setSelectedDate(e.target.value)}
+          style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
+        />
+        <div style={{ marginLeft: 'auto', fontSize: '14px', fontWeight: 'bold' }}>
+          Tổng số KH: {routeData.length} | Đã thăm: {routeData.filter(v => v.status === 'COMPLETED').length}
+        </div>
       </div>
 
       {/* Map */}
-      <div style={{
-        background: '#fff',
-        borderRadius: isMobile ? '10px' : '12px',
-        overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        height: isMobile ? '400px' : '600px',
-        position: 'relative'
-      }}>
-        <MapContainer
-          center={mapCenter}
-          zoom={mapZoom}
-          style={{ height: '100%', width: '100%' }}
-          key={`${mapCenter[0]}-${mapCenter[1]}-${mapZoom}`}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
+      <div style={{ flex: 1 }}>
+        <MapContainer center={mapCenter} zoom={zoom} style={{ height: '100%', width: '100%' }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-          {/* Hub Markers */}
-          {hubs.map(hub => (
-            <Marker
-              key={hub.id}
-              position={[hub.latitude, hub.longitude]}
-              icon={hubIcon}
-            >
-              <Popup>
-                <div style={{ padding: '8px' }}>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1a1a2e',
-                    marginBottom: '8px'
-                  }}>
-                    🏢 {hub.name}
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#666',
-                    marginBottom: '8px'
-                  }}>
-                    {hub.address}
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#999'
-                  }}>
-                    📍 {hub.latitude.toFixed(4)}, {hub.longitude.toFixed(4)}
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {/* Route Line */}
+          <Polyline positions={polylinePositions} color="#3b82f6" weight={3} dashArray="5, 10" />
 
-          {/* Pharmacy Markers */}
-          {filteredCustomers.map(customer => (
-            <Marker
-              key={customer.id}
-              position={[customer.latitude, customer.longitude]}
-              icon={pharmacyIcon}
-            >
-              <Popup>
-                <div style={{ padding: '8px', minWidth: '200px' }}>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1a1a2e',
-                    marginBottom: '8px'
-                  }}>
-                    💊 {customer.name}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    📋 {customer.code}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    📍 {customer.address}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    👤 {customer.owner}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '8px'
-                  }}>
-                    🏢 Hub: {customer.hub}
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#999'
-                  }}>
-                    📞 {customer.phone}
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {/* Markers */}
+          {routeData.map((visit, index) => {
+            if (!visit.pharmacy?.latitude) return null;
+            return (
+              <Marker
+                key={visit.id}
+                position={[visit.pharmacy.latitude, visit.pharmacy.longitude]}
+                icon={createCustomIcon(getMarkerColor(visit), index + 1)}
+              >
+                <Popup>
+                  <div style={{ minWidth: '200px' }}>
+                    <h3 style={{ margin: '0 0 5px 0', color: '#1E4A8B' }}>{visit.pharmacy.name}</h3>
+                    <div style={{ fontSize: '13px', marginBottom: '5px' }}>{visit.pharmacy.address}</div>
+                    <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '5px 0' }} />
 
-          {/* Active TDV Markers */}
-          {activeVisits.map(visit => (
-            <Marker
-              key={visit.id}
-              position={[visit.latitude, visit.longitude]}
-              icon={tdvIcon}
-              zIndexOffset={1000} // Show on top
-            >
-              <Popup>
-                <div style={{ padding: '8px' }}>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#1a1a2e',
-                    marginBottom: '8px'
-                  }}>
-                    🛵 {visit.user?.name || 'TDV'}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span>Trạng thái:</span>
+                      <span style={{ fontWeight: 'bold', color: getMarkerColor(visit) }}>
+                        {visit.status === 'COMPLETED' ? 'Đã viếng thăm' : 'Chưa viếng thăm'}
+                      </span>
+                    </div>
+
+                    {visit.checkInTime && (
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        Check-in: {new Date(visit.checkInTime).toLocaleTimeString()}
+                      </div>
+                    )}
+
+                    {visit.order ? (
+                      <div style={{ marginTop: '5px', background: '#ecfdf5', padding: '5px', borderRadius: '4px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#059669' }}>Đơn hàng: {formatCurrency(visit.order.totalAmount)}</div>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '5px', fontSize: '12px', color: '#999' }}>Không có đơn hàng</div>
+                    )}
+
+                    <div style={{ marginTop: '10px', fontSize: '12px' }}>
+                      <div>Doanh số tháng: <strong>{formatCurrency(visit.stats?.mtd || 0)}</strong></div>
+                      <div>Doanh số năm: <strong>{formatCurrency(visit.stats?.ytd || 0)}</strong></div>
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: '#666',
-                    marginBottom: '4px'
-                  }}>
-                    Đang viếng thăm: <strong>{visit.pharmacy?.name}</strong>
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#999'
-                  }}>
-                    🕒 Bắt đầu: {visit.visitTime}
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
-
-        {/* Legend */}
-        <div style={{
-          position: 'absolute',
-          bottom: isMobile ? '10px' : '20px',
-          right: isMobile ? '10px' : '20px',
-          background: 'rgba(255,255,255,0.95)',
-          padding: isMobile ? '12px' : '16px',
-          borderRadius: isMobile ? '8px' : '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          zIndex: 1000
-        }}>
-          <div style={{
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '600',
-            marginBottom: isMobile ? '8px' : '12px',
-            color: '#1a1a2e'
-          }}>
-            Chú thích
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: '#F29E2E',
-                border: '2px solid #fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}>
-                🏢
-              </div>
-              <span style={{ fontSize: '13px', color: '#666' }}>Hub</span>
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: '#1E4A8B',
-                border: '2px solid #fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}>
-                💊
-              </div>
-              <span style={{ fontSize: '13px', color: '#666' }}>Nhà thuốc</span>
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: '#22c55e',
-                border: '2px solid #fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px'
-              }}>
-                🛵
-              </div>
-              <span style={{ fontSize: '13px', color: '#666' }}>TDV đang hoạt động</span>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Stats */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: isMobile ? '12px' : '16px',
-        marginTop: isMobile ? '16px' : '24px'
-      }}>
-        {hubs.map(hub => {
-          const hubCustomers = customers.filter(c => c.hub === hub.name);
-          return (
-            <div
-              key={hub.id}
-              style={{
-                background: '#fff',
-                borderRadius: isMobile ? '10px' : '12px',
-                padding: isMobile ? '16px' : '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                border: '2px solid #F29E2E'
-              }}
-            >
-              <div style={{
-                fontSize: isMobile ? '14px' : '16px',
-                fontWeight: '600',
-                color: '#1a1a2e',
-                marginBottom: isMobile ? '10px' : '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span>🏢</span>
-                <span>{hub.name}</span>
-              </div>
-              <div style={{
-                fontSize: isMobile ? '24px' : '32px',
-                fontWeight: 'bold',
-                color: '#F29E2E',
-                marginBottom: '4px'
-              }}>
-                {hubCustomers.length}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '13px' : '14px',
-                color: '#666'
-              }}>
-                Nhà thuốc
-              </div>
-            </div>
-          );
-        })}
+      {/* Legend */}
+      <div style={{ padding: '10px', background: '#fff', display: 'flex', gap: '15px', fontSize: '12px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: 10, height: 10, background: '#6b7280', borderRadius: '50%' }}></span> Chưa thăm</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: 10, height: 10, background: '#f59e0b', borderRadius: '50%' }}></span> Đã thăm (Không đơn)</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: 10, height: 10, background: '#10b981', borderRadius: '50%' }}></span> Có đơn hàng</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: 10, height: 10, background: '#ef4444', borderRadius: '50%' }}></span> Hủy bỏ</div>
       </div>
     </div>
   );

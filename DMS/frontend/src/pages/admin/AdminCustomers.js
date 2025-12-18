@@ -40,7 +40,17 @@ const AdminCustomers = () => {
     type: 'PHARMACY',
     latitude: '',
     longitude: '',
-    description: ''
+    description: '',
+    // New Fields
+    channel: '',
+    classification: '',
+    pharmacistName: '',
+    staffName: '',
+    organizationType: '',
+    orderPhone: '',
+    orderFrequency: '',
+    linkCode: '',
+    isChain: false
   });
 
   useEffect(() => {
@@ -131,7 +141,16 @@ const AdminCustomers = () => {
       type: 'PHARMACY',
       latitude: '',
       longitude: '',
-      description: ''
+      description: '',
+      channel: '',
+      classification: '',
+      pharmacistName: '',
+      staffName: '',
+      organizationType: '',
+      orderPhone: '',
+      orderFrequency: '',
+      linkCode: '',
+      isChain: false
     });
     setShowModal(true);
   };
@@ -153,7 +172,16 @@ const AdminCustomers = () => {
       type: customer.type || 'PHARMACY',
       latitude: customer.latitude?.toString() || '',
       longitude: customer.longitude?.toString() || '',
-      description: customer.description || ''
+      description: customer.description || '',
+      channel: customer.channel || '',
+      classification: customer.classification || '',
+      pharmacistName: customer.pharmacistName || '',
+      staffName: customer.staffName || '',
+      organizationType: customer.organizationType || '',
+      orderPhone: customer.orderPhone || '',
+      orderFrequency: customer.orderFrequency || '',
+      linkCode: customer.linkCode || '',
+      isChain: customer.isChain || false
     });
     setShowModal(true);
   };
@@ -210,6 +238,16 @@ const AdminCustomers = () => {
         latitude: formData.latitude ? parseFloat(formData.latitude) : null,
         longitude: formData.longitude ? parseFloat(formData.longitude) : null,
         description: formData.description || null,
+        // New Fields
+        channel: formData.channel || null,
+        classification: formData.classification || null,
+        pharmacistName: formData.pharmacistName || null,
+        staffName: formData.staffName || null,
+        organizationType: formData.organizationType || null,
+        orderPhone: formData.orderPhone || null,
+        orderFrequency: formData.orderFrequency || null,
+        linkCode: formData.linkCode || null,
+        isChain: formData.isChain || false,
       };
 
       const url = editingCustomer
@@ -275,12 +313,25 @@ const AdminCustomers = () => {
         'Mã KH': 'KH001',
         'Tên KH': 'Nhà thuốc A',
         'Số điện thoại': '0909000000',
-        'Địa chỉ': '123 Đường ABC',
+        'Địa chỉ': '123 Đường ABC, Phường 1',
+        'Tỉnh/TP': 'TP. Hồ Chí Minh',
+        'Quận/Huyện': 'Quận 1',
+        'Phường/Xã': 'Phường Bến Nghé',
         'Chủ sở hữu': 'Nguyễn Văn B',
         'Email': 'b@example.com',
         'Phân loại': 'PHARMACY',
+        'Kênh': 'OTC',
         'Mã Địa bàn': 'DB01',
-        'Mã Phân nhóm': 'PN01',
+        'Mã Phân nhóm': 'SEGMENT01',
+        'Cấp độ': 'B',
+        'Dược sĩ': 'DS. Nguyễn Thị C',
+        'Nhân viên BT': 'NV. Trần D',
+        'SĐT Đặt hàng': '0908111111',
+        'Tần suất ĐH': 'F2',
+        'Loại hình TT': 'Cá nhân',
+        'Chain': 'false',
+        'Xác minh': 'false',
+        'Trạng thái': 'true',
         'Mô tả': 'Ghi chú'
       }
     ];
@@ -561,7 +612,7 @@ const AdminCustomers = () => {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '50px 80px 150px 100px 120px 100px 120px 1fr 100px',
+          gridTemplateColumns: '50px 80px 150px 100px 100px 100px 120px 100px 120px 80px 80px 1fr 100px',
           gap: '16px',
           padding: '16px 20px',
           background: '#f9fafb',
@@ -569,25 +620,29 @@ const AdminCustomers = () => {
           fontWeight: '600',
           fontSize: '14px',
           color: '#1a1a2e',
-          minWidth: '1000px'
+          minWidth: '1500px'
         }}>
           <div>STT</div>
           <div>Mã</div>
           <div>Tên KH</div>
           <div>Phân loại</div>
+          <div>Kênh</div>
+          <div>Hạng</div>
           <div>Địa bàn</div>
           <div>Vùng</div>
           <div>TDV</div>
+          <div>Mã LK</div>
+          <div>Chuỗi</div>
           <div>Địa chỉ</div>
           <div>Thao tác</div>
         </div>
-        <div style={{ maxHeight: '600px', overflowY: 'auto', minWidth: '1000px' }}>
+        <div style={{ maxHeight: '600px', overflowY: 'auto', minWidth: '1500px' }}>
           {filteredCustomers.map((customer, index) => (
             <div
               key={customer.id}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '50px 80px 150px 100px 120px 100px 120px 1fr 100px',
+                gridTemplateColumns: '50px 80px 150px 100px 100px 100px 120px 100px 120px 80px 80px 1fr 100px',
                 gap: '16px',
                 padding: '16px 20px',
                 borderBottom: '1px solid #e5e7eb',
@@ -611,6 +666,8 @@ const AdminCustomers = () => {
               <div style={{ fontSize: '13px', color: '#666' }}>
                 {pharmacyTypes.find(t => t.value === customer.type)?.label || customer.type}
               </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{customer.channel || '-'}</div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{customer.classification || '-'}</div>
               <div style={{ fontSize: '13px', color: '#666' }}>
                 {customer.territory?.name}
               </div>
@@ -620,6 +677,8 @@ const AdminCustomers = () => {
               <div style={{ fontSize: '13px', color: '#666' }}>
                 {customer.customerAssignments?.map(a => a.user.name).join(', ')}
               </div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{customer.linkCode || '-'}</div>
+              <div style={{ fontSize: '13px', color: '#666' }}>{customer.isChain ? '✅' : '-'}</div>
               <div style={{ fontSize: '13px', color: '#666' }}>
                 {customer.address.length > 30 ? customer.address.substring(0, 30) + '...' : customer.address}
               </div>
@@ -795,6 +854,101 @@ const AdminCustomers = () => {
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
+              </div>
+
+              {/* New Fields Section */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Kênh</label>
+                <select
+                  value={formData.channel}
+                  onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                >
+                  <option value="">-- Chọn --</option>
+                  <option value="OTC">OTC</option>
+                  <option value="ETC">ETC</option>
+                  <option value="MT">MT</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Phân hạng</label>
+                <select
+                  value={formData.classification}
+                  onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                >
+                  <option value="">-- Chọn phân hạng --</option>
+                  {customerSegments.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                  {!customerSegments.some(s => s.name === formData.classification) && formData.classification && (
+                    <option value={formData.classification}>{formData.classification}</option>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Tên Dược sĩ</label>
+                <input
+                  type="text"
+                  value={formData.pharmacistName}
+                  onChange={(e) => setFormData({ ...formData, pharmacistName: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Người liên hệ (Nhân viên)</label>
+                <input
+                  type="text"
+                  value={formData.staffName}
+                  onChange={(e) => setFormData({ ...formData, staffName: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Loại hình T.Chức</label>
+                <input
+                  type="text"
+                  value={formData.organizationType}
+                  onChange={(e) => setFormData({ ...formData, organizationType: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>SĐT Đặt hàng</label>
+                <input
+                  type="text"
+                  value={formData.orderPhone}
+                  onChange={(e) => setFormData({ ...formData, orderPhone: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Tần suất đặt hàng</label>
+                <input
+                  type="text"
+                  value={formData.orderFrequency}
+                  onChange={(e) => setFormData({ ...formData, orderFrequency: e.target.value })}
+                  placeholder="VD: Tuần 2 lần"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Mã liên kết (Link Code)</label>
+                <input
+                  type="text"
+                  value={formData.linkCode}
+                  onChange={(e) => setFormData({ ...formData, linkCode: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.isChain}
+                  onChange={(e) => setFormData({ ...formData, isChain: e.target.checked })}
+                  id="isChain"
+                />
+                <label htmlFor="isChain" style={{ fontWeight: '500' }}>Là Chuỗi nhà thuốc?</label>
               </div>
             </div>
 

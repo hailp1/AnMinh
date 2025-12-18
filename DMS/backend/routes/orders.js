@@ -229,29 +229,132 @@ router.get('/:id', auth, async (req, res) => {
 // Cập nhật trạng thái đơn hàng
 router.put('/:id/status', auth, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, warehouseId } = req.body;
 
-    const order = await prisma.order.update({
-      where: { id: req.params.id },
-      data: { status },
-      include: {
-        user: {
-          select: { id: true, name: true, phone: true },
-        },
-        pharmacy: {
-          select: { id: true, name: true, phone: true, address: true },
-        },
-        items: {
-          include: {
-            product: {
-              select: { id: true, name: true, code: true, unit: true },
-            },
-          },
-        },
-      },
+    // Start transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Update Order Status
+      const order = await tx.order.update({
+        where: { id: req.params.id },
+        data: { status },
+        include: {
+          items: true // We need items for stock deduction
+        }
+      });
+
+      // 2. If CONFIRMED, deduct stock
+      if (status === 'CONFIRMED') {
+        // Find warehouse: Use provided ID or find 'MAIN' or first active
+        let targetWarehouseId = warehouseId;
+        if (!targetWarehouseId) {
+          const mainWarehouse = await tx.warehouse.findFirst({
+            where: { isActive: true },
+            orderBy: { code: 'asc' } // Assume first code is Main or similar
+          });
+          targetWarehouseId = mainWarehouse?.id;
+        }
+
+        if (targetWarehouseId) {
+          const transactionGroupCode = `OUT-${order.orderNumber}`;
+
+          for (const item of order.items) {
+            let remainingQty = item.quantity;
+
+            // Find batches FIFO
+            const batches = await tx.productBatch.findMany({
+              where: {
+                productId: item.productId,
+                warehouseId: targetWarehouseId,
+                currentQuantity: { gt: 0 },
+                status: 'ACTIVE'
+              },
+              orderBy: { expiryDate: 'asc' }
+            });
+
+            // Deduct from batches
+            for (const batch of batches) {
+              if (remainingQty <= 0) break;
+
+              const deduct = Math.min(remainingQty, batch.currentQuantity);
+
+              // Update Batch
+              await tx.productBatch.update({
+                where: { id: batch.id },
+                data: { currentQuantity: { decrement: deduct } }
+              });
+
+              // Create Transaction Record
+              await tx.inventoryTransaction.create({
+                data: {
+                  type: 'EXPORT',
+                  transactionNo: `${transactionGroupCode}-${item.productId}-${batch.batchNumber}`,
+                  productId: item.productId,
+                  warehouseId: targetWarehouseId,
+                  quantity: deduct,
+                  unitPrice: item.price,
+                  totalAmount: item.price * deduct,
+                  batchNumber: batch.batchNumber,
+                  reason: `Xuất kho đơn hàng ${order.orderNumber}`,
+                  orderId: order.id,
+                  createdBy: req.user.id
+                }
+              });
+
+              remainingQty -= deduct;
+            }
+
+            // Update InventoryItem (Total Stock in Warehouse)
+            // Use upsert to be safe, though usually it should exist if batches exist
+            // But if batches are missing (e.g. data inconsistency), we still assume stock might be tracked roughly
+            // actually, if batches don't cover it, we might go negative or just record what we can?
+            // For now, simple decrement of warehouse total
+            const totalDeducted = item.quantity; // Deduct the full amount from 'currentQty' even if batches didn't cover it? 
+            // Or match batches? Standard is strict: if not enough stock, maybe fail? 
+            // Logic here: Deduct full amount from InventoryItem, allow negative if allowed (schema doesn't forbid int negative but logic might).
+            // Let's deduct full amount to keep aggregate in sync with order.
+
+            const invItem = await tx.inventoryItem.findUnique({
+              where: { productId_warehouseId: { productId: item.productId, warehouseId: targetWarehouseId } }
+            });
+
+            if (invItem) {
+              await tx.inventoryItem.update({
+                where: { id: invItem.id },
+                data: {
+                  currentQty: { decrement: totalDeducted },
+                  issuedQty: { increment: totalDeducted },
+                  lastUpdated: new Date()
+                }
+              });
+            } else {
+              // Create if not exists (negative stock scenario)
+              await tx.inventoryItem.create({
+                data: {
+                  productId: item.productId,
+                  warehouseId: targetWarehouseId,
+                  currentQty: -totalDeducted,
+                  issuedQty: totalDeducted
+                }
+              });
+            }
+          }
+        }
+      }
+
+      return order;
     });
 
-    res.json(order);
+    // Fetch final result to return (with relations)
+    const finalOrder = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: { select: { id: true, name: true, phone: true } },
+        pharmacy: { select: { id: true, name: true, phone: true, address: true } },
+        items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } }
+      }
+    });
+
+    res.json(finalOrder);
   } catch (error) {
     console.error('Error updating order status:', error);
     res.status(500).json({ error: 'Lỗi server' });

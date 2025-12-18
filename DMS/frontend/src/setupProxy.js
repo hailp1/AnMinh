@@ -1,10 +1,10 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-module.exports = function(app) {
+module.exports = function (app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:5000', // Backend chạy trên port 5000
+      target: process.env.PROXY_URL || 'http://localhost:5000', // Backend URL (use PROXY_URL for Docker)
       changeOrigin: true, // Đổi origin để proxy hoạt động đúng
       ws: false, // Tắt WebSocket proxy vì không cần
       logLevel: 'debug', // Tăng log để debug
@@ -15,7 +15,7 @@ module.exports = function(app) {
         console.error('[Proxy Error]', err.message);
         console.error('[Proxy Error] Backend URL:', 'http://localhost:5000' + req.url);
         if (!res.headersSent) {
-          res.status(502).json({ 
+          res.status(502).json({
             error: 'Proxy error: Backend server không khả dụng',
             message: err.message,
             backend: 'http://localhost:5000',
@@ -30,12 +30,12 @@ module.exports = function(app) {
         }
         // Set timeout cho request
         proxyReq.setTimeout(30000);
-        
+
         // Log chi tiết để debug
         console.log(`[Proxy] ${req.method} ${req.url} -> http://localhost:5000${req.url}`);
         console.log(`[Proxy] Request path: ${req.path}`);
         console.log(`[Proxy] Request originalUrl: ${req.originalUrl}`);
-        
+
         if (req.headers.origin) {
           console.log(`[Proxy] Origin: ${req.headers.origin}`);
         }

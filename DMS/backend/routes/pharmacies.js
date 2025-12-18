@@ -166,7 +166,17 @@ router.post('/', auth, async (req, res) => {
       customerSegmentId,
       type,
       description,
-      code
+      code,
+      classification,
+      channel,
+      rawRegion,
+      organizationType,
+      pharmacistName,
+      staffName,
+      orderPhone,
+      orderFrequency,
+      linkCode,
+      isChain
     } = req.body;
 
     const pharmacy = await prisma.pharmacy.create({
@@ -186,8 +196,31 @@ router.post('/', auth, async (req, res) => {
         customerSegmentId: customerSegmentId || null,
         type: type || 'PHARMACY',
         description,
+        classification,
+        channel,
+        rawRegion,
+        organizationType,
+        pharmacistName,
+        staffName,
+        orderPhone,
+        orderFrequency,
+        linkCode,
+        isChain: isChain || false,
       },
     });
+
+    // Auto-assign to TDV who created it
+    if (req.user.role === 'TDV') {
+      await prisma.customerAssignment.create({
+        data: {
+          userId: req.user.id,
+          pharmacyId: pharmacy.id,
+          territoryId: territoryId || null,
+          isActive: true
+        }
+      });
+      console.log(`Auto-assigned pharmacy ${pharmacy.id} to TDV ${req.user.id}`);
+    }
 
     res.json(pharmacy);
   } catch (error) {
@@ -214,7 +247,17 @@ router.put('/:id', auth, async (req, res) => {
       customerSegmentId,
       type,
       description,
-      code
+      code,
+      classification,
+      channel,
+      rawRegion,
+      organizationType,
+      pharmacistName,
+      staffName,
+      orderPhone,
+      orderFrequency,
+      linkCode,
+      isChain
     } = req.body;
 
     const pharmacy = await prisma.pharmacy.update({
@@ -235,6 +278,16 @@ router.put('/:id', auth, async (req, res) => {
         customerSegmentId: customerSegmentId || null,
         type,
         description,
+        classification,
+        channel,
+        rawRegion,
+        organizationType,
+        pharmacistName,
+        staffName,
+        orderPhone,
+        orderFrequency,
+        linkCode,
+        isChain,
       },
     });
 

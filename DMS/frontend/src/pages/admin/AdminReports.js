@@ -1,875 +1,321 @@
 import React, { useState, useEffect } from 'react';
-import { pharmaciesAPI, ordersAPI, productsAPI } from '../../services/api';
+import { reportsAPI } from '../../services/api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell
+} from 'recharts';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const AdminReports = () => {
-  const [selectedHub, setSelectedHub] = useState('all');
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    totalOrders: 0,
-    totalCustomers: 0,
-    activeCustomers: 0,
-    averageOrderValue: 0,
-    customerActivityRate: 0
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const viewParam = queryParams.get('view') || 'dashboard'; // dashboard, report
+  const typeParam = queryParams.get('type');
+
+  // State
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [period, setPeriod] = useState('this_month');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [reportData, setReportData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [expandedMenu, setExpandedMenu] = useState({});
+
+  // Toggle sub-menus
+  const toggleMenu = (key) => setExpandedMenu(prev => {
+    const updated = { ...prev };
+    updated[key] = !updated[key];
+    return updated;
   });
-  const [businessActivity, setBusinessActivity] = useState([]);
-  const [coverageData, setCoverageData] = useState({
-    byProduct: [],
-    byCategory: [],
-    byCustomerType: [],
-    byHub: []
-  });
-  const [performanceData, setPerformanceData] = useState([]);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (viewParam === 'dashboard') {
+      loadDashboard();
+    } else if (typeParam) {
+      // Find report config and load
+      loadReportData(typeParam);
+    }
+  }, [viewParam, typeParam, period]);
 
-  useEffect(() => {
-    loadReportData();
-  }, [selectedHub, selectedPeriod]);
-
-  const loadReportData = async () => {
+  const loadDashboard = async () => {
+    setLoading(true);
     try {
-      // Fetch data in parallel
-      const [customersData, ordersData, productsData, groupsData] = await Promise.all([
-        pharmaciesAPI.getAll(),
-        ordersAPI.getAll(),
-        productsAPI.getAll(),
-        productsAPI.getGroups()
-      ]);
-
-      const customers = Array.isArray(customersData) ? customersData : [];
-      let orders = Array.isArray(ordersData) ? ordersData : [];
-      const allProducts = Array.isArray(productsData) ? productsData : [];
-      const productGroups = Array.isArray(groupsData) ? groupsData : [];
-
-      // Filter by Hub
-      const filteredCustomers = selectedHub === 'all'
-        ? customers
-        : customers.filter(c => c.hub === selectedHub);
-
-      const filteredCustomerIds = new Set(filteredCustomers.map(c => c.id));
-
-      if (selectedHub !== 'all') {
-        orders = orders.filter(o => filteredCustomerIds.has(o.pharmacy?.id || o.customerId));
-      }
-
-      // Filter by Period (mock logic for now as API might not support complex filtering yet)
-      const now = new Date();
-      let days = selectedPeriod === 'week' ? 7 : selectedPeriod === 'month' ? 30 : 90;
-      const startDate = new Date(now);
-      startDate.setDate(startDate.getDate() - days);
-
-      orders = orders.filter(o => new Date(o.createdAt) >= startDate);
-
-      // Calculate stats
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-      const totalOrders = orders.length;
-      const totalCustomers = filteredCustomers.length;
-      const activeCustomers = orders.reduce((set, o) => {
-        const customerId = o.pharmacy?.id || o.customerId;
-        if (customerId && filteredCustomerIds.has(customerId)) set.add(customerId);
-        return set;
-      }, new Set()).size;
-
-      setStats({
-        totalRevenue,
-        totalOrders,
-        totalCustomers,
-        activeCustomers,
-        averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-        customerActivityRate: totalCustomers > 0 ? (activeCustomers / totalCustomers * 100) : 0
-      });
-
-      // Business Activity (Daily/Weekly/Monthly)
-      // Group orders by date
-      const activityMap = {};
-      for (let i = 0; i < days; i++) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        activityMap[dateStr] = { date: dateStr, revenue: 0, orders: 0, customers: new Set() };
-      }
-
-      orders.forEach(order => {
-        const dateStr = new Date(order.createdAt).toISOString().split('T')[0];
-        if (activityMap[dateStr]) {
-          activityMap[dateStr].revenue += order.totalAmount || 0;
-          activityMap[dateStr].orders += 1;
-          if (order.pharmacy?.id || order.customerId) {
-            activityMap[dateStr].customers.add(order.pharmacy?.id || order.customerId);
-          }
-        }
-      });
-
-      const activityData = Object.values(activityMap)
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .map(item => ({
-          ...item,
-          customers: item.customers.size
-        }));
-
-      setBusinessActivity(activityData);
-
-      // Coverage Data
-      const coverage = {
-        byProduct: calculateCoverageByProduct(orders, allProducts),
-        byCategory: calculateCoverageByCategory(orders, productGroups),
-        byCustomerType: calculateCoverageByCustomerType(orders, filteredCustomers),
-        byHub: calculateCoverageByHub(orders, filteredCustomers)
-      };
-      setCoverageData(coverage);
-
-      // Performance Data
-      const performance = generatePerformanceData(filteredCustomers, orders);
-      setPerformanceData(performance);
-
+      const data = await reportsAPI.getDashboard({ period });
+      setDashboardData(data);
     } catch (error) {
-      console.error('Error loading report data:', error);
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const generateActivityData = (period) => {
-    const data = [];
-    const now = new Date();
-    let days = period === 'week' ? 7 : period === 'month' ? 30 : 90;
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-
-      data.push({
-        date: dateStr,
-        revenue: Math.floor(Math.random() * 5000000) + 1000000,
-        orders: Math.floor(Math.random() * 50) + 10,
-        customers: Math.floor(Math.random() * 20) + 5
-      });
+  const loadReportData = async (type) => {
+    setLoading(true);
+    try {
+      let res;
+      // Map type to API
+      if (['by_rep', 'by_customer', 'by_product'].includes(type)) {
+        res = await reportsAPI.getSales({ type, period });
+      } else if (type === 'compliance') {
+        res = await reportsAPI.getVisits({ type: 'compliance', period });
+      }
+      setReportData(res || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-    return data;
   };
 
-  const calculateCoverageByProduct = (orders, products) => {
-    const productCounts = {};
-    orders.forEach(order => {
-      if (order.items) {
-        order.items.forEach(item => {
-          // item.product is an object from API, item.productId might be directly available or inside product
-          const productId = item.productId || item.product?.id;
-          if (!productId) return;
+  const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
-          if (!productCounts[productId]) {
-            productCounts[productId] = { orders: 0, quantity: 0, revenue: 0 };
-          }
-          productCounts[productId].orders++;
-          productCounts[productId].quantity += item.quantity || 0;
-          productCounts[productId].revenue += (item.price || 0) * (item.quantity || 0);
-        });
-      }
-    });
+  // ... (Keep existing exportToExcel and renderSalesByRep if useful, or refactor)
+  // For brevity, I will re-implement render logic based on new structure.
 
-    return products.slice(0, 10).map(product => ({
-      id: product.id,
-      name: product.name,
-      code: product.code,
-      orders: productCounts[product.id]?.orders || 0,
-      quantity: productCounts[product.id]?.quantity || 0,
-      revenue: productCounts[product.id]?.revenue || 0
-    })).sort((a, b) => b.revenue - a.revenue);
-  };
-
-  const calculateCoverageByCategory = (orders, categories) => {
-    const categoryCounts = {};
-
-    // Create a map of productId to groupId
-    // We need to fetch all products first to know their groups, 
-    // but here we rely on 'categories' which are groups.
-    // We need 'allProducts' to map product -> group if order items don't have group info.
-    // However, 'calculateCoverageByCategory' only receives 'orders' and 'categories'.
-    // We should pass 'allProducts' to this function or use a closure if 'allProducts' is in scope.
-    // But 'allProducts' is not passed here. 
-    // Let's assume we can access product group info from the product list we fetched.
-
-    // Actually, let's look at how we call this: calculateCoverageByCategory(orders, productGroups)
-    // We are missing the link between order item (product) and its group.
-    // I will modify the function signature to accept allProducts as well.
-
-    // Wait, I can't easily change the signature in this replace block without changing the caller.
-    // But I can see 'allProducts' is available in 'loadReportData' scope, but this function is defined outside.
-    // Ah, 'calculateCoverageByCategory' is defined INSIDE the component in the original code?
-    // No, it's defined inside the component in the previous view.
-
-    // Let's look at the caller in loadReportData:
-    // byCategory: calculateCoverageByCategory(orders, productGroups),
-
-    // I need to change the caller too if I change the signature.
-    // Or I can try to find the product in 'categories' if 'categories' structure allows.
-    // 'categories' is 'productGroups', which has 'products' array.
-
-    const productToGroupMap = {};
-    categories.forEach(group => {
-      if (group.products) {
-        group.products.forEach(prod => {
-          productToGroupMap[prod.id] = group.id;
-        });
-      }
-    });
-
-    orders.forEach(order => {
-      if (order.items) {
-        order.items.forEach(item => {
-          const productId = item.productId || item.product?.id;
-          const groupId = productToGroupMap[productId];
-
-          if (groupId) {
-            if (!categoryCounts[groupId]) {
-              categoryCounts[groupId] = { orders: 0, revenue: 0, customers: new Set() };
-            }
-            categoryCounts[groupId].orders++;
-            categoryCounts[groupId].revenue += (item.price || 0) * (item.quantity || 0);
-            if (order.pharmacy?.id || order.customerId) {
-              categoryCounts[groupId].customers.add(order.pharmacy?.id || order.customerId);
-            }
-          }
-        });
-      }
-    });
-
-    return categories.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      orders: categoryCounts[cat.id]?.orders || 0,
-      revenue: categoryCounts[cat.id]?.revenue || 0,
-      customers: categoryCounts[cat.id]?.customers.size || 0
-    })).sort((a, b) => b.revenue - a.revenue);
-  };
-
-  const calculateCoverageByCustomerType = (orders, customers) => {
-    const typeCounts = {
-      'Nhà thuốc': { orders: 0, revenue: 0, count: 0 },
-      'Bệnh viện': { orders: 0, revenue: 0, count: 0 },
-      'Phòng khám': { orders: 0, revenue: 0, count: 0 }
-    };
-
-    customers.forEach(customer => {
-      const type = customer.type || 'Nhà thuốc';
-      if (!typeCounts[type]) typeCounts[type] = { orders: 0, revenue: 0, count: 0 };
-      typeCounts[type].count++;
-    });
-
-    orders.forEach(order => {
-      const customer = customers.find(c => c.id === order.customerId);
-      if (customer) {
-        const type = customer.type || 'Nhà thuốc';
-        typeCounts[type].orders++;
-        typeCounts[type].revenue += order.totalAmount || 0;
-      }
-    });
-
-    return Object.entries(typeCounts).map(([type, data]) => ({
-      type,
-      ...data
-    }));
-  };
-
-  const calculateCoverageByHub = (orders, customers) => {
-    const hubCounts = {};
-    const hubs = ['Trung tâm', 'Củ Chi', 'Đồng Nai'];
-
-    hubs.forEach(hub => {
-      hubCounts[hub] = {
-        customers: customers.filter(c => c.hub === hub).length,
-        orders: 0,
-        revenue: 0
-      };
-    });
-
-    orders.forEach(order => {
-      const customer = customers.find(c => c.id === order.customerId);
-      if (customer && hubCounts[customer.hub]) {
-        hubCounts[customer.hub].orders++;
-        hubCounts[customer.hub].revenue += order.totalAmount || 0;
-      }
-    });
-
-    return Object.entries(hubCounts).map(([hub, data]) => ({
-      hub,
-      ...data
-    }));
-  };
-
-  const generatePerformanceData = (customers, orders) => {
-    return customers.slice(0, 20).map(customer => {
-      const customerOrders = orders.filter(o => o.customerId === customer.id);
-      const revenue = customerOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-      return {
-        id: customer.id,
-        name: customer.name,
-        code: customer.code,
-        hub: customer.hub,
-        orders: customerOrders.length,
-        revenue: revenue,
-        lastOrder: customerOrders.length > 0
-          ? new Date(customerOrders[customerOrders.length - 1].createdAt || Date.now())
-          : null
-      };
-    }).sort((a, b) => b.revenue - a.revenue);
-  };
-
-  const formatCurrency = (amount) => {
-    const value = amount || 0;
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(value);
-  };
-
-  const formatNumber = (num) => {
-    const value = num || 0;
-    return new Intl.NumberFormat('vi-VN').format(value);
-  };
+  const menuItems = [
+    {
+      key: 'dashboard',
+      label: 'Tổng quan',
+      icon: '📊',
+      action: () => navigate('/Anminh/admin/reports?view=dashboard')
+    },
+    {
+      key: 'sales',
+      label: 'Báo cáo Doanh số',
+      icon: '💰',
+      children: [
+        { key: 'by_rep', label: 'Theo Nhân viên', type: 'by_rep' },
+        { key: 'by_customer', label: 'Theo Khách hàng', type: 'by_customer' },
+        { key: 'by_product', label: 'Theo Sản phẩm', type: 'by_product' }
+      ]
+    },
+    {
+      key: 'visits',
+      label: 'Viếng thăm',
+      icon: '🛵',
+      children: [
+        { key: 'compliance', label: 'Tuân thủ tuyến', type: 'compliance' }
+      ]
+    },
+    {
+      key: 'inventory',
+      label: 'Kho và Tồn kho',
+      icon: '📦',
+      children: [
+        { key: 'inventory_status', label: 'Báo cáo Tồn kho', type: 'inventory_status' }
+      ]
+    }
+  ];
 
   return (
-    <div style={{ padding: isMobile ? '0' : '0' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: isMobile ? '16px' : '24px',
-        flexWrap: 'wrap',
-        gap: isMobile ? '12px' : '16px'
-      }}>
-        <div>
-          <h1 style={{
-            fontSize: isMobile ? '20px' : '24px',
-            fontWeight: '600',
-            color: '#1a1a2e',
-            marginBottom: '8px'
-          }}>
-            Báo cáo & Thống kê
-          </h1>
-          <p style={{
-            fontSize: isMobile ? '13px' : '14px',
-            color: '#666'
-          }}>
-            Phân tích hoạt động kinh doanh và bao phủ thị trường
-          </p>
+    <div style={{ display: 'flex', height: '100vh', background: '#f8fafc', overflow: 'hidden' }}>
+      {/* Sidebar */}
+      <div style={{ width: '260px', background: '#fff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', color: '#1E4A8B', fontWeight: 'bold' }}>Analytics and Reports</h2>
         </div>
-
-        {/* Filters */}
-        <div style={{
-          display: 'flex',
-          gap: isMobile ? '8px' : '12px',
-          flexWrap: 'wrap',
-          width: isMobile ? '100%' : 'auto'
-        }}>
-          <select
-            value={selectedHub}
-            onChange={(e) => setSelectedHub(e.target.value)}
-            style={{
-              padding: isMobile ? '8px 12px' : '10px 16px',
-              border: '2px solid #e5e7eb',
-              borderRadius: isMobile ? '6px' : '8px',
-              fontSize: isMobile ? '13px' : '14px',
-              cursor: 'pointer',
-              background: '#fff',
-              flex: isMobile ? '1 1 100%' : 'none',
-              minWidth: isMobile ? '100%' : '150px',
-              boxSizing: 'border-box'
-            }}
-          >
-            <option value="all">Tất cả Hub</option>
-            <option value="Trung tâm">Trung tâm</option>
-            <option value="Củ Chi">Củ Chi</option>
-            <option value="Đồng Nai">Đồng Nai</option>
-          </select>
-
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            style={{
-              padding: isMobile ? '8px 12px' : '10px 16px',
-              border: '2px solid #e5e7eb',
-              borderRadius: isMobile ? '6px' : '8px',
-              fontSize: isMobile ? '13px' : '14px',
-              cursor: 'pointer',
-              background: '#fff',
-              flex: isMobile ? '1 1 100%' : 'none',
-              minWidth: isMobile ? '100%' : '150px',
-              boxSizing: 'border-box'
-            }}
-          >
-            <option value="week">7 ngày qua</option>
-            <option value="month">30 ngày qua</option>
-            <option value="quarter">90 ngày qua</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Key Metrics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: isMobile ? '12px' : '20px',
-        marginBottom: isMobile ? '24px' : '32px'
-      }}>
-        {[
-          {
-            label: 'Tổng doanh thu',
-            value: formatCurrency(stats.totalRevenue),
-            icon: '💰',
-            color: '#F29E2E',
-            change: '+15.2%'
-          },
-          {
-            label: 'Tổng đơn hàng',
-            value: formatNumber(stats.totalOrders),
-            icon: '📦',
-            color: '#1E4A8B',
-            change: '+8.5%'
-          },
-          {
-            label: 'Khách hàng',
-            value: formatNumber(stats.totalCustomers),
-            icon: '👥',
-            color: '#FBC93D',
-            change: '+12.3%'
-          },
-          {
-            label: 'Tỷ lệ hoạt động',
-            value: `${(stats.customerActivityRate || 0).toFixed(1)}%`,
-            icon: '📊',
-            color: '#10b981',
-            change: '+5.1%'
-          },
-          {
-            label: 'Giá trị đơn TB',
-            value: formatCurrency(stats.averageOrderValue),
-            icon: '📈',
-            color: '#8b5cf6',
-            change: '+3.7%'
-          },
-          {
-            label: 'KH hoạt động',
-            value: formatNumber(stats.activeCustomers),
-            icon: '✅',
-            color: '#f59e0b',
-            change: '+9.2%'
-          }
-        ].map((metric, index) => (
-          <div
-            key={index}
-            style={{
-              background: '#fff',
-              borderRadius: isMobile ? '12px' : '16px',
-              padding: isMobile ? '16px' : '24px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              border: `2px solid ${metric.color}20`
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'start',
-              marginBottom: isMobile ? '12px' : '16px'
-            }}>
-              <div style={{
-                width: isMobile ? '40px' : '48px',
-                height: isMobile ? '40px' : '48px',
-                borderRadius: '12px',
-                background: `${metric.color}15`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px'
-              }}>
-                {metric.icon}
-              </div>
-              <span style={{
-                padding: '4px 10px',
-                background: '#10b98115',
-                borderRadius: '6px',
-                fontSize: '11px',
-                color: '#10b981',
-                fontWeight: '600'
-              }}>
-                {metric.change}
-              </span>
-            </div>
-            <div style={{
-              fontSize: isMobile ? '20px' : '24px',
-              fontWeight: 'bold',
-              color: '#1a1a2e',
-              marginBottom: '8px'
-            }}>
-              {metric.value}
-            </div>
-            <div style={{
-              fontSize: isMobile ? '12px' : '13px',
-              color: '#666'
-            }}>
-              {metric.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Business Activity Chart */}
-      <div style={{
-        background: '#fff',
-        borderRadius: isMobile ? '12px' : '16px',
-        padding: isMobile ? '16px' : '24px',
-        marginBottom: isMobile ? '24px' : '32px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{
-          fontSize: isMobile ? '18px' : '20px',
-          fontWeight: '600',
-          color: '#1a1a2e',
-          marginBottom: isMobile ? '16px' : '24px'
-        }}>
-          📈 Hoạt động kinh doanh
-        </h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(auto-fit, minmax(60px, 1fr))' : 'repeat(auto-fit, minmax(100px, 1fr))',
-          gap: isMobile ? '8px' : '12px',
-          maxHeight: isMobile ? '250px' : '300px',
-          overflowY: 'auto'
-        }}>
-          {businessActivity.map((item, index) => {
-            const maxRevenue = Math.max(...businessActivity.map(i => i.revenue));
-            const height = (item.revenue / maxRevenue) * 200;
-            return (
-              <div key={index} style={{ textAlign: 'center' }}>
-                <div style={{
-                  height: isMobile ? '150px' : '200px',
+        <div style={{ padding: '10px', flex: 1, overflowY: 'auto' }}>
+          {menuItems.map(item => (
+            <div key={item.key} style={{ marginBottom: '8px' }}>
+              <div
+                onClick={item.children ? () => toggleMenu(item.key) : item.action}
+                style={{
+                  padding: '12px',
+                  cursor: 'pointer',
                   display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center',
-                  marginBottom: isMobile ? '6px' : '8px'
-                }}>
-                  <div style={{
-                    width: '100%',
-                    maxWidth: isMobile ? '30px' : '40px',
-                    height: `${height}px`,
-                    background: '#F29E2E',
-                    borderRadius: '6px 6px 0 0',
-                    transition: 'all 0.3s'
-                  }}></div>
-                </div>
-                <div style={{
-                  fontSize: isMobile ? '10px' : '11px',
-                  color: '#666',
-                  marginBottom: '4px'
-                }}>
-                  {new Date(item.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                </div>
-                <div style={{
-                  fontSize: '10px',
-                  color: '#999'
-                }}>
-                  {formatCurrency(item.revenue)}
-                </div>
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderRadius: '8px',
+                  background: (viewParam === 'dashboard' && item.key === 'dashboard') ? '#eff6ff' : 'transparent',
+                  color: (viewParam === 'dashboard' && item.key === 'dashboard') ? '#1E4A8B' : '#475569',
+                  fontWeight: (viewParam === 'dashboard' && item.key === 'dashboard') ? '600' : '500'
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>{item.icon}</span> {item.label}
+                </span>
+                {item.children && <span>{expandedMenu[item.key] ? '▼' : '▶'}</span>}
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Coverage by Product */}
-      <div style={{
-        background: '#fff',
-        borderRadius: isMobile ? '12px' : '16px',
-        padding: isMobile ? '16px' : '24px',
-        marginBottom: isMobile ? '24px' : '32px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{
-          fontSize: isMobile ? '18px' : '20px',
-          fontWeight: '600',
-          color: '#1a1a2e',
-          marginBottom: isMobile ? '16px' : '24px'
-        }}>
-          💊 Bao phủ theo sản phẩm
-        </h2>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>STT</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Mã SP</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Tên sản phẩm</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Số đơn</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Số lượng</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Doanh thu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coverageData.byProduct?.slice(0, 10).map((product, index) => (
-                <tr key={product.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>{index + 1}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>{product.code}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', color: '#1a1a2e' }}>{product.name}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', color: '#1a1a2e' }}>{formatNumber(product.orders)}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', color: '#1a1a2e' }}>{formatNumber(product.quantity)}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>{formatCurrency(product.revenue)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Coverage by Category & Customer Type */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(400px, 1fr))',
-        gap: isMobile ? '16px' : '24px',
-        marginBottom: isMobile ? '24px' : '32px'
-      }}>
-        {/* By Category */}
-        <div style={{
-          background: '#fff',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#1a1a2e',
-            marginBottom: '24px'
-          }}>
-            📂 Bao phủ theo danh mục
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {coverageData.byCategory?.map((cat, index) => {
-              const revenues = coverageData.byCategory.map(c => c.revenue || 0);
-              const maxRevenue = revenues.length > 0 ? Math.max(...revenues) : 0;
-              const width = maxRevenue > 0 ? ((cat.revenue || 0) / maxRevenue) * 100 : 0;
-              return (
-                <div key={cat.id}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '6px'
-                  }}>
-                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#1a1a2e' }}>{cat.name}</span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#10b981' }}>{formatCurrency(cat.revenue)}</span>
-                  </div>
-                  <div style={{
-                    height: '8px',
-                    background: '#e5e7eb',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${width}%`,
-                      background: '#F29E2E',
-                      transition: 'width 0.3s'
-                    }}></div>
-                  </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#666',
-                    marginTop: '4px'
-                  }}>
-                    {formatNumber(cat.orders)} đơn • {formatNumber(cat.customers)} KH
-                  </div>
+              {item.children && expandedMenu[item.key] && (
+                <div style={{ paddingLeft: '34px', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                  {item.children.map(child => (
+                    <div
+                      key={child.key}
+                      onClick={() => navigate(`/Anminh/admin/reports?view=report&type=${child.type}`)}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        background: typeParam === child.type ? '#f1f5f9' : 'transparent',
+                        color: typeParam === child.type ? '#1E4A8B' : '#64748b',
+                        fontWeight: typeParam === child.type ? '600' : '400'
+                      }}
+                    >
+                      {child.label}
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* By Customer Type */}
-        <div style={{
-          background: '#fff',
-          borderRadius: '16px',
-          padding: '24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#1a1a2e',
-            marginBottom: '24px'
-          }}>
-            🏥 Bao phủ theo loại KH
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {coverageData.byCustomerType?.map((type, index) => (
-              <div key={index} style={{
-                padding: '16px',
-                background: '#f9fafb',
-                borderRadius: '12px',
-                border: '2px solid #e5e7eb'
-              }}>
-                <div style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#1a1a2e',
-                  marginBottom: '12px'
-                }}>
-                  {type.type}
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '12px'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Số lượng</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#1E4A8B' }}>{formatNumber(type.count)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Đơn hàng</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#FBC93D' }}>{formatNumber(type.orders)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Doanh thu</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#10b981' }}>{formatCurrency(type.revenue)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Coverage by Hub */}
-      <div style={{
-        background: '#fff',
-        borderRadius: isMobile ? '12px' : '16px',
-        padding: isMobile ? '16px' : '24px',
-        marginBottom: isMobile ? '24px' : '32px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{
-          fontSize: '20px',
-          fontWeight: '600',
-          color: '#1a1a2e',
-          marginBottom: '24px'
-        }}>
-          🏢 Bao phủ theo Hub
-        </h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: isMobile ? '12px' : '20px'
-        }}>
-          {coverageData.byHub?.map((hub, index) => (
-            <div key={index} style={{
-              padding: '20px',
-              background: 'linear-gradient(135deg, #f9fafb, #fff)',
-              borderRadius: '12px',
-              border: '2px solid #F29E2E',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-            }}>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#1a1a2e',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span>🏢</span>
-                <span>{hub.hub}</span>
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px'
-              }}>
-                <div>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Khách hàng</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1E4A8B' }}>{formatNumber(hub.customers)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Đơn hàng</div>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FBC93D' }}>{formatNumber(hub.orders)}</div>
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Doanh thu</div>
-                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#10b981' }}>{formatCurrency(hub.revenue)}</div>
-                </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Performance Table */}
-      <div style={{
-        background: '#fff',
-        borderRadius: '16px',
-        padding: '24px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{
-          fontSize: '20px',
-          fontWeight: '600',
-          color: '#1a1a2e',
-          marginBottom: '24px'
-        }}>
-          ⚡ Hoạt động thực hiện - Top khách hàng
-        </h2>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>STT</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Mã KH</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Tên khách hàng</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Hub</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Số đơn</th>
-                <th style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Doanh thu</th>
-                <th style={{ padding: '12px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#1a1a2e' }}>Đơn cuối</th>
-              </tr>
-            </thead>
-            <tbody>
-              {performanceData.slice(0, 15).map((customer, index) => (
-                <tr key={customer.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>{index + 1}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#1E4A8B' }}>{customer.code}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', color: '#1a1a2e' }}>{customer.name}</td>
-                  <td style={{ padding: '12px', fontSize: '14px' }}>
-                    <span style={{
-                      padding: '4px 10px',
-                      background: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#F29E2E15' : '#1E4A8B15',
-                      color: customer.hub === 'Củ Chi' || customer.hub === 'Đồng Nai' ? '#F29E2E' : '#1E4A8B',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '600'
-                    }}>
-                      {customer.hub}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', color: '#1a1a2e' }}>{formatNumber(customer.orders)}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>{formatCurrency(customer.revenue)}</td>
-                  <td style={{ padding: '12px', fontSize: '13px', textAlign: 'center', color: '#666' }}>
-                    {customer.lastOrder ? customer.lastOrder.toLocaleDateString('vi-VN') : '-'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Main Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        {/* Header & Controls */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
+            {viewParam === 'dashboard' ? 'Tổng quan hoạt động' :
+              menuItems.flatMap(i => i.children || []).find(c => c.type === typeParam)?.label || 'Báo cáo chi tiết'}
+          </h1>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '500' }}
+          >
+            <option value="this_month">Tháng này</option>
+            <option value="last_month">Tháng trước</option>
+          </select>
         </div>
+
+        {loading && <div style={{ textAlign: 'center', padding: '40px' }}>Đang tải dữ liệu...</div>}
+
+        {!loading && viewParam === 'dashboard' && dashboardData && (
+          <div style={{ display: 'grid', gap: '24px' }}>
+            {/* KPI Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+              <KpiCard title="Tổng doanh số" value={formatCurrency(dashboardData.kpi.revenue)} icon="💰" color="#10b981" />
+              <KpiCard title="Đơn hàng" value={dashboardData.kpi.orders} icon="🛒" color="#3b82f6" />
+              <KpiCard title="Khách hàng Active" value={dashboardData.kpi.customers} icon="👥" color="#8b5cf6" />
+              <KpiCard title="Viếng thăm" value={`${dashboardData.kpi.visits.completed}/${dashboardData.kpi.visits.total}`} sub={`Đạt ${dashboardData.kpi.visits.total ? Math.round(dashboardData.kpi.visits.completed / dashboardData.kpi.visits.total * 100) : 0}%`} icon="📍" color="#f59e0b" />
+            </div>
+
+            {/* Charts Row 1 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+              <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#475569', fontSize: '16px' }}>Xu hướng Doanh số</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={dashboardData.charts.salesTrend}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(val) => val >= 1000000 ? `${val / 1000000}M` : val} />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#475569', fontSize: '16px' }}>Trạng thái Đơn hàng</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={dashboardData.charts.orderStatus}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      paddingAngle={5}
+                      dataKey="count"
+                    >
+                      {dashboardData.charts.orderStatus.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Charts Row 2 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#475569', fontSize: '16px' }}>Top 5 Sản phẩm bán chạy</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {dashboardData.charts.topProducts.map((p, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: idx < 4 ? '1px solid #f1f5f9' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '24px', height: '24px', background: '#eff6ff', borderRadius: '50%', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px' }}>{idx + 1}</div>
+                        <div>
+                          <div style={{ fontWeight: '500', color: '#1e293b' }}>{p.name}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b' }}>{p.code}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: '600', color: '#1E4A8B' }}>{formatCurrency(p.revenue)}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{p.quantity} sp</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ color: '#94a3b8' }}>Biểu đồ khác (Region/Team performance) - Sắp ra mắt</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && viewParam === 'report' && (
+          <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            {/* Re-use existing table logic for Report view */}
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <th style={{ padding: '12px', textAlign: 'left', color: '#64748b' }}>STT</th>
+                  {typeParam === 'by_rep' && <>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#64748b' }}>Nhân viên</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>Doanh số</th>
+                  </>}
+                  {typeParam === 'by_customer' && <>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#64748b' }}>Khách hàng</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>Doanh số</th>
+                  </>}
+                  {typeParam === 'by_product' && <>
+                    <th style={{ padding: '12px', textAlign: 'left', color: '#64748b' }}>Sản phẩm</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>SL</th>
+                    <th style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>Doanh số</th>
+                  </>}
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.map((item, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '12px' }}>{idx + 1}</td>
+                    <td style={{ padding: '12px', fontWeight: '500' }}>{item.name}</td>
+                    {typeParam === 'by_product' && <td style={{ padding: '12px', textAlign: 'right' }}>{item.quantity}</td>}
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#1E4A8B' }}>
+                      {formatCurrency(item.total)}
+                    </td>
+                  </tr>
+                ))}
+                {reportData.length === 0 && <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>Không có dữ liệu</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
+const KpiCard = ({ title, value, sub, icon, color }) => (
+  <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div>
+      <div style={{ color: '#64748b', fontSize: '14px', marginBottom: '8px' }}>{title}</div>
+      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b' }}>{value}</div>
+      {sub && <div style={{ fontSize: '12px', color: color, marginTop: '4px' }}>{sub}</div>}
+    </div>
+    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `${color}20`, color: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+      {icon}
+    </div>
+  </div>
+);
 export default AdminReports;
-
