@@ -35,7 +35,14 @@ import systemRoutes from './routes/system.js';
 
 config();
 
+import analyticsRoutes from './routes/analytics.js';
+
 const app = express();
+
+// ...
+
+app.use('/api/analytics', analyticsRoutes);
+
 
 // Trust proxy
 app.set('trust proxy', true);

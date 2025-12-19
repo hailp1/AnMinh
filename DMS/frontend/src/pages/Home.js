@@ -174,6 +174,9 @@ const Home = () => {
           { label: 'Thêm KH', icon: <div style={{ fontSize: 18 }}>➕</div>, to: '/create-pharmacy', color: '#10B981', bg: '#ECFDF5' },
           { label: 'Đơn hàng', icon: <div style={{ fontSize: 18 }}>📋</div>, to: '/order-summary', color: '#F59E0B', bg: '#FFFBEB' },
           { label: 'KPI', icon: <Icons.TrendingUp />, to: '/kpi', color: '#8B5CF6', bg: '#F3E8FF' },
+          // New Report Items
+          { label: 'Dashboard', icon: <div style={{ fontSize: 18 }}>📊</div>, to: '/dashboard', color: '#EC4899', bg: '#FDF2F8' },
+          { label: 'Báo cáo', icon: <div style={{ fontSize: 18 }}>📑</div>, to: '/reports', color: '#6366F1', bg: '#EEF2FF' },
         ].map((item, i) => (
           <Link key={i} to={item.to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 45, height: 45, borderRadius: 14, background: item.bg, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

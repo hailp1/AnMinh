@@ -261,6 +261,18 @@ export const systemAPI = {
   })
 };
 
+// Analytics API
+export const analyticsAPI = {
+  getDashboard: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/analytics/dashboard?${query}`);
+  },
+  getReport: (type, params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/analytics/reports/${type}?${query}`);
+  }
+};
+
 export default {
   pharmacies: pharmaciesAPI,
   products: productsAPI,
@@ -286,6 +298,7 @@ export default {
   routes: routesAPI,
   inventory: inventoryAPI,
   system: systemAPI,
+  analytics: analyticsAPI,
 };
 
 

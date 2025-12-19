@@ -24,6 +24,8 @@ import EditCustomer from './pages/EditCustomer';
 import KPI from './pages/KPI';
 import Promotions from './pages/Promotions';
 import ProductCatalog from './pages/ProductCatalog';
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
+import Reports from './pages/Reports';
 
 // Admin imports
 import AdminLogin from './pages/admin/AdminLogin';
@@ -135,6 +137,8 @@ const AppContent = () => {
               <Route path="/kpi" element={<KPI />} />
               <Route path="/promotions" element={<Promotions />} />
               <Route path="/products" element={<ProductCatalog />} />
+              <Route path="/dashboard" element={<AnalyticsDashboard />} />
+              <Route path="/reports" element={<Reports />} />
             </Routes>
           </PageTransition>
         </div>
