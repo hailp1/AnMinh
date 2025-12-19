@@ -1,479 +1,267 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { pharmaciesAPI, ordersAPI, visitPlansAPI } from '../services/api';
+import { pharmaciesAPI, visitPlansAPI, kpiAPI, ordersAPI } from '../services/api';
 
-// --- Icons (Inline SVGs) ---
+// --- Icons ---
 const Icons = {
-  Map: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>
-  ),
-  Users: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-  ),
-  TrendingUp: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>
-  ),
-  Navigation: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
-  ),
-  AlertCircle: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-  )
+  Map: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg>,
+  TrendingUp: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>
 };
-
-const Skeleton = ({ width, height, borderRadius = '4px' }) => (
-  <div style={{
-    width,
-    height,
-    borderRadius,
-    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-    backgroundSize: '200% 100%',
-    animation: 'loading 1.5s infinite'
-  }} />
-);
 
 const Home = () => {
   const { user } = useAuth();
   const [visitPlans, setVisitPlans] = useState([]);
-  const [userLocation, setUserLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
-    totalPharmacies: 0,
-    totalOrders: 0,
-    totalRevenue: 0
+    revenue: 0,
+    targetRevenue: 0,
+    orders: 0,
+    customers: 0,
+    aso: 0,
+    percent: 0,
+    avgSku: 0,
+    avgValue: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      getCurrentLocationAndVisitPlans();
-      loadUserStats();
+      loadData();
     }
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  // Redirect if not logged in
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
+  if (!user) return <Navigate to="/" replace />;
 
-  const loadUserStats = async () => {
-    try {
-      setStatsLoading(true);
-      // Use Summary APIs (Optimized)
-      const [orderStats, pharmacyStats] = await Promise.all([
-        ordersAPI.getSummary({ userId: user?.id }),
-        pharmaciesAPI.getSummary()
-      ]);
-
-      setStats({
-        totalPharmacies: pharmacyStats.count || 0,
-        totalOrders: orderStats.count || 0,
-        totalRevenue: orderStats.revenue || 0
-      });
-    } catch (err) {
-      console.error('Error loading stats:', err);
-      // Silent fail for stats is acceptable, but maybe show partial data
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  const getCurrentLocationAndVisitPlans = () => {
-    setLoading(true);
-    setError(null);
-
-    // Helper to fetch plans
-    const doFetchPlans = (lat, lng) => fetchVisitPlans(lat, lng);
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-          doFetchPlans(latitude, longitude);
-        },
-        (err) => {
-          console.error('Error getting location:', err);
-          setError('Không thể lấy vị trí hiện tại. Đang dùng vị trí mặc định.');
-          // Fallback to TP.HCM center
-          const defaultLoc = { lat: 10.7769, lng: 106.7009 };
-          setUserLocation(defaultLoc);
-          doFetchPlans(defaultLoc.lat, defaultLoc.lng);
-        },
-        { timeout: 10000 }
-      );
-    } else {
-      setError('Trình duyệt không hỗ trợ định vị.');
-      const defaultLoc = { lat: 10.7769, lng: 106.7009 };
-      setUserLocation(defaultLoc);
-      doFetchPlans(defaultLoc.lat, defaultLoc.lng);
-    }
-  };
-
-  const fetchVisitPlans = async (lat, lng) => {
+  const loadData = async () => {
     try {
       const today = new Date().toISOString();
-      const plans = await visitPlansAPI.getAll({ userId: user.id, visitDate: today });
+      const [plans, kpiData, pharmStats, ordersData] = await Promise.all([
+        visitPlansAPI.getAll({ userId: user.id, visitDate: today }),
+        kpiAPI.getSummary({ userId: user.id, period: 'month' }),
+        pharmaciesAPI.getSummary(),
+        ordersAPI.getAll({ userId: user.id }).catch(() => [])
+      ]);
 
-      const pharmaciesWithDistance = plans
-        .map(plan => {
-          const pharmacy = plan.pharmacy;
-          // Protect against data integrity issues
-          if (!pharmacy) return null;
+      setVisitPlans(plans || []);
 
-          let distance = null;
-          if (pharmacy.latitude && pharmacy.longitude) {
-            distance = calculateDistance(lat, lng, pharmacy.latitude, pharmacy.longitude);
-          }
-          return { ...pharmacy, distance, visitPlan: plan };
-        })
-        .filter(p => p !== null)
-        .sort((a, b) => {
-          if (a.distance !== null && b.distance !== null) return a.distance - b.distance;
-          if (a.distance !== null) return -1;
-          if (b.distance !== null) return 1;
-          return 0;
-        });
+      const revenue = kpiData.sales?.actual || 0;
+      const target = kpiData.sales?.target || 0;
+      const percent = target > 0 ? Math.round((revenue / target) * 100) : 0;
+      const cappedPercent = percent > 100 ? 100 : percent;
 
-      setVisitPlans(pharmaciesWithDistance);
-    } catch (err) {
-      console.error('Error fetching plans:', err);
-      setError('Không thể tải lịch viếng thăm. Vui lòng kiểm tra kết nối mạng.');
-      setVisitPlans([]);
+      // Calculate metrics
+      const orders = Array.isArray(ordersData) ? ordersData : [];
+      const activeCustomers = pharmStats.count || 0;
+
+      // Count unique SKUs and ASO (Active Selling Outlets)
+      const allSkus = new Set();
+      const activeSellingOutlets = new Set();
+
+      orders.forEach(order => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach(item => allSkus.add(item.productId));
+        }
+        if (order.pharmacyId) {
+          activeSellingOutlets.add(order.pharmacyId);
+        }
+      });
+
+      const avgSkuPerOutlet = activeCustomers > 0 ? (allSkus.size / activeCustomers).toFixed(1) : 0;
+      const avgValuePerOutlet = activeCustomers > 0 ? (revenue / activeCustomers) : 0;
+      const aso = activeSellingOutlets.size;
+
+      setStats({
+        revenue,
+        targetRevenue: target,
+        percent: cappedPercent,
+        orders: kpiData.orders?.actual || 0,
+        customers: activeCustomers,
+        aso: aso,
+        avgSku: avgSkuPerOutlet,
+        avgValue: avgValuePerOutlet
+      });
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateDistance = (lat1, lng1, lat2, lng2) => {
-    const R = 6371000;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const getDistanceText = (pharmacy) => {
-    if (!userLocation || !pharmacy.distance) return '';
-    const distance = pharmacy.distance;
-    return distance < 1000 ? `${Math.round(distance)}m` : `${(distance / 1000).toFixed(1)}km`;
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0
-    }).format(amount).replace('₫', '');
-  };
-
-  const openDirections = (pharmacy) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${pharmacy.latitude},${pharmacy.longitude}&travelmode=driving`;
-    window.open(url, '_blank');
-  };
-
-  // --- Styles ---
-  const styles = {
-    container: {
-      minHeight: '100%',
-      background: '#F0F2F5',
-      paddingBottom: '80px',
-      fontFamily: "'Inter', sans-serif"
-    },
-    header: {
-      background: 'linear-gradient(135deg, #1E4A8B 0%, #00d2ff 100%)',
-      padding: '24px 20px 60px 20px',
-      color: 'white',
-      borderBottomLeftRadius: '30px',
-      borderBottomRightRadius: '30px',
-      marginBottom: '-40px',
-      position: 'relative',
-      zIndex: 1
-    },
-    statsContainer: {
-      padding: '0 20px',
-      marginBottom: '24px',
-      position: 'relative',
-      zIndex: 2
-    },
-    statsCard: {
-      background: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(20px)',
-      borderRadius: '24px',
-      padding: '20px',
-      boxShadow: '0 10px 30px -10px rgba(30, 74, 139, 0.2)',
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gap: '10px'
-    },
-    statItem: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      textAlign: 'center',
-      position: 'relative'
-    },
-    statValue: {
-      fontSize: '18px',
-      fontWeight: '800',
-      color: '#1E4A8B',
-      marginBottom: '4px'
-    },
-    statLabel: {
-      fontSize: '11px',
-      color: '#64748B',
-      fontWeight: '600'
-    },
-    divider: {
-      width: '1px',
-      height: '30px',
-      background: '#E2E8F0',
-      position: 'absolute',
-      right: '-5px',
-      top: '50%',
-      transform: 'translateY(-50%)'
-    },
-    visitCard: {
-      background: 'white',
-      borderRadius: '20px',
-      padding: '16px',
-      marginBottom: '12px',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      border: '1px solid #F1F5F9',
-      position: 'relative',
-      overflow: 'hidden'
-    },
-    toast: {
-      position: 'fixed',
-      top: '20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: '#DC2626', // Red-600
-      color: 'white',
-      padding: '12px 20px',
-      borderRadius: '50px',
-      zIndex: 9999,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-      fontSize: '13px',
-      fontWeight: '600',
-      animation: 'slideDown 0.3s ease-out'
-    }
-  };
+  const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(val).replace('₫', '');
 
   return (
-    <main style={styles.container}>
-      {/* Toast Notification */}
-      {error && (
-        <div style={styles.toast}>
-          <Icons.AlertCircle />
-          {error}
-        </div>
-      )}
+    <div style={{ minHeight: '100%', paddingBottom: 100, fontFamily: 'Inter, sans-serif', background: '#F0F2F5' }}>
 
-      {/* 1. Header Section */}
-      <header style={styles.header}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      {/* 1. Header with Target Progress */}
+      <div style={{ background: 'linear-gradient(135deg, #1E4A8B 0%, #00d2ff 100%)', padding: '20px 20px 50px 20px', color: '#fff', borderRadius: '0 0 30px 30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px', margin: 0 }}>
-              Hello, {user?.name?.split(' ').pop()}! 👋
-            </h1>
-            <div style={{ fontSize: '13px', opacity: 0.9 }}>
-              📍 {user?.hub ? `Hub ${user.hub}` : 'TP. HCM'}
+            <h2 style={{ margin: 0, fontSize: 20 }}>Xin chào, {user.name}! 👋</h2>
+            <div style={{ fontSize: 12, opacity: 0.9, marginTop: 4 }}>Chúc bạn một ngày làm việc hiệu quả</div>
+          </div>
+          <Link to="/profile">
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.3)', fontWeight: 'bold', color: '#fff' }}>
+              {user.name.charAt(0)}
+            </div>
+          </Link>
+        </div>
+
+        {/* Monthly Target Card */}
+        <div style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', padding: 15, borderRadius: 16, border: '1px solid rgba(255,255,255,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10 }}>
+            <span style={{ fontWeight: '600' }}>Chi tiêu tháng này</span>
+            <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 10, fontSize: 10 }}>Thực tế</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+            <div style={{ position: 'relative', width: 50, height: 50 }}>
+              <svg width="50" height="50" viewBox="0 0 36 36">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fff" strokeWidth="3" strokeDasharray={`${stats.percent}, 100`} />
+              </svg>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold' }}>
+                {stats.percent}%
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 'bold' }}>{formatCurrency(stats.revenue)}</div>
+              <div style={{ fontSize: 11, opacity: 0.8 }}>Mục tiêu: {formatCurrency(stats.targetRevenue)}</div>
             </div>
           </div>
-          <Link to="/profile" aria-label="View Profile">
-            <div style={{
-              width: '44px', height: '44px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '18px', fontWeight: 'bold',
-              border: '2px solid rgba(255,255,255,0.3)'
-            }}>
-              {user?.name?.charAt(0)}
-            </div>
-          </Link>
         </div>
-      </header>
+      </div>
 
-      {/* 2. Stats Card with Skeleton */}
-      <section style={styles.statsContainer} aria-label="Statistics">
-        <div style={styles.statsCard}>
-          <Link to="/kpi" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={styles.statItem}>
-              {statsLoading ? <Skeleton width="60px" height="24px" /> : (
-                <div style={styles.statValue}>
-                  {stats.totalRevenue ? `${formatCurrency(stats.totalRevenue / 1000000)}M` : '0'}
-                </div>
-              )}
-              <div style={styles.statLabel}>Doanh thu</div>
-              <div style={styles.divider}></div>
-            </div>
-          </Link>
-          <Link to="/kpi" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={styles.statItem}>
-              {statsLoading ? <Skeleton width="40px" height="24px" /> : (
-                <div style={styles.statValue}>{stats.totalOrders}</div>
-              )}
-              <div style={styles.statLabel}>Đơn hàng</div>
-              <div style={styles.divider}></div>
-            </div>
-          </Link>
-          <Link to="/kpi" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={styles.statItem}>
-              {statsLoading ? <Skeleton width="40px" height="24px" /> : (
-                <div style={styles.statValue}>{stats.totalPharmacies}</div>
-              )}
-              <div style={styles.statLabel}>Khách hàng</div>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* 3. Quick Actions (Static, no loader needed) */}
-      <nav style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', padding: '0 20px', marginBottom: '30px' }} aria-label="Quick Actions">
-        {[
-          { to: '/map', icon: <Icons.Map />, text: 'Bản đồ', color: '#3B82F6', bg: '#EFF6FF' },
-          { to: '/customers', icon: <Icons.Users />, text: 'Khách hàng', color: '#10B981', bg: '#ECFDF5' },
-          { to: '/kpi', icon: <Icons.TrendingUp />, text: 'KPI', color: '#8b5cf6', bg: '#ede9fe' },
-          { to: '/create-pharmacy', icon: <span style={{ fontSize: '20px' }}>+</span>, text: 'Thêm mới', color: '#f97316', bg: '#fff7ed' }
-        ].map((item, index) => (
-          <Link key={index} to={item.to} style={{
-            background: 'white', borderRadius: '16px', padding: '12px 5px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-            textDecoration: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #F1F5F9'
-          }}>
-            <div style={{
-              width: '40px', height: '40px', borderRadius: '12px',
-              background: item.bg, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              {item.icon}
-            </div>
-            <span style={{ fontSize: '11px', fontWeight: '600', color: '#475569' }}>{item.text}</span>
-          </Link>
-        ))}
-      </nav>
-
-      {/* 4. Today's Plan with Skeleton */}
-      <section style={{ padding: '0 20px' }} aria-label="Today's Visit Plan">
-        <div style={{ fontSize: '18px', fontWeight: '700', color: '#1E293B', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0 }}>📅 Lịch trình hôm nay</h2>
-          <Link to="/map" style={{ fontSize: '13px', color: '#3B82F6', textDecoration: 'none', fontWeight: '600' }}>
-            Xem bản đồ →
-          </Link>
-        </div>
-
-        {loading ? (
-          // Skeleton Loader for List
-          [1, 2, 3].map(i => (
-            <div key={i} style={{ ...styles.visitCard, height: '100px', display: 'flex', alignItems: 'center' }}>
-              <Skeleton width="48px" height="48px" borderRadius="12px" />
-              <div style={{ marginLeft: '15px', flex: 1 }}>
-                <Skeleton width="60%" height="20px" />
-                <div style={{ marginTop: '8px' }}><Skeleton width="40%" height="16px" /></div>
-              </div>
-            </div>
-          ))
-        ) : visitPlans.length > 0 ? (
-          visitPlans.map((pharmacy) => (
-            <div key={pharmacy.id} style={styles.visitCard}>
-              {pharmacy.distance && (
-                <div style={{
-                  position: 'absolute', top: '16px', right: '16px',
-                  background: '#FEF3C7', color: '#D97706', padding: '4px 10px',
-                  borderRadius: '100px', fontSize: '11px', fontWeight: '700',
-                  display: 'flex', alignItems: 'center', gap: '4px'
-                }}>
-                  <Icons.Navigation /> {getDistanceText(pharmacy)}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <div style={{
-                  width: '48px', height: '48px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #1E4A8B, #3B82F6)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontSize: '20px', flexShrink: 0
-                }}>
-                  🏥
-                </div>
-                <div style={{ flex: 1, paddingRight: '60px' }}>
-                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1E293B', marginBottom: '4px', lineHeight: '1.3' }}>
-                    {pharmacy.name}
-                  </h3>
-                  <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.4', marginBottom: '8px' }}>
-                    {pharmacy.address}
-                  </p>
-
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => openDirections(pharmacy)}
-                      style={{
-                        padding: '6px 12px', background: '#F1F5F9', color: '#475569',
-                        border: 'none', borderRadius: '8px', fontSize: '11px', fontWeight: '600'
-                      }}
-                    >
-                      Dẫn đường
-                    </button>
-                    <Link
-                      to={`/visit/${pharmacy.id}`}
-                      style={{
-                        padding: '6px 12px', background: '#1E4A8B', color: 'white',
-                        border: 'none', borderRadius: '8px', fontSize: '11px', fontWeight: '600', textDecoration: 'none'
-                      }}
-                    >
-                      Check-in
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div style={{
-            background: 'white', borderRadius: '20px', padding: '40px 20px',
-            textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-          }}>
-            <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.5 }}>☕</div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1E293B', marginBottom: '8px' }}>
-              Không có lịch hôm nay
-            </h3>
-            <p style={{ fontSize: '13px', color: '#64748B' }}>
-              Hãy xem bản đồ hoặc danh sách khách hàng để lên kế hoạch.
-            </p>
-            <Link
-              to="/customers"
-              style={{
-                display: 'inline-block', marginTop: '16px', padding: '10px 20px',
-                background: '#EFF6FF', color: '#3B82F6', borderRadius: '10px',
-                fontSize: '13px', fontWeight: '600', textDecoration: 'none'
-              }}
-            >
-              Tìm khách hàng
+      {/* 2. Enhanced Stats Grid (6 metrics: 2 rows x 3 cols) */}
+      <div style={{ padding: '0 20px', marginTop: -30 }}>
+        <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)' }}>
+          {/* Row 1: Main 3 metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #F1F5F9' }}>
+            <Link to="/kpi" style={{ textDecoration: 'none', textAlign: 'center' }}>
+              <div style={{ color: '#1E4A8B', fontWeight: 'bold', fontSize: 16 }}>{formatCurrency(stats.revenue / 1000000)}M</div>
+              <div style={{ fontSize: 11, color: '#666' }}>Doanh số</div>
+            </Link>
+            <Link to="/customers" style={{ textDecoration: 'none', textAlign: 'center', borderLeft: '1px solid #eee', borderRight: '1px solid #eee' }}>
+              <div style={{ color: '#1E4A8B', fontWeight: 'bold', fontSize: 16 }}>{stats.customers}</div>
+              <div style={{ fontSize: 11, color: '#666' }}>Khách hàng</div>
+            </Link>
+            <Link to="/kpi" style={{ textDecoration: 'none', textAlign: 'center' }}>
+              <div style={{ color: '#1E4A8B', fontWeight: 'bold', fontSize: 16 }}>{stats.orders}</div>
+              <div style={{ fontSize: 11, color: '#666' }}>Đơn hàng</div>
             </Link>
           </div>
-        )}
-      </section>
 
-      <style>{`
-        @keyframes loading {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes slideDown {
-          from { transform: translate(-50%, -100%); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
-        }
-      `}</style>
-    </main>
+          {/* Row 2: Performance metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#FEF3C7', borderRadius: 12 }}>
+              <div style={{ color: '#D97706', fontWeight: 'bold', fontSize: 15 }}>{stats.aso}</div>
+              <div style={{ fontSize: 10, color: '#64748B', fontWeight: '600' }}>ASO</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#F0F9FF', borderRadius: 12 }}>
+              <div style={{ color: '#0284C7', fontWeight: 'bold', fontSize: 15 }}>{stats.avgSku || 0}</div>
+              <div style={{ fontSize: 10, color: '#64748B', fontWeight: '600' }}>SKU/Outlet</div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '8px', background: '#ECFDF5', borderRadius: 12 }}>
+              <div style={{ color: '#059669', fontWeight: 'bold', fontSize: 15 }}>{formatCurrency((stats.avgValue || 0) / 1000)}K</div>
+              <div style={{ fontSize: 10, color: '#64748B', fontWeight: '600' }}>Value/Outlet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Quick Actions - Optimized */}
+      <div style={{ padding: '20px 20px 0 20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {[
+          { label: 'Bản đồ', icon: <Icons.Map />, to: '/map', color: '#3B82F6', bg: '#EFF6FF' },
+          { label: 'Thêm KH', icon: <div style={{ fontSize: 18 }}>➕</div>, to: '/create-pharmacy', color: '#10B981', bg: '#ECFDF5' },
+          { label: 'Đơn hàng', icon: <div style={{ fontSize: 18 }}>📋</div>, to: '/order-summary', color: '#F59E0B', bg: '#FFFBEB' },
+          { label: 'KPI', icon: <Icons.TrendingUp />, to: '/kpi', color: '#8B5CF6', bg: '#F3E8FF' },
+        ].map((item, i) => (
+          <Link key={i} to={item.to} style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 45, height: 45, borderRadius: 14, background: item.bg, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {item.icon}
+            </div>
+            <span style={{ fontSize: 11, fontWeight: '600', color: '#444' }}>{item.label}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* 4. Today's Plan */}
+      <div style={{ padding: '20px 20px 0 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <h3 style={{ fontSize: 16, margin: 0, color: '#333' }}>📅 Lịch trình hôm nay</h3>
+          <Link to="/map" style={{ fontSize: 12, color: '#1E4A8B', fontWeight: 'bold', textDecoration: 'none' }}>Xem bản đồ</Link>
+        </div>
+        {loading ? (
+          <div style={{ textAlign: 'center', color: '#999', fontSize: 13, marginTop: 20 }}>Đang tải...</div>
+        ) : visitPlans.length > 0 ? (
+          visitPlans.map(plan => {
+            const pharmacy = plan.pharmacy;
+            if (!pharmacy) return null;
+
+            return (
+              <div key={plan.id} style={{ background: '#fff', padding: 15, borderRadius: 16, marginBottom: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'start', gap: 12, marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, background: '#EFF6FF', color: '#1E4A8B', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏥</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: 14, color: '#1E293B', marginBottom: 4 }}>{pharmacy.name}</div>
+                    <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>📍 {pharmacy.address}</div>
+                    {pharmacy.phone && (
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>📞 {pharmacy.phone}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {pharmacy.latitude && pharmacy.longitude && (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${pharmacy.latitude},${pharmacy.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        background: '#F0F9FF',
+                        color: '#0284C7',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                        border: '1px solid #BAE6FD'
+                      }}
+                    >
+                      🧭 Chỉ đường
+                    </a>
+                  )}
+                  <Link
+                    to={`/visit/${pharmacy.id}`}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      background: '#1E4A8B',
+                      color: '#fff',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      textAlign: 'center'
+                    }}
+                  >
+                    ✓ Check-in
+                  </Link>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ textAlign: 'center', padding: 30, background: '#fff', borderRadius: 16 }}>
+            <div style={{ fontSize: 30, marginBottom: 10 }}>☕</div>
+            <div style={{ fontSize: 14, fontWeight: 'bold', color: '#333' }}>Không có lịch hôm nay</div>
+            <div style={{ fontSize: 12, color: '#666' }}>Bạn có thể tự do viếng thăm khách hàng</div>
+          </div>
+        )}
+      </div>
+
+    </div>
   );
 };
 

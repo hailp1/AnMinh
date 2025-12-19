@@ -248,6 +248,8 @@ model Product {
   // Identification
   barcode         String?   @unique
   sku             String?   @unique
+  
+  conversionRate  Int?      @default(1) // Quy đổi: 1 Thùng = X Lẻ
   registrationNo  String?   // Số đăng ký VD-xxxxx-xx
   
   // Stock Management
@@ -273,6 +275,7 @@ model Product {
   
   // Status
   isActive        Boolean   @default(true)
+  isCombo         Boolean   @default(false) // NEW: Is this a virtual bundle/combo?
   order           Int       @default(0)
   images          String[]
   imageUrl        String?
@@ -291,10 +294,30 @@ model Product {
   batches         ProductBatch[]
   pharmacyPrices  PharmacyProductPrice[]
   inventoryTransactions InventoryTransaction[]
+  
+  // Bundle Relations
+  bundleItems     ProductBundleItem[] @relation("BundleParent")
+  partOfBundles   ProductBundleItem[] @relation("BundleChild")
 
   @@index([name])
   @@index([manufacturer])
   @@index([groupId])
+}
+
+model ProductBundleItem {
+  id          String   @id @default(uuid())
+  parentId    String   // The Combo Product ID
+  parent      Product  @relation("BundleParent", fields: [parentId], references: [id])
+  
+  childId     String   // The Component Product ID
+  child       Product  @relation("BundleChild", fields: [childId], references: [id])
+  
+  quantity    Int      @default(1) // How many of Child are in Parent Combo
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([parentId, childId])
 }
 
 model ProductPrice {
@@ -479,6 +502,8 @@ model Order {
   items       OrderItem[]
   inventoryTransactions InventoryTransaction[]
   promotionApplications PromotionApplication[]
+  
+  discount    Float?   @default(0) // Chiết khấu tổng đơn
   
   deliveryDate DateTime?
   paymentStatus String @default("UNPAID")

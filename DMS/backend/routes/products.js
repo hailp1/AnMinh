@@ -51,6 +51,16 @@ router.get('/', auth, async (req, res) => {
         group: {
           select: { id: true, name: true },
         },
+        category: {
+          select: { id: true, name: true },
+        },
+        bundleItems: {
+          include: {
+            child: {
+              select: { id: true, name: true, code: true, unit: true }
+            }
+          }
+        }
       },
       orderBy: { name: 'asc' },
     });

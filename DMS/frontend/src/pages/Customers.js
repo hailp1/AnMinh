@@ -1,205 +1,274 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { pharmaciesAPI } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { LoadingSpinner, EmptyState } from '../components/LoadingStates';
 
 const Customers = () => {
-    const { user } = useAuth();
     const navigate = useNavigate();
     const [customers, setCustomers] = useState([]);
+    const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchText, setSearchText] = useState('');
+    const [filterType, setFilterType] = useState('ALL'); // ALL, ACTIVE, INACTIVE
 
     useEffect(() => {
-        fetchCustomers();
+        loadCustomers();
     }, []);
 
-    const fetchCustomers = async () => {
+    useEffect(() => {
+        applyFilters();
+    }, [searchText, filterType, customers]);
+
+    const loadCustomers = async () => {
         try {
             const data = await pharmaciesAPI.getAll();
-            setCustomers(data);
+            setCustomers(data || []);
         } catch (error) {
-            console.error('Error fetching customers:', error);
+            console.error('Error loading customers:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredCustomers = customers.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.code && c.code.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const applyFilters = () => {
+        let filtered = [...customers];
+
+        // Search
+        if (searchText) {
+            const search = searchText.toLowerCase();
+            filtered = filtered.filter(c =>
+                c.name.toLowerCase().includes(search) ||
+                c.address.toLowerCase().includes(search) ||
+                (c.code && c.code.toLowerCase().includes(search))
+            );
+        }
+
+        // Status filter
+        if (filterType === 'ACTIVE') {
+            filtered = filtered.filter(c => c.isActive !== false);
+        } else if (filterType === 'INACTIVE') {
+            filtered = filtered.filter(c => c.isActive === false);
+        }
+
+        setFilteredCustomers(filtered);
+    };
+
+    if (loading) return <LoadingSpinner message="Đang tải danh sách khách hàng..." />;
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            background: '#f3f4f6',
-            paddingBottom: '80px'
-        }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
             {/* Header */}
             <div style={{
-                background: '#fff',
-                padding: '16px 20px',
-                position: 'sticky',
-                top: 0,
-                zIndex: 10,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '15px'
+                background: 'linear-gradient(135deg, #1E4A8B 0%, #2563EB 100%)',
+                padding: '20px',
+                color: '#fff',
+                boxShadow: '0 4px 12px rgba(30,74,139,0.2)'
             }}>
-                <button
-                    onClick={() => navigate('/home')}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        fontSize: '24px',
-                        cursor: 'pointer',
-                        color: '#1E4A8B',
-                        padding: 0
-                    }}
-                >
-                    ←
-                </button>
-                <h1 style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#1E4A8B',
-                    margin: 0,
-                    flex: 1
-                }}>
-                    Viếng thăm ({customers.length})
-                </h1>
-            </div>
+                <h2 style={{ margin: '0 0 12px 0', fontSize: 20 }}>👥 Khách hàng của tôi</h2>
 
-            {/* Search */}
-            <div style={{ padding: '16px 20px', background: '#fff' }}>
-                <div style={{
-                    position: 'relative',
-                    marginBottom: '10px'
-                }}>
+                {/* Search Bar */}
+                <div style={{ position: 'relative' }}>
                     <input
                         type="text"
-                        placeholder="Tìm kiếm tên, địa chỉ, mã KH..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="🔍 Tìm theo tên, địa chỉ, mã..."
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
                         style={{
                             width: '100%',
-                            padding: '12px 16px 12px 40px',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            fontSize: '15px',
-                            outline: 'none',
-                            background: '#f9fafb',
-                            boxSizing: 'border-box'
+                            padding: '12px 40px 12px 16px',
+                            borderRadius: 12,
+                            border: 'none',
+                            fontSize: 15,
+                            background: 'rgba(255,255,255,0.95)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                         }}
                     />
-                    <span style={{
-                        position: 'absolute',
-                        left: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        fontSize: '18px',
-                        color: '#9ca3af'
-                    }}>
-                        🔍
-                    </span>
+                    {searchText && (
+                        <button
+                            onClick={() => setSearchText('')}
+                            style={{
+                                position: 'absolute',
+                                right: 12,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                border: 'none',
+                                background: '#E5E7EB',
+                                borderRadius: '50%',
+                                width: 24,
+                                height: 24,
+                                cursor: 'pointer',
+                                fontSize: 12,
+                                color: '#64748B'
+                            }}
+                        >✕</button>
+                    )}
                 </div>
             </div>
 
-            {/* List */}
-            <div style={{ padding: '16px 20px' }}>
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '40px' }}>
-                        <div style={{
-                            width: '30px',
-                            height: '30px',
-                            border: '3px solid #e5e7eb',
-                            borderTop: '3px solid #1E4A8B',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite',
-                            margin: '0 auto 10px'
-                        }}></div>
-                        <p style={{ color: '#666', fontSize: '14px' }}>Đang tải dữ liệu...</p>
-                    </div>
-                ) : filteredCustomers.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {filteredCustomers.map(customer => (
-                            <div
-                                key={customer.id}
-                                onClick={() => navigate(`/station/${customer.id}`)}
+            {/* Filter Tabs */}
+            <div style={{
+                padding: '12px 20px',
+                background: '#fff',
+                borderBottom: '1px solid #E5E7EB',
+                display: 'flex',
+                gap: 8
+            }}>
+                {[
+                    { key: 'ALL', label: 'Tất cả', count: customers.length },
+                    { key: 'ACTIVE', label: 'Hoạt động', count: customers.filter(c => c.isActive !== false).length },
+                    { key: 'INACTIVE', label: 'Ngừng', count: customers.filter(c => c.isActive === false).length }
+                ].map(filter => (
+                    <button
+                        key={filter.key}
+                        onClick={() => setFilterType(filter.key)}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: 20,
+                            border: 'none',
+                            background: filterType === filter.key ? '#1E4A8B' : '#F1F5F9',
+                            color: filterType === filter.key ? '#fff' : '#64748B',
+                            fontSize: 13,
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {filter.label} ({filter.count})
+                    </button>
+                ))}
+            </div>
+
+            {/* Customers List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 100px 20px' }}>
+                {filteredCustomers.length === 0 ? (
+                    <EmptyState
+                        icon="👥"
+                        title="Không tìm thấy khách hàng"
+                        subtitle="Thử tìm kiếm với từ khóa khác hoặc thêm khách hàng mới"
+                        action={
+                            <button
+                                onClick={() => navigate('/create-pharmacy')}
                                 style={{
-                                    background: '#fff',
-                                    borderRadius: '12px',
-                                    padding: '16px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                    padding: '12px 24px',
+                                    background: '#1E4A8B',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    fontSize: 14,
+                                    fontWeight: 'bold',
                                     cursor: 'pointer',
-                                    border: '1px solid #f0f0f0'
+                                    boxShadow: '0 4px 12px rgba(30,74,139,0.2)'
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a1a2e' }}>
-                                        {customer.name}
-                                    </h3>
-                                    {customer.code && (
-                                        <span style={{
-                                            fontSize: '12px',
-                                            background: '#eff6ff',
-                                            color: '#1E4A8B',
-                                            padding: '2px 8px',
-                                            borderRadius: '6px',
-                                            fontWeight: '500'
-                                        }}>
-                                            {customer.code}
-                                        </span>
+                                + Thêm khách hàng
+                            </button>
+                        }
+                    />
+                ) : (
+                    filteredCustomers.map(customer => (
+                        <div
+                            key={customer.id}
+                            style={{
+                                background: '#fff',
+                                borderRadius: 16,
+                                padding: 16,
+                                marginBottom: 12,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                border: '1px solid #F1F5F9'
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 12 }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 'bold', color: '#1E293B' }}>
+                                            {customer.name}
+                                        </h3>
+                                        {customer.isActive === false && (
+                                            <span style={{
+                                                padding: '2px 8px',
+                                                background: '#FEE2E2',
+                                                color: '#DC2626',
+                                                borderRadius: 8,
+                                                fontSize: 10,
+                                                fontWeight: 'bold'
+                                            }}>
+                                                Ngừng
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#64748B', marginBottom: 4 }}>
+                                        📍 {customer.address}
+                                    </div>
+                                    {customer.phone && (
+                                        <div style={{ fontSize: 12, color: '#94A3B8' }}>
+                                            📞 {customer.phone}
+                                        </div>
                                     )}
                                 </div>
-                                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#666', lineHeight: '1.4' }}>
-                                    📍 {customer.address}
-                                </p>
-                                <div style={{ display: 'flex', gap: '15px', fontSize: '13px', color: '#4b5563', marginBottom: '12px' }}>
-                                    <span>📞 {customer.phone}</span>
-                                </div>
-                                <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/order/create/${customer.id}`);
-                                        }}
-                                        style={{
-                                            background: '#F29E2E',
-                                            color: '#fff',
-                                            border: 'none',
-                                            padding: '8px 16px',
-                                            borderRadius: '8px',
-                                            fontSize: '13px',
-                                            fontWeight: '600',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px'
-                                        }}
-                                    >
-                                        🛒 Lên đơn hàng
-                                    </button>
-                                </div>
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                        <p>Không tìm thấy khách hàng nào</p>
-                    </div>
+
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <Link
+                                    to={`/visit/${customer.id}`}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px',
+                                        background: 'linear-gradient(135deg, #1E4A8B 0%, #2563EB 100%)',
+                                        color: '#fff',
+                                        borderRadius: 10,
+                                        fontSize: 13,
+                                        fontWeight: 'bold',
+                                        textDecoration: 'none',
+                                        textAlign: 'center',
+                                        boxShadow: '0 2px 8px rgba(30,74,139,0.2)'
+                                    }}
+                                >
+                                    ✓ Viếng thăm
+                                </Link>
+                                <Link
+                                    to={`/order/create/${customer.id}`}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px',
+                                        background: '#F0F9FF',
+                                        color: '#0284C7',
+                                        border: '1px solid #BAE6FD',
+                                        borderRadius: 10,
+                                        fontSize: 13,
+                                        fontWeight: 'bold',
+                                        textDecoration: 'none',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    🛒 Đặt hàng
+                                </Link>
+                            </div>
+                        </div>
+                    ))
                 )}
             </div>
 
-            <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+            {/* Floating Add Button */}
+            <button
+                onClick={() => navigate('/create-pharmacy')}
+                style={{
+                    position: 'fixed',
+                    bottom: 90,
+                    right: 20,
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: 24,
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 24px rgba(16,185,129,0.4)',
+                    zIndex: 100
+                }}
+            >
+                +
+            </button>
         </div>
     );
 };

@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
+import ComplianceReportView from '../../components/ComplianceReportView';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -263,7 +264,15 @@ const AdminReports = () => {
           </div>
         )}
 
-        {!loading && viewParam === 'report' && (
+        {!loading && viewParam === 'report' && typeParam === 'compliance' && (
+          <ComplianceReportView
+            reportData={reportData}
+            period={period}
+            formatCurrency={formatCurrency}
+          />
+        )}
+
+        {!loading && viewParam === 'report' && typeParam !== 'compliance' && (
           <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             {/* Re-use existing table logic for Report view */}
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>

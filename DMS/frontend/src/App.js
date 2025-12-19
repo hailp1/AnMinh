@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import BottomNav from './components/BottomNav';
 import PageTransition from './components/PageTransition';
 import Login from './pages/Login';
 import Home from './pages/Home';
@@ -22,6 +22,8 @@ import Customers from './pages/Customers';
 import Visit from './pages/Visit';
 import EditCustomer from './pages/EditCustomer';
 import KPI from './pages/KPI';
+import Promotions from './pages/Promotions';
+import ProductCatalog from './pages/ProductCatalog';
 
 // Admin imports
 import AdminLogin from './pages/admin/AdminLogin';
@@ -94,27 +96,19 @@ const AppContent = () => {
   return (
     <div style={{
       width: '100vw',
+      height: '100vh',
       display: 'flex',
-      flexDirection: 'row',
       justifyContent: 'center',
-      alignItems: 'center',
-      overflow: 'hidden',
-      backgroundColor: '#f0f2f5'
+      backgroundColor: '#e0e5ec',
+      overflow: 'hidden'
     }}>
-      <div style={{
-        width: '480px',
-        maxWidth: '100%',
-        backgroundColor: '#fff',
-        height: '87%',
-        position: 'relative',
-        boxShadow: '0 0 20px rgba(0,0,0,0.3)',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        zoom: 1.15
-      }}>
+      <div className="app-frame">
         {!isOnboarding && !isAuthPage && <Navbar isMobileMode={true} />}
-        <div className={`main-content ${isOnboarding ? 'onboarding-mode' : ''} ${isAuthPage ? 'auth-mode' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%' }}>
+
+        <div className="app-content scroll-container" style={{
+          paddingBottom: (!isOnboarding && !isAuthPage) ? '90px' : '0'
+        }}>
+
           <PageTransition>
             <Routes>
               <Route path="/" element={<Onboarding />} />
@@ -132,18 +126,21 @@ const AppContent = () => {
               <Route path="/chat/:userId" element={<Chat />} />
               <Route path="/create-order" element={<CreateOrder />} />
               <Route path="/order/create/:id" element={<CreateOrder />} />
+              <Route path="/order/edit/:orderId" element={<CreateOrder />} />
               <Route path="/order/invoice/:id" element={<OrderInvoice />} />
               <Route path="/visit/:id" element={<Visit />} />
               <Route path="/customer/edit/:id" element={<EditCustomer />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/order-summary" element={<OrderSummary />} />
               <Route path="/kpi" element={<KPI />} />
+              <Route path="/promotions" element={<Promotions />} />
+              <Route path="/products" element={<ProductCatalog />} />
             </Routes>
           </PageTransition>
         </div>
-        <div style={{ flexShrink: 0, width: '100%', position: 'relative', zIndex: 1000 }}>
-          {!isOnboarding && !isAuthPage && <Footer />}
-        </div>
+
+        {/* Bottom Navigation - Hide on pages with custom footers */}
+        {!isOnboarding && !isAuthPage && !location.pathname.includes('/order/create') && !location.pathname.includes('/visit/') && <BottomNav />}
       </div>
     </div>
   );

@@ -30,7 +30,7 @@ const ComplianceReportView = ({ reportData, period, formatCurrency }) => {
             pc: totalPC,
             strikeRate: totalVisited > 0 ? ((totalPC / totalVisited) * 100).toFixed(1) : 0,
             revenue: totalRevenue,
-            vpo: totalPC > 0 ? (totalRevenue / total PC).toFixed(0) : 0,
+            vpo: totalPC > 0 ? (totalRevenue / totalPC).toFixed(0) : 0,
             avgCheckInTime: calculateAvgTime(reportData, 'checkInTime'),
             avgFirstVisitTime: calculateAvgTime(reportData, 'firstVisitTime')
         };

@@ -361,5 +361,102 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
+// Xóa đơn hàng (Chỉ PENDING)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true }
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (order.status !== 'PENDING') {
+      return res.status(400).json({ message: 'Chỉ có thể xóa đơn hàng khi đang chờ xử lý' });
+    }
+
+    if (req.user.role === 'PHARMACY_REP' && order.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Không có quyền xóa đơn hàng này' });
+    }
+
+    // Delete items first (Cascade usually handles this, but safe to be explicit if not)
+    await prisma.orderItem.deleteMany({
+      where: { orderId: id }
+    });
+
+    await prisma.order.delete({
+      where: { id }
+    });
+
+    res.json({ message: 'Đã xóa đơn hàng thành công' });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// Cập nhật đơn hàng (Chỉ PENDING)
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, totalAmount, notes, discount, finalAmount, promotions } = req.body;
+
+    const order = await prisma.order.findUnique({ where: { id } });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (order.status !== 'PENDING') {
+      return res.status(400).json({ message: 'Chỉ có thể sửa đơn hàng khi đang chờ xử lý' });
+    }
+
+    // Update Transaction
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      // 1. Update basic info
+      await tx.order.update({
+        where: { id },
+        data: {
+          totalAmount,
+          notes,
+          discount, // Make sure Schema has this (if not present, standard schema might need update, check below)
+          // Store promotions in notes or separate field if Schema not updated for JSON
+        }
+      });
+
+      // 2. Delete old items
+      await tx.orderItem.deleteMany({ where: { orderId: id } });
+
+      // 3. Create new items
+      if (items && items.length > 0) {
+        await tx.orderItem.createMany({
+          data: items.map(item => ({
+            orderId: id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            unit: item.unit
+          }))
+        });
+      }
+
+      return tx.order.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+    });
+
+    res.json(updatedOrder);
+
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 export default router;
 

@@ -1,0 +1,75 @@
+/* Mobile App Experience Enhancements */
+:root {
+  --primary-color: #1E4A8B;
+  --bg-color: #F0F2F5;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Smooth Scroll */
+.scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Input Improvements */
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  font-size: 16px;
+  /* Prevent iOS zoom on focus */
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+}
+
+/* Button Press Effect */
+button:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* App Frame */
+.app-frame {
+  width: 100%;
+  max-width: 480px;
+  background-color: white;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+}

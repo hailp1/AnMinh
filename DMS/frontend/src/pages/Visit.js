@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { pharmaciesAPI } from '../services/api';
+import { pharmaciesAPI, visitPlansAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -8,16 +8,16 @@ const Visit = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+
     const [pharmacy, setPharmacy] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Visit State
     const [visitStatus, setVisitStatus] = useState('PRE_VISIT');
     const [visitId, setVisitId] = useState(null);
     const [startTime, setStartTime] = useState(null);
     const [elapsedTime, setElapsedTime] = useState(0);
 
-    // Tasks State
     const [tasks, setTasks] = useState({
         photo: false,
         inventory: false,
@@ -28,20 +28,9 @@ const Visit = () => {
     const fileInputRef = useRef(null);
 
     useEffect(() => {
-        const fetchPharmacy = async () => {
-            try {
-                const data = await pharmaciesAPI.getById(id);
-                setPharmacy(data);
-            } catch (error) {
-                console.error('Error fetching pharmacy:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPharmacy();
+        loadData();
     }, [id]);
 
-    // Timer effect
     useEffect(() => {
         let interval;
         if (visitStatus === 'CHECKED_IN' && startTime) {
@@ -52,360 +41,248 @@ const Visit = () => {
         return () => clearInterval(interval);
     }, [visitStatus, startTime]);
 
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const data = await pharmaciesAPI.getById(id);
+            setPharmacy(data);
+        } catch (err) {
+            console.error(err);
+            setError('Không thể tải thông tin khách hàng');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const handleCheckIn = async () => {
-        if (!user) return alert('Vui lòng đăng nhập');
-
-        // Mock GPS (or use real if available)
-        const lat = 10.762622;
-        const lng = 106.660172;
-
+    // DECLARE doCheckIn FIRST (before handleCheckIn uses it)
+    const doCheckIn = async (lat, lng) => {
         try {
+            const token = localStorage.getItem('token');
             const res = await axios.post('/api/visit-plans/check-in', {
                 userId: user.id,
                 pharmacyId: id,
                 latitude: lat,
                 longitude: lng
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+            }, { headers: { 'x-auth-token': token } });
 
             setVisitId(res.data.id);
             setStartTime(Date.now());
             setVisitStatus('CHECKED_IN');
-        } catch (error) {
-            console.error('Check-in error:', error);
-            alert('Lỗi Check-in: ' + (error.response?.data?.message || error.message));
+            alert('Check-in thành công!');
+        } catch (err) {
+            console.error('Check-in Failed:', err);
+            alert(`Lỗi Check-in: ${err.response?.data?.message || err.message}`);
+        }
+    };
+
+    const handleCheckIn = async () => {
+        if (!user) return alert('Vui lòng đăng nhập lại');
+
+        const location = { lat: 10.762622, lng: 106.660172 };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    doCheckIn(pos.coords.latitude, pos.coords.longitude);
+                },
+                (err) => {
+                    console.warn('GPS Error:', err);
+                    alert('Không lấy được vị trí. Đang dùng vị trí mặc định để check-in.');
+                    doCheckIn(location.lat, location.lng);
+                },
+                { timeout: 5000 }
+            );
+        } else {
+            doCheckIn(location.lat, location.lng);
         }
     };
 
     const handleCheckOut = async () => {
         if (!tasks.photo) {
-            if (!window.confirm('Bạn chưa chụp ảnh trưng bày. Bạn có chắc muốn Check-out?')) return;
+            if (!window.confirm('Chưa chụp ảnh trưng bày. Tiếp tục check-out?')) return;
         }
 
         try {
+            const token = localStorage.getItem('token');
             await axios.post('/api/visit-plans/check-out', {
-                visitId,
+                visitId: visitId,
                 latitude: 10.762622,
                 longitude: 106.660172,
-                notes: 'Hoàn thành viếng thăm'
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
+                notes: 'Hoàn thành viếng thăm (Web)'
+            }, { headers: { 'x-auth-token': token } });
 
             setVisitStatus('CHECKED_OUT');
-        } catch (error) {
-            console.error('Check-out error:', error);
-            alert('Lỗi Check-out: ' + (error.response?.data?.message || error.message));
+        } catch (err) {
+            console.error('Check-out failed:', err);
+            alert('Lỗi Check-out. Vui lòng thử lại.');
         }
     };
 
-    const compressImage = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1024;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    canvas.toBlob((blob) => {
-                        resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-                    }, 'image/jpeg', 0.7); // Quality 0.7
-                };
-            };
-            reader.onerror = (error) => reject(error);
-        });
-    };
-
-    const handleFileChange = async (e) => {
+    const handlePhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        try {
-            // 1. Compress
-            const compressedFile = await compressImage(file);
-
-            // 2. Upload
-            const formData = new FormData();
-            formData.append('userId', user.id);
-            formData.append('customerCode', pharmacy.code || pharmacy.id);
-            formData.append('image', compressedFile);
-
-            const uploadRes = await axios.post('/api/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'x-auth-token': localStorage.getItem('token')
-                }
-            });
-
-            const imageUrl = uploadRes.data.url;
-
-            // 3. Update Visit Plan
-            await axios.put(`/api/visit-plans/${visitId}`, {
-                notes: `Đã chụp ảnh: ${imageUrl}` // Ideally save to images array
-            }, {
-                headers: { 'x-auth-token': localStorage.getItem('token') }
-            });
-
-            alert('Đã chụp và lưu ảnh thành công!');
+        setTimeout(() => {
             setTasks(prev => ({ ...prev, photo: true }));
-        } catch (error) {
-            console.error('Upload error:', error);
-            alert('Lỗi lưu ảnh: ' + (error.response?.data?.message || error.message));
-        }
+            alert('Đã lưu ảnh (Mô phỏng)');
+        }, 1000);
     };
 
-    const handleInventoryCheck = async () => {
-        const qty = prompt('Nhập số lượng tồn kho SKU chủ lực:', '0');
-        if (qty !== null) {
-            try {
-                await axios.put(`/api/visit-plans/${visitId}`, {
-                    notes: `Kiểm tồn: SKU chủ lực = ${qty}`
-                }, {
-                    headers: { 'x-auth-token': localStorage.getItem('token') }
-                });
-                setTasks(prev => ({ ...prev, inventory: true }));
-            } catch (error) {
-                alert('Lỗi lưu tồn kho');
-            }
-        }
+    const handleInventory = () => {
+        const qty = prompt('Nhập tồn kho (SKU Chính):', '0');
+        if (qty) setTasks(prev => ({ ...prev, inventory: true }));
     };
 
-    const TaskButton = ({ icon, label, done, onClick, highlight }) => (
-        <button
-            onClick={onClick}
-            style={{
-                padding: '16px',
-                background: done ? '#ecfdf5' : '#fff',
-                border: done ? '1px solid #10b981' : highlight ? 'none' : '1px solid #ddd',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: done ? '#059669' : highlight ? '#fff' : '#666',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: highlight ? '0 4px 12px rgba(242, 158, 46, 0.3)' : 'none',
-                backgroundColor: highlight && !done ? '#F29E2E' : undefined
-            }}
-        >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '20px' }}>{icon}</span>
-                <span>{label}</span>
-            </div>
-            {done && <span style={{ color: '#10b981' }}>✓</span>}
-        </button>
-    );
-
-    if (loading) return <div className="loading">Loading...</div>;
-    if (!pharmacy) return <div className="error">Không tìm thấy nhà thuốc</div>;
+    if (loading) return <div style={{ padding: 20, textAlign: 'center' }}>Đang tải dữ liệu...</div>;
+    if (error) return <div style={{ padding: 20, color: 'red', textAlign: 'center' }}>{error}</div>;
 
     return (
-        <div style={{ padding: '20px', background: '#f5f7fa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            {/* Hidden File Input */}
-            <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-            />
-
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
-                <div style={{ fontWeight: 'bold', color: '#1E4A8B' }}>
-                    {visitStatus === 'PRE_VISIT' ? 'Chuẩn bị viếng thăm' :
-                        visitStatus === 'CHECKED_IN' ? 'Đang viếng thăm' : 'Hoàn thành'}
-                </div>
-                <div style={{ width: '24px' }}></div>
+        <div style={{ padding: '20px', paddingBottom: '100px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+                <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', marginRight: 15 }}>←</button>
+                <h2 style={{ fontSize: 18, margin: 0 }}>
+                    {visitStatus === 'PRE_VISIT' ? 'Chuẩn bị' : visitStatus === 'CHECKED_IN' ? 'Đang viếng thăm' : 'Kết thúc'}
+                </h2>
             </div>
 
-            {/* Pharmacy Info Card */}
-            <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <h1 style={{ fontSize: '18px', color: '#1a1a2e', marginBottom: '8px', margin: 0 }}>{pharmacy.name}</h1>
-                <p style={{ color: '#666', fontSize: '13px', margin: '0 0 12px 0' }}>📍 {pharmacy.address}</p>
+            <div style={{ background: '#fff', padding: 20, borderRadius: 16, boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: 20 }}>
+                <h3 style={{ margin: '0 0 5px 0', fontSize: 18, color: '#1E4A8B' }}>{pharmacy?.name}</h3>
+                <p style={{ margin: 0, color: '#666', fontSize: 13 }}>📍 {pharmacy?.address}</p>
 
                 {visitStatus === 'CHECKED_IN' && (
-                    <div style={{
-                        background: '#e0f2fe', color: '#0284c7', padding: '8px 12px', borderRadius: '8px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold'
-                    }}>
-                        <span>⏱️</span>
-                        <span>{formatTime(elapsedTime)}</span>
+                    <div style={{ marginTop: 15, padding: 8, background: '#EFF6FF', color: '#1E4A8B', borderRadius: 8, textAlign: 'center', fontWeight: 'bold' }}>
+                        ⏱️ {formatTime(elapsedTime)}
                     </div>
                 )}
             </div>
 
             {/* Customer History */}
-            <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h3 style={{ fontSize: '16px', color: '#1a1a2e', margin: 0 }}>Lịch sử gần đây</h3>
-                    <Link to={`/customer/history/${id}`} style={{ fontSize: '13px', color: '#1E4A8B', textDecoration: 'none' }}>Xem tất cả</Link>
-                </div>
+            {pharmacy && (
+                <div style={{ marginBottom: 20 }}>
+                    <h3 style={{ fontSize: 15, margin: '0 0 12px 0', color: '#1E293B' }}>📊 Lịch sử giao dịch</h3>
 
-                {/* Last Visit */}
-                <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Viếng thăm gần nhất</div>
-                    {pharmacy.visitPlans && pharmacy.visitPlans.length > 0 ? (
-                        <div>
-                            <div style={{ fontWeight: '600', color: '#1a1a2e' }}>
-                                {new Date(pharmacy.visitPlans[0].visitDate).toLocaleDateString('vi-VN')}
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#444', marginTop: '4px' }}>
-                                {pharmacy.visitPlans[0].notes || 'Không có ghi chú'}
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{ fontSize: '13px', color: '#999' }}>Chưa có lịch sử viếng thăm</div>
-                    )}
-                </div>
-
-                {/* Last Order */}
-                <div style={{ background: '#fff', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Đơn hàng gần nhất</div>
-                    {pharmacy.orders && pharmacy.orders.length > 0 ? (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {/* Last Visit */}
+                    <div style={{ background: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
+                        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6, fontWeight: '600' }}>Viếng thăm gần nhất</div>
+                        {pharmacy.visitPlans && pharmacy.visitPlans.length > 0 ? (
                             <div>
-                                <div style={{ fontWeight: '600', color: '#1a1a2e' }}>
-                                    {new Date(pharmacy.orders[0].createdAt).toLocaleDateString('vi-VN')}
+                                <div style={{ fontWeight: 'bold', color: '#1E293B', fontSize: 14 }}>
+                                    {new Date(pharmacy.visitPlans[0].visitDate).toLocaleDateString('vi-VN')}
                                 </div>
-                                <div style={{ fontSize: '13px', color: '#10b981' }}>
-                                    {pharmacy.orders[0].status}
-                                </div>
+                                {pharmacy.visitPlans[0].notes && (
+                                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                                        {pharmacy.visitPlans[0].notes}
+                                    </div>
+                                )}
                             </div>
-                            <div style={{ fontWeight: 'bold', color: '#F29E2E' }}>
-                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(pharmacy.orders[0].totalAmount)}
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{ fontSize: '13px', color: '#999' }}>Chưa có đơn hàng</div>
-                    )}
-                </div>
-            </div>
+                        ) : (
+                            <div style={{ fontSize: 13, color: '#94A3B8' }}>Chưa có lịch sử viếng thăm</div>
+                        )}
+                    </div>
 
-            {/* FLOW: PRE_VISIT */}
+                    {/* Last Order */}
+                    <div style={{ background: '#fff', padding: 15, borderRadius: 12, boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
+                        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6, fontWeight: '600' }}>Đơn hàng gần nhất</div>
+                        {pharmacy.orders && pharmacy.orders.length > 0 ? (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontWeight: 'bold', color: '#1E293B', fontSize: 14 }}>
+                                        {new Date(pharmacy.orders[0].createdAt).toLocaleDateString('vi-VN')}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: pharmacy.orders[0].status === 'APPROVED' ? '#059669' : '#F59E0B', marginTop: 2 }}>
+                                        {pharmacy.orders[0].status === 'PENDING' ? '⏳ Chờ duyệt' :
+                                            pharmacy.orders[0].status === 'APPROVED' ? '✓ Đã duyệt' :
+                                                pharmacy.orders[0].status === 'DELIVERED' ? '📦 Đã giao' : pharmacy.orders[0].status}
+                                    </div>
+                                </div>
+                                <div style={{ fontWeight: 'bold', color: '#1E4A8B', fontSize: 16 }}>
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(pharmacy.orders[0].totalAmount)}
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: 13, color: '#94A3B8' }}>Chưa có đơn hàng</div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+
             {visitStatus === 'PRE_VISIT' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '120px', height: '120px', background: '#e0e7ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', color: '#1E4A8B' }}>
-                        📍
-                    </div>
-                    <div style={{ textAlign: 'center', color: '#666' }}>
-                        Bạn đang cách khách hàng <br /><strong>5m</strong>
-                    </div>
-                    <button
-                        onClick={handleCheckIn}
-                        style={{
-                            width: '100%', padding: '16px', background: '#1E4A8B', color: 'white',
-                            border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold',
-                            boxShadow: '0 4px 12px rgba(30, 74, 139, 0.3)'
-                        }}
-                    >
-                        CHECK-IN
+                <div style={{ textAlign: 'center', marginTop: 40 }}>
+                    <div style={{ fontSize: 60, marginBottom: 20 }}>📍</div>
+                    <p style={{ color: '#666', marginBottom: 30 }}>Bạn đang ở tại điểm viếng thăm</p>
+                    <button onClick={handleCheckIn} style={styles.btnPrimaryObj}>
+                        BẮT ĐẦU CHECK-IN
                     </button>
                 </div>
             )}
 
-            {/* FLOW: WORKING */}
             {visitStatus === 'CHECKED_IN' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-                    <TaskButton
-                        icon="📸"
-                        label="Chụp ảnh trưng bày"
-                        done={tasks.photo}
-                        onClick={() => fileInputRef.current.click()}
-                    />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <ActionBtn icon="📸" label="Chụp ảnh trưng bày" done={tasks.photo} onClick={() => fileInputRef.current.click()} />
+                    <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handlePhotoUpload} accept="image/*" />
 
-                    <TaskButton
-                        icon="📦"
-                        label="Kiểm tồn kho (Inventory)"
-                        done={tasks.inventory}
-                        onClick={handleInventoryCheck}
-                    />
+                    <ActionBtn icon="📦" label="Kiểm tồn kho" done={tasks.inventory} onClick={handleInventory} />
 
                     <Link to={`/order/create/${id}`} style={{ textDecoration: 'none' }}>
-                        <TaskButton
-                            icon="🛒"
-                            label="Lên đơn hàng"
-                            done={tasks.order}
-                            highlight={true}
-                            onClick={() => setTasks(prev => ({ ...prev, order: true }))} // Ideally set this on return from order page
-                        />
+                        <ActionBtn icon="🛒" label="Lên đơn hàng" done={tasks.order} highlight onClick={() => setTasks(prev => ({ ...prev, order: true }))} />
                     </Link>
 
-                    <TaskButton
-                        icon="📝"
-                        label="Ghi chú viếng thăm"
-                        done={tasks.notes}
-                        onClick={() => {
-                            const note = prompt('Ghi chú của bạn:', '');
-                            if (note) setTasks(prev => ({ ...prev, notes: true }));
-                        }}
-                    />
+                    <ActionBtn icon="📝" label="Ghi chú" done={tasks.notes} onClick={() => { prompt('Ghi chú:'); setTasks(prev => ({ ...prev, notes: true })); }} />
 
-                    <div style={{ flex: 1 }}></div>
-
-                    <button
-                        onClick={handleCheckOut}
-                        style={{
-                            width: '100%', padding: '16px', background: '#dc2626', color: 'white',
-                            border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold',
-                            marginTop: '20px'
-                        }}
-                    >
-                        CHECK-OUT
+                    <div style={{ height: 20 }} />
+                    <button onClick={handleCheckOut} style={styles.btnDangerObj}>
+                        KẾT THÚC VIẾNG THĂM
                     </button>
                 </div>
             )}
 
-            {/* FLOW: CHECKED_OUT */}
             {visitStatus === 'CHECKED_OUT' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '100px', height: '100px', background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', color: '#10b981' }}>
-                        ✅
-                    </div>
-                    <h2 style={{ color: '#065f46' }}>Viếng thăm hoàn tất!</h2>
-                    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', width: '100%', textAlign: 'center' }}>
-                        <div style={{ marginBottom: '8px', color: '#666' }}>Thời gian thực hiện</div>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1E4A8B' }}>{formatTime(elapsedTime)}</div>
-                    </div>
-                    <button
-                        onClick={() => navigate('/home')}
-                        style={{
-                            width: '100%', padding: '16px', background: '#1E4A8B', color: 'white',
-                            border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold'
-                        }}
-                    >
+                <div style={{ textAlign: 'center', marginTop: 40 }}>
+                    <div style={{ fontSize: 60, marginBottom: 20 }}>✅</div>
+                    <h3 style={{ color: '#10B981' }}>Hoàn thành!</h3>
+                    <p>Tổng thời gian: <b>{formatTime(elapsedTime)}</b></p>
+                    <button onClick={() => navigate('/home')} style={styles.btnPrimaryObj}>
                         Về trang chủ
                     </button>
                 </div>
             )}
         </div>
     );
+};
+
+const ActionBtn = ({ icon, label, done, onClick, highlight }) => (
+    <div onClick={onClick} style={{
+        background: done ? '#ECFDF5' : '#fff',
+        border: done ? '1px solid #10B981' : highlight ? '2px solid #F59E0B' : '1px solid #eee',
+        borderRadius: 12, padding: 16,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+    }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>{icon}</span>
+            <span style={{ fontWeight: '600', color: done ? '#047857' : '#333' }}>{label}</span>
+        </div>
+        {done && <span style={{ color: '#10B981', fontWeight: 'bold' }}>✓</span>}
+    </div>
+);
+
+const styles = {
+    btnPrimaryObj: {
+        width: '100%', padding: 16, borderRadius: 12, border: 'none',
+        background: '#1E4A8B', color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer',
+        boxShadow: '0 4px 10px rgba(30,74,139,0.3)'
+    },
+    btnDangerObj: {
+        width: '100%', padding: 16, borderRadius: 12, border: 'none',
+        background: '#EF4444', color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer'
+    }
 };
 
 export default Visit;

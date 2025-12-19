@@ -1,184 +1,209 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import InviteFriends from './InviteFriends';
 
-const Navbar = ({ isMobileMode }) => {
+const Navbar = () => {
   const { user, logout } = useAuth();
-  const location = useLocation();
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const navigate = useNavigate();
+  const [showMenu, setShowMenu] = useState(false);
 
-  // Không hiển thị navbar khi chưa đăng nhập
-  if (!user) {
-    return null;
-  }
-
-  const isActive = (path) => location.pathname === path;
+  if (!user) return null;
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc muốn đăng xuất?')) {
       logout();
+      navigate('/login');
     }
   };
 
   return (
-    <nav className="navbar-enhanced" style={{ position: 'sticky', top: 0, width: '100%', zIndex: 1000 }}>
-      {/* Brand Section */}
-      <div className="navbar-brand-section">
-        <Link to="/home" className="navbar-brand-enhanced" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="/image/logo.webp" alt="An Minh Logo" style={{ height: '40px', marginRight: '10px' }} />
-          <div className="brand-text">
-            <span className="brand-name">An Minh</span>
-            <span className="brand-tagline">DMS</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Desktop Navigation - Hidden in Mobile Mode */}
-      {!isMobileMode && (
-        <div className="navbar-nav-desktop">
-          <Link
-            to="/map"
-            className={`nav-item-enhanced ${isActive('/map') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">🗺️</span>
-            <span className="nav-text">Map</span>
-          </Link>
-
-          <Link
-            to="/create-pharmacy"
-            className={`nav-item-enhanced ${isActive('/create-pharmacy') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">➕</span>
-            <span className="nav-text">Thêm nhà thuốc</span>
-          </Link>
-
-          <InviteFriends />
-
-          {user.role === 'ADMIN' && (
-            <Link
-              to="/admin"
-              className={`nav-item-enhanced admin ${isActive('/admin') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">⚙️</span>
-              <span className="nav-text">Admin</span>
-            </Link>
-          )}
-        </div>
-      )}
-
-      {/* User Section */}
-      <div className="navbar-user-section">
-        <div className="user-points-display">
-          <span className="points-icon">⭐</span>
-          <span className="points-value">{user.points || 0}</span>
-        </div>
-
-        <div className="user-profile-dropdown">
-          <button
-            className="user-profile-btn"
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-          >
-            <div className="user-avatar">
-              <span className="avatar-text">{user.name?.charAt(0)?.toUpperCase() || '👤'}</span>
-            </div>
-            {!isMobileMode && (
-              <div className="user-info">
-                <span className="user-name">{user.name}</span>
-                <span className="user-role">
-                  {user.role === 'PHARMACY_REP' ? 'Trình dược viên' :
-                    user.role === 'PHARMACY' ? 'Nhà thuốc' :
-                      user.role === 'DELIVERY' ? 'Giao hàng' : 'User'}
-                </span>
+    <>
+      <nav style={{
+        position: 'sticky',
+        top: 0,
+        width: '100%',
+        background: 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+        zIndex: 999,
+        padding: '12px 20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          maxWidth: '480px',
+          margin: '0 auto'
+        }}>
+          {/* Logo */}
+          <Link to="/home" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            textDecoration: 'none'
+          }}>
+            <img
+              src="/image/logo.webp"
+              alt="An Minh"
+              style={{ height: 32 }}
+              onError={(e) => e.target.style.display = 'none'}
+            />
+            <div>
+              <div style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: '#1E4A8B',
+                lineHeight: 1.2
+              }}>
+                An Minh
               </div>
-            )}
-            <span className="dropdown-arrow">▼</span>
-          </button>
-
-          {showMobileMenu && (
-            <div className="user-dropdown-menu">
-              <Link
-                to="/profile"
-                className="dropdown-item"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <span className="dropdown-icon">👤</span>
-                <span>Profile</span>
-              </Link>
-
-              <Link
-                to="/settings"
-                className="dropdown-item"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <span className="dropdown-icon">⚙️</span>
-                <span>Settings</span>
-              </Link>
-
-              <div className="dropdown-divider"></div>
-
-              <button
-                onClick={handleLogout}
-                className="dropdown-item logout"
-              >
-                <span className="dropdown-icon">🚪</span>
-                <span>Sign Out</span>
-              </button>
+              <div style={{
+                fontSize: 10,
+                color: '#64748B',
+                fontWeight: '500'
+              }}>
+                DMS System
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Menu Toggle - Visible in Mobile Mode */}
-      {(isMobileMode || window.innerWidth <= 768) && (
-        <button
-          className="mobile-menu-toggle"
-          onClick={() => setShowMobileMenu(!showMobileMenu)}
-          style={{ display: 'flex' }}
-        >
-          <span className="hamburger-line"></span>
-          <span className="hamburger-line"></span>
-          <span className="hamburger-line"></span>
-        </button>
-      )}
-
-      {/* Mobile Navigation */}
-      {showMobileMenu && (
-        <div className="navbar-mobile-menu">
-          <Link
-            to="/map"
-            className={`mobile-nav-item ${isActive('/map') ? 'active' : ''}`}
-            onClick={() => setShowMobileMenu(false)}
-          >
-            <span className="nav-icon">🗺️</span>
-            <span className="nav-text">Map</span>
           </Link>
 
-          {/* Removed 'Thêm nhà thuốc' and 'Profile' as requested */}
-
-          {user.role === 'ADMIN' && (
-            <Link
-              to="/admin"
-              className={`mobile-nav-item admin ${isActive('/admin') ? 'active' : ''}`}
-              onClick={() => setShowMobileMenu(false)}
+          {/* User Menu */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 12px',
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 20,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
             >
-              <span className="nav-icon">⚙️</span>
-              <span className="nav-text">Admin</span>
-            </Link>
-          )}
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #1E4A8B, #2563EB)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 13,
+                fontWeight: 'bold'
+              }}>
+                {user.name?.charAt(0)?.toUpperCase() || '👤'}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: '600', color: '#1E293B' }}>
+                {user.name?.split(' ').slice(-1)[0] || 'User'}
+              </span>
+              <span style={{ fontSize: 10, color: '#94A3B8' }}>▼</span>
+            </button>
 
-          <div className="mobile-nav-divider"></div>
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <>
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 998
+                  }}
+                  onClick={() => setShowMenu(false)}
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 8,
+                  background: '#fff',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  minWidth: 180,
+                  overflow: 'hidden',
+                  zIndex: 999
+                }}>
+                  <Link
+                    to="/profile"
+                    onClick={() => setShowMenu(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 16px',
+                      textDecoration: 'none',
+                      color: '#1E293B',
+                      fontSize: 14,
+                      fontWeight: '500',
+                      borderBottom: '1px solid #F1F5F9',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#F8FAFC'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                  >
+                    <span>👤</span>
+                    <span>Trang cá nhân</span>
+                  </Link>
 
-          <button
-            onClick={handleLogout}
-            className="mobile-nav-item logout"
-          >
-            <span className="nav-icon">🚪</span>
-            <span className="nav-text">Sign Out</span>
-          </button>
+                  <Link
+                    to="/kpi"
+                    onClick={() => setShowMenu(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 16px',
+                      textDecoration: 'none',
+                      color: '#1E293B',
+                      fontSize: 14,
+                      fontWeight: '500',
+                      borderBottom: '1px solid #F1F5F9',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#F8FAFC'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                  >
+                    <span>📊</span>
+                    <span>KPI của tôi</span>
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#DC2626',
+                      fontSize: 14,
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#FEE2E2'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                  >
+                    <span>🚪</span>
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      )}
-    </nav>
+      </nav>
+    </>
   );
 };
 
