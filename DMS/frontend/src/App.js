@@ -47,6 +47,8 @@ import AdminTradeActivities from './pages/admin/AdminTradeActivities';
 import AdminKPI from './pages/admin/AdminKPI';
 import AdminApprovals from './pages/admin/AdminApprovals';
 import AdminInventory from './pages/admin/AdminInventory';
+import BizReview from './pages/admin/BizReview';
+import OrgStructure from './pages/admin/OrgStructure';
 
 const AppContent = () => {
   const location = useLocation();
@@ -87,6 +89,8 @@ const AppContent = () => {
               <Route path="kpi" element={<AdminKPI />} />
               <Route path="approvals" element={<AdminApprovals />} />
               <Route path="inventory" element={<AdminInventory />} />
+              <Route path="biz-review" element={<BizReview />} />
+              <Route path="org-structure" element={<OrgStructure />} />
             </Routes>
           </AdminWrapper>
         } />

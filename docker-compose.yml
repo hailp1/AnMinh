@@ -55,6 +55,7 @@ services:
       - dms_network
     volumes:
       - ./uploads:/app/uploads
+      - ./DMS/backend:/app
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5000/api" ]
@@ -81,6 +82,8 @@ services:
         condition: service_healthy
     networks:
       - dms_network
+    volumes:
+      - ./DMS/frontend/build:/usr/share/nginx/html
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]

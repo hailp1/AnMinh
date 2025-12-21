@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma.js';
 import auth from '../middleware/auth.js';
+import { getSafeUserIds } from '../lib/dataScope.js';
 
 const router = express.Router();
 
@@ -10,27 +11,34 @@ router.get('/summary', auth, async (req, res) => {
     const { userId } = req.query;
     let where = {};
 
+    // --- DATA SCOPING ---
+    const allowedIds = await getSafeUserIds(req.user);
+    if (allowedIds) {
+      if (userId) {
+        // Cannot view data outside scope
+        if (!allowedIds.includes(userId)) return res.json({ count: 0, revenue: 0 });
+        where.userId = userId;
+      } else {
+        where.userId = { in: allowedIds };
+      }
+    } else if (userId) {
+      // Full access user looking at specific user
+      where.userId = userId;
+    }
+
+    // Legacy/Specific Role Logic
     if (req.user.role === 'PHARMACY_REP') {
       where.userId = req.user.id;
     } else if (req.user.role === 'PHARMACY') {
-      const pharmacy = await prisma.pharmacy.findFirst({
-        where: { phone: req.user.phone },
-      });
-      if (pharmacy) {
-        where.pharmacyId = pharmacy.id;
-      } else {
-        return res.json({ count: 0, revenue: 0 });
-      }
-    } else if (userId) {
-      where.userId = userId;
+      const pharmacy = await prisma.pharmacy.findFirst({ where: { phone: req.user.phone } });
+      if (pharmacy) where.pharmacyId = pharmacy.id;
+      else return res.json({ count: 0, revenue: 0 });
     }
 
     const count = await prisma.order.count({ where });
     const aggregations = await prisma.order.aggregate({
       where,
-      _sum: {
-        totalAmount: true,
-      },
+      _sum: { totalAmount: true },
     });
 
     res.json({
@@ -47,66 +55,44 @@ router.get('/summary', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { status, pharmacyId, userId } = req.query;
-
     let where = {};
 
-    // Filter by role
+    // --- DATA SCOPING ---
+    const allowedIds = await getSafeUserIds(req.user);
+    if (allowedIds) {
+      where.userId = { in: allowedIds };
+    }
+
+    // Additional Filters
     if (req.user.role === 'PHARMACY_REP') {
       where.userId = req.user.id;
     } else if (req.user.role === 'PHARMACY') {
-      // Lấy đơn hàng của nhà thuốc (cần join với Pharmacy)
-      const pharmacy = await prisma.pharmacy.findFirst({
-        where: { phone: req.user.phone },
-      });
-      if (pharmacy) {
-        where.pharmacyId = pharmacy.id;
-      }
+      const pharmacy = await prisma.pharmacy.findFirst({ where: { phone: req.user.phone } });
+      if (pharmacy) where.pharmacyId = pharmacy.id;
     } else if (req.user.role === 'DELIVERY') {
-      // Delivery xem tất cả đơn hàng đang cần giao
       where.status = { in: ['CONFIRMED', 'PROCESSING', 'SHIPPING'] };
-    } else if (req.user.role === 'ADMIN') {
-      // Admin xem tất cả
     }
 
-    if (status && status !== 'all') {
-      where.status = status;
-    }
+    if (status && status !== 'all') where.status = status;
+    if (pharmacyId) where.pharmacyId = pharmacyId;
 
-    if (pharmacyId) {
-      where.pharmacyId = pharmacyId;
-    }
-
+    // If strict userId requested (and passed scope check implicitly by 'AND' query or needs explicit check)
     if (userId) {
+      if (allowedIds && !allowedIds.includes(userId)) return res.json([]); // Security check
       where.userId = userId;
     }
 
     const orders = await prisma.order.findMany({
       where,
       include: {
-        user: {
-          select: { id: true, name: true, phone: true },
-        },
+        user: { select: { id: true, name: true, phone: true } },
         pharmacy: {
           select: {
-            id: true,
-            name: true,
-            phone: true,
-            address: true,
-            code: true,
-            territory: {
-              include: {
-                businessUnit: true
-              }
-            }
+            id: true, name: true, phone: true, address: true, code: true,
+            territory: { include: { businessUnit: true } }
           },
         },
-        items: {
-          include: {
-            product: {
-              select: { id: true, name: true, code: true, unit: true },
-            },
-          },
-        },
+        items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -121,40 +107,35 @@ router.get('/', auth, async (req, res) => {
 // Tạo đơn hàng mới
 router.post('/', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'PHARMACY_REP' && req.user.role !== 'TDV') {
-      return res.status(403).json({ error: 'Chỉ trình dược viên mới có thể tạo đơn hàng' });
+    // Basic role check (can extend to allow Managers to create for staff?)
+    if (!['PHARMACY_REP', 'TDV', 'MANAGER', 'ADMIN', 'BU_HEAD'].includes(req.user.role)) {
+      // Legacy check was strict for REP only, but we should allow Managers/Admins too if needed
+      // Checking original logic:
+      if (req.user.role !== 'PHARMACY_REP' && req.user.role !== 'TDV') {
+        // Allow ADMIN for testing
+        if (req.user.role !== 'ADMIN' && req.user.role !== 'MANAGER')
+          return res.status(403).json({ error: 'Chỉ trình dược viên mới có thể tạo đơn hàng' });
+      }
     }
 
     const { pharmacyId, items, notes } = req.body;
 
-    // Generate order number
     const orderCount = await prisma.order.count();
     const orderNumber = `ORD${String(orderCount + 1).padStart(6, '0')}`;
 
-    // Calculate total
     let totalAmount = 0;
     const orderItems = [];
 
     for (const item of items) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.productId },
-      });
-
-      if (!product) {
-        return res.status(400).json({ error: `Sản phẩm ${item.productId} không tồn tại` });
-      }
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) return res.status(400).json({ error: `Sản phẩm ${item.productId} không tồn tại` });
 
       const quantity = parseInt(item.quantity);
       const price = product.price;
       const subtotal = quantity * price;
       totalAmount += subtotal;
 
-      orderItems.push({
-        productId: product.id,
-        quantity,
-        price,
-        subtotal,
-      });
+      orderItems.push({ productId: product.id, quantity, price, subtotal });
     }
 
     const order = await prisma.order.create({
@@ -165,24 +146,12 @@ router.post('/', auth, async (req, res) => {
         status: 'PENDING',
         totalAmount,
         notes,
-        items: {
-          create: orderItems,
-        },
+        items: { create: orderItems },
       },
       include: {
-        user: {
-          select: { id: true, name: true, phone: true },
-        },
-        pharmacy: {
-          select: { id: true, name: true, phone: true, address: true },
-        },
-        items: {
-          include: {
-            product: {
-              select: { id: true, name: true, code: true, unit: true },
-            },
-          },
-        },
+        user: { select: { id: true, name: true, phone: true } },
+        pharmacy: { select: { id: true, name: true, phone: true, address: true } },
+        items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } },
       },
     });
 
@@ -199,24 +168,18 @@ router.get('/:id', auth, async (req, res) => {
     const order = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: {
-        user: {
-          select: { id: true, name: true, phone: true, email: true },
-        },
-        pharmacy: {
-          select: { id: true, name: true, phone: true, address: true },
-        },
-        items: {
-          include: {
-            product: {
-              select: { id: true, name: true, code: true, unit: true, price: true },
-            },
-          },
-        },
+        user: { select: { id: true, name: true, phone: true, email: true } },
+        pharmacy: { select: { id: true, name: true, phone: true, address: true } },
+        items: { include: { product: { select: { id: true, name: true, code: true, unit: true, price: true } } } },
       },
     });
 
-    if (!order) {
-      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    if (!order) return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+
+    // SCOPE CHECK for Single Item
+    const allowedIds = await getSafeUserIds(req.user);
+    if (allowedIds && !allowedIds.includes(order.userId)) {
+      return res.status(403).json({ error: 'Không có quyền truy cập đơn hàng này' });
     }
 
     res.json(order);
@@ -231,59 +194,33 @@ router.put('/:id/status', auth, async (req, res) => {
   try {
     const { status, warehouseId } = req.body;
 
-    // Start transaction
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Update Order Status
       const order = await tx.order.update({
         where: { id: req.params.id },
         data: { status },
-        include: {
-          items: true // We need items for stock deduction
-        }
+        include: { items: true }
       });
 
-      // 2. If CONFIRMED, deduct stock
       if (status === 'CONFIRMED') {
-        // Find warehouse: Use provided ID or find 'MAIN' or first active
         let targetWarehouseId = warehouseId;
         if (!targetWarehouseId) {
-          const mainWarehouse = await tx.warehouse.findFirst({
-            where: { isActive: true },
-            orderBy: { code: 'asc' } // Assume first code is Main or similar
-          });
+          const mainWarehouse = await tx.warehouse.findFirst({ where: { isActive: true }, orderBy: { code: 'asc' } });
           targetWarehouseId = mainWarehouse?.id;
         }
 
         if (targetWarehouseId) {
           const transactionGroupCode = `OUT-${order.orderNumber}`;
-
           for (const item of order.items) {
             let remainingQty = item.quantity;
-
-            // Find batches FIFO
             const batches = await tx.productBatch.findMany({
-              where: {
-                productId: item.productId,
-                warehouseId: targetWarehouseId,
-                currentQuantity: { gt: 0 },
-                status: 'ACTIVE'
-              },
+              where: { productId: item.productId, warehouseId: targetWarehouseId, currentQuantity: { gt: 0 }, status: 'ACTIVE' },
               orderBy: { expiryDate: 'asc' }
             });
 
-            // Deduct from batches
             for (const batch of batches) {
               if (remainingQty <= 0) break;
-
               const deduct = Math.min(remainingQty, batch.currentQuantity);
-
-              // Update Batch
-              await tx.productBatch.update({
-                where: { id: batch.id },
-                data: { currentQuantity: { decrement: deduct } }
-              });
-
-              // Create Transaction Record
+              await tx.productBatch.update({ where: { id: batch.id }, data: { currentQuantity: { decrement: deduct } } });
               await tx.inventoryTransaction.create({
                 data: {
                   type: 'EXPORT',
@@ -299,52 +236,29 @@ router.put('/:id/status', auth, async (req, res) => {
                   createdBy: req.user.id
                 }
               });
-
               remainingQty -= deduct;
             }
 
-            // Update InventoryItem (Total Stock in Warehouse)
-            // Use upsert to be safe, though usually it should exist if batches exist
-            // But if batches are missing (e.g. data inconsistency), we still assume stock might be tracked roughly
-            // actually, if batches don't cover it, we might go negative or just record what we can?
-            // For now, simple decrement of warehouse total
-            const totalDeducted = item.quantity; // Deduct the full amount from 'currentQty' even if batches didn't cover it? 
-            // Or match batches? Standard is strict: if not enough stock, maybe fail? 
-            // Logic here: Deduct full amount from InventoryItem, allow negative if allowed (schema doesn't forbid int negative but logic might).
-            // Let's deduct full amount to keep aggregate in sync with order.
-
+            const totalDeducted = item.quantity;
             const invItem = await tx.inventoryItem.findUnique({
               where: { productId_warehouseId: { productId: item.productId, warehouseId: targetWarehouseId } }
             });
-
             if (invItem) {
               await tx.inventoryItem.update({
                 where: { id: invItem.id },
-                data: {
-                  currentQty: { decrement: totalDeducted },
-                  issuedQty: { increment: totalDeducted },
-                  lastUpdated: new Date()
-                }
+                data: { currentQty: { decrement: totalDeducted }, issuedQty: { increment: totalDeducted }, lastUpdated: new Date() }
               });
             } else {
-              // Create if not exists (negative stock scenario)
               await tx.inventoryItem.create({
-                data: {
-                  productId: item.productId,
-                  warehouseId: targetWarehouseId,
-                  currentQty: -totalDeducted,
-                  issuedQty: totalDeducted
-                }
+                data: { productId: item.productId, warehouseId: targetWarehouseId, currentQty: -totalDeducted, issuedQty: totalDeducted }
               });
             }
           }
         }
       }
-
       return order;
     });
 
-    // Fetch final result to return (with relations)
     const finalOrder = await prisma.order.findUnique({
       where: { id: req.params.id },
       include: {
@@ -365,32 +279,20 @@ router.put('/:id/status', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
+    const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
 
-    const order = await prisma.order.findUnique({
-      where: { id },
-      include: { items: true }
-    });
+    if (!order) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    if (order.status !== 'PENDING') return res.status(400).json({ message: 'Chỉ có thể xóa đơn hàng khi đang chờ xử lý' });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
-    }
+    // Check permission
+    if (req.user.role === 'PHARMACY_REP' && order.userId !== req.user.id) return res.status(403).json({ message: 'Không có quyền xóa đơn hàng này' });
 
-    if (order.status !== 'PENDING') {
-      return res.status(400).json({ message: 'Chỉ có thể xóa đơn hàng khi đang chờ xử lý' });
-    }
+    // Scope check
+    const allowedIds = await getSafeUserIds(req.user);
+    if (allowedIds && !allowedIds.includes(order.userId)) return res.status(403).json({ message: 'Không có quyền truy cập đơn hàng này' });
 
-    if (req.user.role === 'PHARMACY_REP' && order.userId !== req.user.id) {
-      return res.status(403).json({ message: 'Không có quyền xóa đơn hàng này' });
-    }
-
-    // Delete items first (Cascade usually handles this, but safe to be explicit if not)
-    await prisma.orderItem.deleteMany({
-      where: { orderId: id }
-    });
-
-    await prisma.order.delete({
-      where: { id }
-    });
+    await prisma.orderItem.deleteMany({ where: { orderId: id } });
+    await prisma.order.delete({ where: { id } });
 
     res.json({ message: 'Đã xóa đơn hàng thành công' });
   } catch (error) {
@@ -403,35 +305,22 @@ router.delete('/:id', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { items, totalAmount, notes, discount, finalAmount, promotions } = req.body;
+    const { items, totalAmount, notes, discount } = req.body;
 
     const order = await prisma.order.findUnique({ where: { id } });
+    if (!order) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    if (order.status !== 'PENDING') return res.status(400).json({ message: 'Chỉ có thể sửa đơn hàng khi đang chờ xử lý' });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
-    }
+    // Scope check
+    const allowedIds = await getSafeUserIds(req.user);
+    if (allowedIds && !allowedIds.includes(order.userId)) return res.status(403).json({ message: 'Không có quyền sửa đơn hàng này' });
 
-    if (order.status !== 'PENDING') {
-      return res.status(400).json({ message: 'Chỉ có thể sửa đơn hàng khi đang chờ xử lý' });
-    }
-
-    // Update Transaction
     const updatedOrder = await prisma.$transaction(async (tx) => {
-      // 1. Update basic info
       await tx.order.update({
         where: { id },
-        data: {
-          totalAmount,
-          notes,
-          discount, // Make sure Schema has this (if not present, standard schema might need update, check below)
-          // Store promotions in notes or separate field if Schema not updated for JSON
-        }
+        data: { totalAmount, notes, discount }
       });
-
-      // 2. Delete old items
       await tx.orderItem.deleteMany({ where: { orderId: id } });
-
-      // 3. Create new items
       if (items && items.length > 0) {
         await tx.orderItem.createMany({
           data: items.map(item => ({
@@ -443,15 +332,10 @@ router.put('/:id', auth, async (req, res) => {
           }))
         });
       }
-
-      return tx.order.findUnique({
-        where: { id },
-        include: { items: true }
-      });
+      return tx.order.findUnique({ where: { id }, include: { items: true } });
     });
 
     res.json(updatedOrder);
-
   } catch (error) {
     console.error('Update order error:', error);
     res.status(500).json({ message: 'Lỗi server' });
@@ -459,4 +343,3 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 export default router;
-

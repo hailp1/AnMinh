@@ -74,7 +74,31 @@ router.get('/dashboard', auth, async (req, res) => {
             .sort((a, b) => a.date.localeCompare(b.date));
 
 
-        // 3. Sales by Category (Need to join OrderItems -> Product -> ProductGroup)
+        // 3. Top Products (By Revenue)
+        const topProductsRaw = await prisma.orderItem.groupBy({
+            by: ['productId'],
+            where: {
+                order: whereCondition
+            },
+            _sum: { subtotal: true, quantity: true },
+            orderBy: { _sum: { subtotal: 'desc' } },
+            take: 5
+        });
+
+        const topProducts = [];
+        for (const p of topProductsRaw) {
+            const product = await prisma.product.findUnique({ where: { id: p.productId }, select: { name: true, code: true } });
+            if (product) {
+                topProducts.push({
+                    name: product.name,
+                    code: product.code,
+                    quantity: p._sum.quantity,
+                    revenue: p._sum.subtotal
+                });
+            }
+        }
+
+        // 4. Sales by Category (Need to join OrderItems -> Product -> ProductGroup)
         // Prisma groupBy is good for single table, but across tables we need findMany
         const categoryStats = await prisma.orderItem.findMany({
             where: {
@@ -101,7 +125,8 @@ router.get('/dashboard', auth, async (req, res) => {
                 totalOrders: summary._count.id || 0,
             },
             salesTrend,
-            salesByCategory
+            salesByCategory,
+            topProducts
         });
 
     } catch (error) {

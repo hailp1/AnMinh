@@ -249,6 +249,18 @@ export const reportsAPI = {
   getDashboard: (params) => {
     const query = new URLSearchParams(params).toString();
     return apiCall(`/reports/dashboard?${query}`);
+  },
+  getInventory: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/inventory?${query}`);
+  },
+  exportData: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/export?${query}`);
+  },
+  getBizReview: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/biz-review?${query}`);
   }
 };
 

@@ -60,6 +60,7 @@ const AdminLayout = ({ children }) => {
       path: '/Anminh/admin/dashboard',
       icon: '📊'
     },
+
     {
       id: 'routes',
       label: '🗺️ Quản lý lộ trình',
@@ -74,9 +75,13 @@ const AdminLayout = ({ children }) => {
     },
     {
       id: 'reports',
-      label: '📈 Báo cáo thống kê',
-      path: '/Anminh/admin/reports',
-      icon: '📈'
+      label: '📈 Báo cáo & Thống kê',
+      icon: '📈',
+      subItems: [
+        { id: 'rpt_dashboard', label: 'Dashboard', path: '/Anminh/admin/reports?view=dashboard' },
+        { id: 'rpt_biz_review', label: '🚀 Biz Review', path: '/Anminh/admin/biz-review' },
+        { id: 'rpt_list', label: 'Reports', path: '/Anminh/admin/reports?view=report_list' }
+      ]
     },
     {
       id: 'customer_mngt',
@@ -130,6 +135,7 @@ const AdminLayout = ({ children }) => {
       label: '⚙️ Hệ thống',
       icon: '⚙️',
       subItems: [
+        { id: 'sys_org', label: '🏢 Cấu trúc Tổ chức', path: '/Anminh/admin/org-structure' },
         { id: 'sys_kpi', label: 'KPI & Thưởng', path: '/Anminh/admin/kpi' },
         { id: 'sys_settings', label: 'Cài đặt chung', path: '/Anminh/admin/settings' }
       ]

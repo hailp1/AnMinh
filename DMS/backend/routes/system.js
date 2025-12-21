@@ -55,4 +55,38 @@ router.put('/settings', adminAuth, async (req, res) => {
     }
 });
 
+// Generate SQL Backup
+router.get('/backup/sql', adminAuth, async (req, res) => {
+    const { exec } = await import('child_process');
+
+    // Parse DATABASE_URL for credentials if needed, or rely on env vars
+    // Assuming container has PGPASSWORD, PGUSER, PGDATABASE env vars or we use connection string
+    // Env vars in docker-compose usually map to Postgres container defaults
+
+    // Using pg_dump from postgresql-client
+    // Setup env for pg_dump
+    const env = { ...process.env, PGPASSWORD: process.env.DB_PASSWORD || 'password' }; // Fallback for dev
+    const dbUser = process.env.DB_USER || 'postgres';
+    const dbHost = process.env.DB_HOST || 'dms_postgres';
+    const dbName = process.env.DB_NAME || 'dms_db';
+
+    const filename = `backup_dms_${new Date().toISOString().replace(/[:.]/g, '-')}.sql`;
+
+    res.setHeader('Content-Type', 'application/x-sql');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    const child = exec(`pg_dump -h ${dbHost} -U ${dbUser} -d ${dbName} --clean --if-exists`, { env });
+
+    child.stdout.pipe(res);
+
+    child.stderr.on('data', (data) => {
+        console.error('pg_dump error:', data);
+    });
+
+    child.on('error', (err) => {
+        console.error('Backup process failed:', err);
+        if (!res.headersSent) res.status(500).send('Backup failed');
+    });
+});
+
 export default router;

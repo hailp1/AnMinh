@@ -301,13 +301,84 @@ router.get('/dashboard', async (req, res) => {
             };
         }));
 
-        // 4. Order Status Status
+        // 4. Order Status
         const statusBreakdown = await prisma.order.groupBy({
             by: ['status'],
             where: { createdAt: { gte: start, lte: end } },
             _count: { id: true }
         });
 
+        // 5. Sales By Region (NEW)
+        const ordersWithRegion = await prisma.order.findMany({
+            where: { createdAt: { gte: start, lte: end }, status: { not: 'CANCELLED' } },
+            select: {
+                totalAmount: true,
+                pharmacy: {
+                    select: {
+                        territory: {
+                            select: {
+                                region: { select: { name: true } }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const regionMap = {};
+        ordersWithRegion.forEach(o => {
+            const rName = o.pharmacy?.territory?.region?.name || 'Chưa phân vùng';
+            regionMap[rName] = (regionMap[rName] || 0) + o.totalAmount;
+        });
+        const salesByRegion = Object.keys(regionMap).map(k => ({ name: k, value: regionMap[k] }));
+
+        // 6. Visit Performance Trend (NEW)
+        const visits = await prisma.visitPlan.findMany({
+            where: { visitDate: { gte: start, lte: end } },
+            select: { visitDate: true, status: true }
+        });
+        const visitTrendMap = {};
+        visits.forEach(v => {
+            const d = v.visitDate.toISOString().split('T')[0];
+            if (!visitTrendMap[d]) visitTrendMap[d] = { date: d, plan: 0, actual: 0 };
+            visitTrendMap[d].plan++;
+            if (v.status === 'COMPLETED') visitTrendMap[d].actual++;
+        });
+        const visitPerformance = Object.values(visitTrendMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        // 7. Inventory Summary (NEW)
+        const lowStockCount = await prisma.inventoryItem.count({
+            where: { isLowStock: true }
+        });
+        const inventoryValue = await prisma.inventoryItem.aggregate({
+            _sum: { totalValue: true }
+        });
+        const lowStockItems = await prisma.inventoryItem.findMany({
+            where: { isLowStock: true },
+            take: 5,
+            include: { product: { select: { name: true, code: true, minStock: true } }, warehouse: { select: { name: true } } },
+            orderBy: { currentQty: 'asc' }
+        });
+
+        // 8. Sales By Product Group (NEW)
+        const orderItemsWithGroup = await prisma.orderItem.findMany({
+            where: { order: { createdAt: { gte: start, lte: end }, status: { not: 'CANCELLED' } } },
+            select: {
+                subtotal: true,
+                product: {
+                    select: {
+                        group: { select: { name: true } }
+                    }
+                }
+            }
+        });
+
+        const groupMap = {};
+        orderItemsWithGroup.forEach(item => {
+            const gName = item.product?.group?.name || 'Khác';
+            groupMap[gName] = (groupMap[gName] || 0) + item.subtotal;
+        });
+
+        const salesByGroup = Object.keys(groupMap).map(k => ({ name: k, value: groupMap[k] }));
 
         res.json({
             kpi: {
@@ -316,10 +387,24 @@ router.get('/dashboard', async (req, res) => {
                 customers: activeCustomers.length,
                 visits: { total: totalVisits, completed: completedVisits }
             },
+            inventory: {
+                lowStockCount,
+                totalValue: inventoryValue._sum.totalValue || 0,
+                lowStockItems: lowStockItems.map(i => ({
+                    name: i.product.name,
+                    code: i.product.code,
+                    qty: i.currentQty,
+                    min: i.product.minStock,
+                    warehouse: i.warehouse.name
+                }))
+            },
             charts: {
                 salesTrend,
                 topProducts: enrichedTopProducts,
-                orderStatus: statusBreakdown.map(s => ({ status: s.status, count: s._count.id }))
+                orderStatus: statusBreakdown.map(s => ({ status: s.status, count: s._count.id })),
+                salesByRegion,
+                salesByGroup,
+                visitPerformance
             }
         });
 
@@ -329,4 +414,712 @@ router.get('/dashboard', async (req, res) => {
     }
 });
 
+// 4. INVENTORY REPORT
+router.get('/inventory', async (req, res) => {
+    try {
+        const { warehouseId, lowStock } = req.query;
+        const where = {};
+        if (warehouseId) where.warehouseId = warehouseId;
+        if (lowStock === 'true') where.isLowStock = true;
+
+        const inventory = await prisma.inventoryItem.findMany({
+            where,
+            include: {
+                product: {
+                    select: { name: true, code: true, unit: true, minStock: true }
+                },
+                warehouse: {
+                    select: { name: true, code: true }
+                }
+            },
+            orderBy: { currentQty: 'asc' }
+        });
+
+        // Enrich format for frontend
+        const result = inventory.map(item => ({
+            id: item.id,
+            productCode: item.product?.code,
+            productName: item.product?.name,
+            unit: item.product?.unit,
+            warehouse: item.warehouse?.name,
+            quantity: item.currentQty,
+            minStock: item.product?.minStock,
+            status: item.currentQty <= (item.product?.minStock || 0) ? 'LOW' : 'OK',
+            lastUpdated: item.lastUpdated
+        }));
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error inventory report:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// 5. EXPORT ENDPOINT (For detailed Excel exports)
+router.get('/export', async (req, res) => {
+    try {
+        const { type, startDate, endDate } = req.query;
+        // reuse helper if available or default
+        const now = new Date();
+        const start = startDate ? new Date(startDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = endDate ? new Date(endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        if (endDate) end.setHours(23, 59, 59, 999);
+
+        if (type === 'execution_sales') {
+            // Complex Report: Visits vs Sales per User per Day
+            // 1. Get all Users (TDV)
+            const users = await prisma.user.findMany({
+                where: { role: 'TDV' },
+                select: { id: true, name: true, employeeCode: true }
+            });
+
+            const userIds = users.map(u => u.id);
+
+            // 2. Get Visits in range
+            const visits = await prisma.visitPlan.groupBy({
+                by: ['userId', 'visitDate'],
+                where: {
+                    userId: { in: userIds },
+                    visitDate: { gte: start, lte: end }
+                },
+                _count: { id: true },
+            });
+            // Need completed count too? groupBy limitation. 
+            // Better fetch raw or aggregating in memory for detailed export.
+
+            // Let's fetch Visits Detailed
+            const detailedVisits = await prisma.visitPlan.findMany({
+                where: {
+                    userId: { in: userIds },
+                    visitDate: { gte: start, lte: end }
+                },
+                select: { userId: true, visitDate: true, status: true }
+            });
+
+            // 3. Get Orders in range
+            const orders = await prisma.order.findMany({
+                where: {
+                    userId: { in: userIds },
+                    createdAt: { gte: start, lte: end },
+                    status: { not: 'CANCELLED' }
+                },
+                select: { userId: true, createdAt: true, totalAmount: true, id: true }
+            });
+
+            // 4. Map and Combine
+            const report = [];
+
+            users.forEach(u => {
+                // Determine days? Or just list summary per user? 
+                // Requirement: "Hoạt động thực thi và doanh số" usually implies Daily Tracking.
+                // Loop through days in range?
+                let loopDate = new Date(start);
+                while (loopDate <= end) {
+                    const dateStr = loopDate.toISOString().split('T')[0];
+
+                    // Filter stats for this user & date
+                    const dayVisits = detailedVisits.filter(v =>
+                        v.userId === u.id &&
+                        v.visitDate.toISOString().split('T')[0] === dateStr
+                    );
+                    const dayOrders = orders.filter(o =>
+                        o.userId === u.id &&
+                        o.createdAt.toISOString().split('T')[0] === dateStr
+                    );
+
+                    if (dayVisits.length > 0 || dayOrders.length > 0) {
+                        report.push({
+                            'Ngày': dateStr,
+                            'Mã NV': u.employeeCode,
+                            'Tên NV': u.name,
+                            'Số viếng thăm (Plan)': dayVisits.length,
+                            'Số viếng thăm (Thực tế)': dayVisits.filter(v => v.status === 'COMPLETED').length,
+                            'Số đơn hàng': dayOrders.length,
+                            'Doanh số': dayOrders.reduce((sum, o) => sum + o.totalAmount, 0)
+                        });
+                    }
+
+                    loopDate.setDate(loopDate.getDate() + 1);
+                }
+            });
+            return res.json(report);
+
+        } else if (type === 'orders') {
+            // Detailed Order Lines
+            const orders = await prisma.order.findMany({
+                where: {
+                    createdAt: { gte: start, lte: end },
+                    status: { not: 'CANCELLED' }
+                },
+                include: {
+                    user: { select: { employeeCode: true, name: true } },
+                    pharmacy: { select: { code: true, name: true, address: true } },
+                    items: {
+                        include: {
+                            product: { select: { code: true, name: true, unit: true } }
+                        }
+                    }
+                }
+            });
+
+            const report = [];
+            orders.forEach(o => {
+                o.items.forEach(item => {
+                    report.push({
+                        'Mã Đơn': o.orderNumber || o.id.substring(0, 8),
+                        'Ngày đặt': o.createdAt.toISOString().split('T')[0],
+                        'Mã NV': o.user?.employeeCode,
+                        'Tên NV': o.user?.name,
+                        'Mã KH': o.pharmacy?.code,
+                        'Tên KH': o.pharmacy?.name,
+                        'Mã SP': item.product?.code,
+                        'Tên SP': item.product?.name,
+                        'ĐVT': item.product?.unit,
+                        'Số lượng': item.quantity,
+                        'Đơn giá': item.price,
+                        'Thành tiền': item.subtotal,
+                        'Trạng thái': o.status
+                    });
+                });
+            });
+            return res.json(report);
+
+        } else if (type === 'inventory') {
+            // Similar to inventory endpoint but flat for excel
+            const inventory = await prisma.inventoryItem.findMany({
+                include: {
+                    product: true,
+                    warehouse: true
+                }
+            });
+
+            const report = inventory.map(item => ({
+                'Kho': item.warehouse?.name,
+                'Mã SP': item.product?.code,
+                'Tên SP': item.product?.name,
+                'Số lượng': item.currentQty,
+                'Min Stock': item.product?.minStock,
+                'Trạng thái': item.currentQty <= (item.product?.minStock || 0) ? 'Cảnh báo' : 'Ổn định',
+                'Cập nhật cuối': item.lastUpdated
+            }));
+            return res.json(report);
+        }
+
+        res.status(400).json({ message: 'Invalid export type' });
+
+    } catch (error) {
+        console.error('Export error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ================================
+// VISIT REPORTS
+// ================================
+
+// Daily Visit Summary
+router.get('/visits/daily', async (req, res) => {
+    try {
+        const { date, repId } = req.query;
+        const targetDate = date ? new Date(date) : new Date();
+        const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+        const where = {
+            createdAt: { gte: startOfDay, lte: endOfDay }
+        };
+        if (repId) where.repId = repId;
+
+        const visits = await prisma.visit.findMany({
+            where,
+            include: {
+                dailyRoute: true
+            }
+        });
+
+        const summary = {
+            date: startOfDay.toISOString().slice(0, 10),
+            totalVisits: visits.length,
+            completed: visits.filter(v => v.status === 'COMPLETED').length,
+            skipped: visits.filter(v => v.status === 'SKIPPED').length,
+            noAnswer: visits.filter(v => v.status === 'NO_ANSWER').length,
+            withOrders: visits.filter(v => v.orderPlaced).length,
+            totalOrderAmount: visits.reduce((sum, v) => sum + (v.orderAmount || 0), 0),
+            avgDuration: visits.length > 0 ? Math.round(visits.reduce((sum, v) => sum + (v.duration || 0), 0) / visits.length) : 0
+        };
+
+        summary.completionRate = summary.totalVisits > 0 ? ((summary.completed / summary.totalVisits) * 100).toFixed(1) : 0;
+        summary.strikeRate = summary.completed > 0 ? ((summary.withOrders / summary.completed) * 100).toFixed(1) : 0;
+
+        res.json(summary);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Visit Compliance Report
+router.get('/visits/compliance', async (req, res) => {
+    try {
+        const { period, startDate, endDate } = req.query;
+        const { start, end } = getDateRange(period, startDate, endDate);
+
+        const dailyRoutes = await prisma.dailyRoute.findMany({
+            where: {
+                date: { gte: start, lte: end }
+            }
+        });
+
+        const summary = {
+            totalRoutes: dailyRoutes.length,
+            completed: dailyRoutes.filter(r => r.status === 'COMPLETED').length,
+            inProgress: dailyRoutes.filter(r => r.status === 'IN_PROGRESS').length,
+            cancelled: dailyRoutes.filter(r => r.status === 'CANCELLED').length,
+            totalPlannedStops: dailyRoutes.reduce((sum, r) => sum + (r.plannedStops || 0), 0),
+            totalCompletedStops: dailyRoutes.reduce((sum, r) => sum + (r.completedStops || 0), 0),
+            totalSkippedStops: dailyRoutes.reduce((sum, r) => sum + (r.skippedStops || 0), 0)
+        };
+
+        summary.routeComplianceRate = summary.totalRoutes > 0 ? ((summary.completed / summary.totalRoutes) * 100).toFixed(1) : 0;
+        summary.stopComplianceRate = summary.totalPlannedStops > 0 ? ((summary.totalCompletedStops / summary.totalPlannedStops) * 100).toFixed(1) : 0;
+
+        res.json(summary);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Coverage Report
+router.get('/visits/coverage', async (req, res) => {
+    try {
+        const { period, startDate, endDate, territoryId } = req.query;
+        const { start, end } = getDateRange(period, startDate, endDate);
+
+        const where = {};
+        if (territoryId) where.territoryId = territoryId;
+
+        const totalCustomers = await prisma.pharmacy.count({ where: { ...where, isActive: true } });
+
+        const visitedCustomerIds = await prisma.visit.findMany({
+            where: {
+                createdAt: { gte: start, lte: end },
+                status: 'COMPLETED'
+            },
+            select: { pharmacyId: true },
+            distinct: ['pharmacyId']
+        });
+
+        const visitedCount = visitedCustomerIds.length;
+
+        res.json({
+            totalCustomers,
+            visitedCustomers: visitedCount,
+            notVisited: totalCustomers - visitedCount,
+            coverageRate: totalCustomers > 0 ? ((visitedCount / totalCustomers) * 100).toFixed(1) : 0
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ================================
+// PERFORMANCE REPORTS
+// ================================
+
+// Rep Scorecard
+router.get('/performance/rep-scorecard', async (req, res) => {
+    try {
+        const { repId, period, startDate, endDate } = req.query;
+        const { start, end } = getDateRange(period, startDate, endDate);
+
+        if (!repId) return res.status(400).json({ error: 'repId required' });
+
+        // Sales
+        const orders = await prisma.order.findMany({
+            where: {
+                userId: repId,
+                createdAt: { gte: start, lte: end },
+                status: { not: 'CANCELLED' }
+            }
+        });
+
+        // Visits
+        const visits = await prisma.visit.findMany({
+            where: {
+                repId,
+                createdAt: { gte: start, lte: end }
+            }
+        });
+
+        // KPI Target
+        const kpiTarget = await prisma.kpiTarget.findFirst({
+            where: { userId: repId },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const totalSales = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const totalVisits = visits.length;
+        const completedVisits = visits.filter(v => v.status === 'COMPLETED').length;
+        const visitsWithOrders = visits.filter(v => v.orderPlaced).length;
+
+        res.json({
+            repId,
+            period: { start, end },
+            sales: {
+                totalAmount: totalSales,
+                orderCount: orders.length,
+                avgOrderValue: orders.length > 0 ? Math.round(totalSales / orders.length) : 0,
+                target: kpiTarget?.targetAmount || 0,
+                achievement: kpiTarget?.targetAmount ? ((totalSales / kpiTarget.targetAmount) * 100).toFixed(1) : 0
+            },
+            visits: {
+                total: totalVisits,
+                completed: completedVisits,
+                withOrders: visitsWithOrders,
+                completionRate: totalVisits > 0 ? ((completedVisits / totalVisits) * 100).toFixed(1) : 0,
+                strikeRate: completedVisits > 0 ? ((visitsWithOrders / completedVisits) * 100).toFixed(1) : 0
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Territory Performance
+router.get('/performance/territory', async (req, res) => {
+    try {
+        const { period, startDate, endDate } = req.query;
+        const { start, end } = getDateRange(period, startDate, endDate);
+
+        const territories = await prisma.territory.findMany({
+            include: { region: true }
+        });
+
+        const results = await Promise.all(territories.map(async (ter) => {
+            const orders = await prisma.order.findMany({
+                where: {
+                    createdAt: { gte: start, lte: end },
+                    status: { not: 'CANCELLED' },
+                    pharmacy: { territoryId: ter.id }
+                }
+            });
+
+            const customerCount = await prisma.pharmacy.count({
+                where: { territoryId: ter.id, isActive: true }
+            });
+
+            return {
+                territoryId: ter.id,
+                territoryName: ter.name,
+                regionName: ter.region?.name,
+                customerCount,
+                orderCount: orders.length,
+                totalSales: orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0),
+                target: ter.targetRevenue || 0,
+                achievement: ter.targetRevenue ? ((orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) / ter.targetRevenue) * 100).toFixed(1) : 0
+            };
+        }));
+
+        res.json(results.sort((a, b) => b.totalSales - a.totalSales));
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Report Categories List
+router.get('/categories', async (req, res) => {
+    res.json([
+        {
+            id: 'sales',
+            name: 'Báo cáo Bán hàng',
+            icon: '💰',
+            reports: [
+                { id: 'daily_sales', name: 'Doanh số theo ngày' },
+                { id: 'by_rep', name: 'Doanh số theo TDV' },
+                { id: 'by_territory', name: 'Doanh số theo vùng' },
+                { id: 'by_customer', name: 'Doanh số theo KH' },
+                { id: 'by_product', name: 'Doanh số theo SP' },
+                { id: 'by_channel', name: 'Doanh số theo kênh' }
+            ]
+        },
+        {
+            id: 'visits',
+            name: 'Báo cáo Viếng thăm',
+            icon: '📍',
+            reports: [
+                { id: 'daily_visits', name: 'Tổng hợp viếng thăm ngày' },
+                { id: 'compliance', name: 'Tuân thủ lộ trình' },
+                { id: 'coverage', name: 'Độ phủ khách hàng' },
+                { id: 'strike_rate', name: 'Tỷ lệ chốt đơn' }
+            ]
+        },
+        {
+            id: 'inventory',
+            name: 'Báo cáo Kho',
+            icon: '📦',
+            reports: [
+                { id: 'stock_status', name: 'Tồn kho hiện tại' },
+                { id: 'low_stock', name: 'Cảnh báo hết hàng' },
+                { id: 'movement', name: 'Biến động tồn kho' }
+            ]
+        },
+        {
+            id: 'customers',
+            name: 'Báo cáo Khách hàng',
+            icon: '👥',
+            reports: [
+                { id: 'master_list', name: 'Danh sách KH' },
+                { id: 'new_customers', name: 'Khách hàng mới' },
+                { id: 'segmentation', name: 'Phân khúc KH' },
+                { id: 'aging', name: 'Công nợ theo tuổi' }
+            ]
+        },
+        {
+            id: 'performance',
+            name: 'Báo cáo Hiệu suất',
+            icon: '📊',
+            reports: [
+                { id: 'kpi_dashboard', name: 'Bảng theo dõi KPI' },
+                { id: 'rep_scorecard', name: 'Bảng điểm TDV' },
+                { id: 'territory_perf', name: 'Hiệu suất vùng' }
+            ]
+        }
+    ]);
+});
+
+// BIZ REVIEW DASHBOARD API
+router.get('/biz-review', async (req, res) => {
+    try {
+        const { region, month, productGroup, customerType, period } = req.query;
+
+        // Build filter
+        const orderWhere = { status: { not: 'CANCELLED' } };
+        const itemWhere = {};
+
+        // Time filter
+        if (month && month !== 'all') {
+            const year = new Date().getFullYear();
+            const monthNum = parseInt(month);
+            orderWhere.createdAt = {
+                gte: new Date(year, monthNum - 1, 1),
+                lt: new Date(year, monthNum, 1)
+            };
+        }
+
+        // Region filter
+        if (region && region !== 'all') {
+            orderWhere.pharmacy = {
+                territory: {
+                    region: { code: region }
+                }
+            };
+        }
+
+        // Product Group filter (applied to items)
+        if (productGroup && productGroup !== 'all') {
+            itemWhere.product = { groupId: productGroup };
+        }
+
+        // 1. KPI Cards
+        const totalSalesAgg = await prisma.order.aggregate({
+            _sum: { totalAmount: true },
+            _count: { id: true },
+            where: orderWhere
+        });
+
+        const totalQtyAgg = await prisma.orderItem.aggregate({
+            _sum: { quantity: true },
+            where: { order: orderWhere, ...itemWhere }
+        });
+
+        const customerCount = await prisma.pharmacy.count({
+            where: orderWhere.pharmacy || {}
+        });
+
+        // 2. Top Customers (By Revenue)
+        const topCustRaw = await prisma.order.groupBy({
+            by: ['pharmacyId'],
+            _sum: { totalAmount: true },
+            _count: { id: true },
+            orderBy: { _sum: { totalAmount: 'desc' } },
+            take: 5,
+            where: orderWhere
+        });
+
+        const topCustomers = await Promise.all(topCustRaw.map(async (item) => {
+            const pharm = await prisma.pharmacy.findUnique({
+                where: { id: item.pharmacyId },
+                include: { territory: { include: { region: true } } }
+            });
+            return {
+                name: pharm?.name || 'Unknown',
+                value: item._sum.totalAmount || 0,
+                orders: item._count.id || 0,
+                region: pharm?.territory?.region?.name || ''
+            };
+        }));
+
+        // 3. Sales By Region
+        const ordersWithRegion = await prisma.order.findMany({
+            where: orderWhere,
+            select: {
+                totalAmount: true,
+                pharmacy: { select: { territory: { select: { region: { select: { name: true } } } } } }
+            }
+        });
+        const regionMap = {};
+        ordersWithRegion.forEach(o => {
+            const rName = o.pharmacy?.territory?.region?.name || 'Khác';
+            regionMap[rName] = (regionMap[rName] || 0) + (o.totalAmount || 0);
+        });
+        const salesByRegion = Object.keys(regionMap).map(k => ({ name: k, value: regionMap[k] }));
+
+        // 4. Top Products
+        const topProdRaw = await prisma.orderItem.groupBy({
+            by: ['productId'],
+            _sum: { subtotal: true, quantity: true },
+            orderBy: { _sum: { subtotal: 'desc' } },
+            take: 5,
+            where: { order: orderWhere, ...itemWhere }
+        });
+        const topProducts = await Promise.all(topProdRaw.map(async (item) => {
+            const p = await prisma.product.findUnique({
+                where: { id: item.productId },
+                include: { group: true }
+            });
+            return {
+                name: p?.name || 'Unknown',
+                value: item._sum.subtotal || 0,
+                quantity: item._sum.quantity || 0,
+                group: p?.group?.name || ''
+            };
+        }));
+
+        // 5. Sales by Product Group
+        const itemsWithGroup = await prisma.orderItem.findMany({
+            where: { order: orderWhere },
+            select: {
+                subtotal: true,
+                product: { select: { group: { select: { name: true } } } }
+            }
+        });
+        const groupMap = {};
+        itemsWithGroup.forEach(item => {
+            const gName = item.product?.group?.name || 'Khác';
+            groupMap[gName] = (groupMap[gName] || 0) + (item.subtotal || 0);
+        });
+        const salesByGroup = Object.keys(groupMap).map(k => ({ name: k, value: groupMap[k] }));
+
+        // 6. Monthly Sales Trend (Last 12 months)
+        const orders = await prisma.order.findMany({
+            where: { status: { not: 'CANCELLED' } },
+            select: { createdAt: true, totalAmount: true }
+        });
+        const monthMap = {};
+        orders.forEach(o => {
+            const m = o.createdAt.toISOString().slice(0, 7); // YYYY-MM
+            monthMap[m] = (monthMap[m] || 0) + (o.totalAmount || 0);
+        });
+        const sortedMonths = Object.keys(monthMap).sort().slice(-12);
+        const monthlySales = sortedMonths.map(k => ({
+            month: k.slice(5), // MM only
+            sales: monthMap[k],
+            target: monthMap[k] * 1.15 // Target = +15%
+        }));
+
+        // 7. Available Filters (for dropdowns)
+        const productGroups = await prisma.productGroup.findMany({
+            select: { id: true, name: true }
+        });
+
+        // 8. Sales by Customer Segment (NEW - using upgraded fields)
+        const ordersWithSegment = await prisma.order.findMany({
+            where: orderWhere,
+            select: {
+                totalAmount: true,
+                pharmacy: { select: { segment: true, tier: true, channel: true } }
+            }
+        });
+
+        const segmentMap = {};
+        const channelMap = {};
+        const tierMap = {};
+
+        ordersWithSegment.forEach(o => {
+            const seg = o.pharmacy?.segment || 'Chưa phân loại';
+            const ch = o.pharmacy?.channel || 'OTC';
+            const tier = o.pharmacy?.tier || 'STANDARD';
+
+            segmentMap[seg] = (segmentMap[seg] || 0) + (o.totalAmount || 0);
+            channelMap[ch] = (channelMap[ch] || 0) + (o.totalAmount || 0);
+            tierMap[tier] = (tierMap[tier] || 0) + (o.totalAmount || 0);
+        });
+
+        const salesBySegment = Object.keys(segmentMap).map(k => ({ name: `Segment ${k}`, value: segmentMap[k] }));
+        const salesByChannel = Object.keys(channelMap).map(k => ({ name: k, value: channelMap[k] }));
+        const salesByTier = Object.keys(tierMap).map(k => ({ name: k, value: tierMap[k] }));
+
+        // 9. Customer Status Distribution (NEW)
+        const customersByStatus = await prisma.pharmacy.groupBy({
+            by: ['status'],
+            _count: { id: true }
+        });
+        const statusDistribution = customersByStatus.map(s => ({
+            name: s.status || 'ACTIVE',
+            value: s._count.id
+        }));
+
+        // 10. Territory Performance (NEW)
+        const territories = await prisma.territory.findMany({
+            include: { region: true }
+        });
+        const territoryPerformance = await Promise.all(territories.slice(0, 10).map(async (ter) => {
+            const terOrders = await prisma.order.aggregate({
+                _sum: { totalAmount: true },
+                _count: { id: true },
+                where: {
+                    ...orderWhere,
+                    pharmacy: { territoryId: ter.id }
+                }
+            });
+            return {
+                name: ter.name,
+                region: ter.region?.name,
+                sales: terOrders._sum.totalAmount || 0,
+                orders: terOrders._count.id || 0,
+                target: ter.targetRevenue || 0,
+                achievement: ter.targetRevenue ? ((terOrders._sum.totalAmount || 0) / ter.targetRevenue * 100).toFixed(1) : 0
+            };
+        }));
+
+        res.json({
+            totalSales: totalSalesAgg._sum.totalAmount || 0,
+            totalQuantity: totalQtyAgg._sum.quantity || 0,
+            orderCount: totalSalesAgg._count.id || 0,
+            customerCount: topCustRaw.length,
+            topCustomers,
+            salesByRegion,
+            topProducts,
+            salesByGroup,
+            monthlySales,
+            // NEW data from upgraded database
+            salesBySegment,
+            salesByChannel,
+            salesByTier,
+            statusDistribution,
+            territoryPerformance: territoryPerformance.sort((a, b) => b.sales - a.sales),
+            filters: {
+                productGroups: productGroups.map(g => ({ id: g.id, name: g.name })),
+                segments: ['A', 'B', 'C', 'D'],
+                channels: ['OTC', 'ETC', 'HOSPITAL_TENDER', 'ONLINE'],
+                tiers: ['VIP', 'GOLD', 'SILVER', 'BRONZE', 'STANDARD']
+            }
+        });
+
+    } catch (error) {
+        console.error('BizReview Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
+

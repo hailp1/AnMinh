@@ -32,6 +32,14 @@ import inventoryRoutes from './routes/inventory.js';
 import uploadRoutes from './routes/upload.js';
 import reportsRoutes from './routes/reports.js';
 import systemRoutes from './routes/system.js';
+import settingRoutes from './routes/settings.js';
+import routeManagementRoutes from './routes/routeManagement.js';
+import excelTemplatesRoutes from './routes/excelTemplates.js';
+import orgStructureRoutes from './routes/orgStructure.js';
+import roleHierarchyRoutes from './routes/roleHierarchy.js';
+import territoryKpiRoutes from './routes/territoryKpi.js';
+import assignmentRulesRoutes from './routes/assignmentRules.js';
+import reportingLineRoutes from './routes/reportingLine.js';
 
 config();
 
@@ -112,6 +120,14 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/settings', settingRoutes);
+app.use('/api/route-management', routeManagementRoutes);
+app.use('/api/excel', excelTemplatesRoutes);
+app.use('/api/org-structure', orgStructureRoutes);
+app.use('/api/role-hierarchy', roleHierarchyRoutes);
+app.use('/api/territory-kpi', territoryKpiRoutes);
+app.use('/api/assignment-rules', assignmentRulesRoutes);
+app.use('/api/reporting-line', reportingLineRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -50,13 +51,24 @@ model User {
 }
 
 model Region {
-  id        String   @id @default(uuid())
-  name      String
-  code      String   @unique
+  id          String   @id @default(uuid())
+  name        String                    // Miền Nam
+  code        String   @unique          // MIEN_NAM
   description String?
   
-  users     User[]
-  territories Territory[]
+  // Management
+  managerId   String?                   // Regional Sales Manager
+  managerName String?                   // Cache for display
+  
+  // Metrics
+  targetRevenue    Float?               // Mục tiêu doanh số
+  currentRevenue   Float?   @default(0) // Doanh số hiện tại
+  customerCount    Int?     @default(0)
+  territoryCount   Int?     @default(0)
+  
+  // Relations
+  users         User[]
+  territories   Territory[]
   businessUnits BusinessUnit[]
 
   createdAt DateTime @default(now())
@@ -65,35 +77,68 @@ model Region {
 
 model BusinessUnit {
   id          String   @id @default(uuid())
-  code        String   @unique
-  name        String
+  code        String   @unique          // BU_HCM_WEST
+  name        String                    // Đơn vị KD HCM Tây
   description String?
+  
+  // Management
+  managerId   String?                   // Area Sales Manager
+  managerName String?
+  
+  // Hierarchy
   regionId    String
   region      Region   @relation(fields: [regionId], references: [id])
   territories Territory[]
+  
+  // Metrics
+  targetRevenue  Float?
+  currentRevenue Float?   @default(0)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model Territory {
-  id        String   @id @default(uuid())
-  name      String
-  code      String   @unique
+  id          String   @id @default(uuid())
+  name        String                    // Quận 1
+  code        String   @unique          // TER_HCM_Q1
   description String?
   
-  regionId  String
-  region    Region   @relation(fields: [regionId], references: [id])
-  
+  // Hierarchy
+  regionId    String
+  region      Region   @relation(fields: [regionId], references: [id])
   businessUnitId String?
   businessUnit   BusinessUnit? @relation(fields: [businessUnitId], references: [id])
   
-  pharmacies Pharmacy[]
-  visitPlans VisitPlan[]
+  // Management & Assignment
+  assignedRepId  String?               // TDV phụ trách
+  assignedRepName String?              // Cache for display
+  
+  // Geography Coverage
+  districts      String[]              // Danh sách quận/huyện thuộc territory
+  wards          String[]              // Danh sách phường/xã
+  
+  // Visit Planning
+  visitDays      String[]              // ["MON", "WED", "FRI"]
+  
+  // Metrics
+  potentialValue   Float?              // Tiềm năng thị trường
+  targetRevenue    Float?              // Mục tiêu doanh số
+  currentRevenue   Float?  @default(0) // Doanh số hiện tại
+  customerCount    Int?    @default(0) // Số khách hàng
+  activeCustomers  Int?    @default(0) // Số KH hoạt động
+  coverageRate     Float?  @default(0) // Tỷ lệ phủ (%)
+  
+  // Relations
+  pharmacies          Pharmacy[]
+  visitPlans          VisitPlan[]
   customerAssignments CustomerAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@index([regionId])
+  @@index([assignedRepId])
 }
 
 // --- CUSTOMER MANAGEMENT ---
@@ -115,43 +160,95 @@ model CustomerSegment {
 
 model Pharmacy {
   id        String   @id @default(uuid())
-  name      String
-  code      String?  @unique
-  address   String?
+  
+  // === IDENTIFICATION ===
+  name      String                    // Tên chính thức
+  code      String?  @unique          // Mã KH: KH-HCM-001
+  tradeName String?                   // Tên thương mại/biển hiệu
+  taxCode   String?                   // Mã số thuế
+  
+  // === CLASSIFICATION (CRM Standard) ===
+  type      String?  @default("PHARMACY") // PHARMACY, CLINIC, HOSPITAL, DISTRIBUTOR, OTHER
+  channel   String?  @default("OTC")      // ETC, OTC, HOSPITAL_TENDER, ONLINE
+  segment   String?  @default("C")        // A, B, C, D (theo tiềm năng)
+  tier      String?  @default("STANDARD") // VIP, GOLD, SILVER, BRONZE, STANDARD
+  classification String?              // Phân loại chi tiết
+  organizationType String?            // Cá nhân, Công ty, Chuỗi
+  isChain   Boolean? @default(false)  // Thuộc chuỗi
+  chainId   String?                   // Mã chuỗi nếu có
+  
+  // === CONTACT INFO ===
   phone     String?
+  phone2    String?                   // Số điện thoại phụ
+  orderPhone String?                  // SĐT đặt hàng
   email     String?
-  ownerName String?
-  province  String?
-  district  String?
-  ward      String?
-  type      String?  @default("PHARMACY")
+  website   String?
+  
+  // === ADDRESS (Full Structure) ===
+  address   String?                   // Địa chỉ đầy đủ
+  addressLine2 String?                // Tòa nhà, tầng
+  ward      String?                   // Phường/Xã
+  district  String?                   // Quận/Huyện
+  province  String?                   // Tỉnh/Thành phố
+  postalCode String?                  // Mã bưu điện
+  country   String?  @default("VN")
   latitude  Float?
   longitude Float?
-  description String?
-  isVerified Boolean @default(false)
-  isActive   Boolean @default(true)
-  tier       String?  @default("C") // A: VIP, B: Medium, C: Small
-  images    String[]
-
-  // Imported fields from AM_Cus
-  classification   String? // Loai khach
-  channel          String? // Kenh
-  rawRegion        String? // Khu vuc (raw)
-  organizationType String? // Hinh thuc to chuc
-  pharmacistName   String? // Duoc si phu trach
-  staffName        String? // Nhan vien ban thuoc
-  orderPhone       String? // DT Dat hang
-  orderFrequency   String? // Tan do dat hang
-  linkCode         String? // LK Toan phan
-  isChain          Boolean? @default(false) // Chain
   
-  territoryId String?
-  territory   Territory? @relation(fields: [territoryId], references: [id])
+  // === BUSINESS LICENSE ===
+  licenseNumber    String?            // Số giấy phép KD
+  licenseExpiry    DateTime?          // Ngày hết hạn GP
+  pharmacistName   String?            // Dược sĩ phụ trách
+  pharmacistLicense String?           // Chứng chỉ hành nghề DS
+  staffName        String?            // Nhân viên bán thuốc
+  ownerName        String?            // Chủ sở hữu
   
+  // === FINANCIAL (CRM Standard) ===
+  creditLimit      Float?   @default(0)    // Hạn mức công nợ
+  paymentTermDays  Int?     @default(30)   // Số ngày thanh toán
+  currentDebt      Float?   @default(0)    // Công nợ hiện tại
+  taxExempt        Boolean? @default(false)
+  bankAccount      String?
+  bankName         String?
+  bankBranch       String?
+  
+  // === SALES ASSIGNMENT ===
+  territoryId      String?
+  territory        Territory? @relation(fields: [territoryId], references: [id])
+  primaryRepId     String?            // TDV phụ trách chính
+  secondaryRepId   String?            // TDV backup
+  
+  // === LIFECYCLE STATUS (CRM Standard) ===
+  status           String?  @default("ACTIVE") // PROSPECT, ACTIVE, INACTIVE, SUSPENDED, CHURNED
+  source           String?            // Nguồn KH: REFERRAL, COLD_CALL, EVENT, ONLINE
+  acquiredDate     DateTime?          // Ngày trở thành KH
+  lastOrderDate    DateTime?
+  lastVisitDate    DateTime?
+  lifetimeValue    Float?   @default(0) // Tổng giá trị lịch sử
+  
+  // === VISIT PLANNING ===
+  visitFrequency   Int?     @default(1)   // Số lần ghé/tuần
+  orderFrequency   String?               // Tần độ đặt hàng
+  preferredDay     String?               // Thứ ưu tiên ghé
+  preferredTime    String?               // Khung giờ
+  
+  // === ADDITIONAL INFO ===
+  description      String?  @db.Text
+  notes            String?  @db.Text
+  tags             String[]              // Tags: "vip", "khó tính"
+  images           String[]
+  isVerified       Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  
+  // === LEGACY FIELDS ===
+  rawRegion        String?
+  linkCode         String?
+  
+  // === SEGMENT RELATION ===
   customerSegmentId String?
   customerSegment   CustomerSegment? @relation(fields: [customerSegmentId], references: [id])
 
-  // Relations
+  // === RELATIONS ===
   customerAssignments CustomerAssignment[]
   routes              Route[]
   orders              Order[]
@@ -163,12 +260,16 @@ model Pharmacy {
   pharmacyPrices      PharmacyProductPrice[]
   pharmacyRepPharmacies PharmacyRepPharmacy[]
 
-
+  // === AUDIT ===
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
   
   @@index([province, district])
   @@index([territoryId])
+  @@index([status])
+  @@index([segment])
   @@index([createdAt])
 }
 
@@ -903,3 +1004,722 @@ model PermissionConfig {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// =======================================
+// ROUTE MANAGEMENT (SFA Standard)
+// =======================================
+
+// Template lộ trình mẫu
+model RouteTemplate {
+  id              String   @id @default(uuid())
+  code            String   @unique        // RT-HCM-Q1-MON
+  name            String                  // Lộ trình Q1 Thứ 2
+  description     String?
+  
+  // Assignment
+  territoryId     String?
+  assignedRepId   String?                 // TDV mặc định
+  dayOfWeek       String?                 // MONDAY, TUESDAY...
+  
+  // Route Details
+  stops           RouteStop[]
+  
+  // Metrics
+  estimatedDuration Int?                  // Phút
+  estimatedDistance Float?                // Km
+  estimatedCalls    Int?                  // Số khách
+  
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  dailyRoutes     DailyRoute[]
+}
+
+// Điểm dừng trong lộ trình mẫu
+model RouteStop {
+  id              String   @id @default(uuid())
+  routeTemplateId String
+  routeTemplate   RouteTemplate @relation(fields: [routeTemplateId], references: [id], onDelete: Cascade)
+  
+  pharmacyId      String
+  
+  sequence        Int                    // Thứ tự ghé
+  plannedArrival  String?                // "09:00"
+  plannedDuration Int?                   // Phút tại điểm
+  
+  // Navigation
+  distanceFromPrev Float?                // Km từ điểm trước
+  durationFromPrev Int?                  // Phút di chuyển
+  
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([routeTemplateId])
+  @@index([pharmacyId])
+}
+
+// Lộ trình thực tế hàng ngày
+model DailyRoute {
+  id              String   @id @default(uuid())
+  date            DateTime
+  repId           String                 // TDV thực hiện
+  
+  templateId      String?
+  template        RouteTemplate? @relation(fields: [templateId], references: [id])
+  
+  status          String   @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  startTime       DateTime?
+  endTime         DateTime?
+  
+  // Actual performance
+  plannedStops    Int?     @default(0)
+  completedStops  Int?     @default(0)
+  skippedStops    Int?     @default(0)
+  
+  // GPS Tracking
+  startLat        Float?
+  startLng        Float?
+  endLat          Float?
+  endLng          Float?
+  totalDistance   Float?                 // Km thực tế
+  
+  notes           String?
+  
+  visits          Visit[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([date])
+  @@index([repId])
+  @@index([status])
+}
+
+// Chi tiết viếng thăm từng khách
+model Visit {
+  id              String   @id @default(uuid())
+  dailyRouteId    String?
+  dailyRoute      DailyRoute? @relation(fields: [dailyRouteId], references: [id])
+  
+  pharmacyId      String
+  repId           String
+  
+  // Timing
+  plannedArrival  DateTime?
+  actualArrival   DateTime?
+  departureTime   DateTime?
+  duration        Int?                   // Phút thực tế
+  
+  // Location verification (Check-in)
+  checkInLat      Float?
+  checkInLng      Float?
+  checkInPhoto    String?
+  checkInDistance Float?                 // Khoảng cách từ vị trí KH (m)
+  
+  // Check-out
+  checkOutLat     Float?
+  checkOutLng     Float?
+  checkOutPhoto   String?
+  
+  // Outcome
+  status          String   @default("PLANNED") // PLANNED, CHECKED_IN, COMPLETED, SKIPPED, NO_ANSWER
+  outcome         String?                // ORDER_PLACED, DISPLAY_UPDATED, INFO_COLLECTED, NO_ORDER
+  
+  // Results
+  orderPlaced     Boolean  @default(false)
+  orderId         String?
+  orderAmount     Float?   @default(0)
+  
+  // Data collected
+  notes           String?  @db.Text
+  photos          String[]
+  
+  // Shelf/Display Check
+  shelfPhotos     String[]
+  displayScore    Int?                   // Điểm trưng bày 1-10
+  stockStatus     String?                // IN_STOCK, LOW_STOCK, OUT_OF_STOCK
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([pharmacyId])
+  @@index([repId])
+  @@index([dailyRouteId])
+  @@index([createdAt])
+}
+
+// =======================================
+// REPORT TEMPLATES
+// =======================================
+
+model ReportTemplate {
+  id          String   @id @default(uuid())
+  code        String   @unique          // RPT_SALES_DAILY
+  name        String                    // Báo cáo doanh số ngày
+  category    String                    // SALES, VISIT, INVENTORY, CUSTOMER, PERFORMANCE
+  description String?
+  
+  // Configuration
+  columns     Json?                     // Column definitions
+  filters     Json?                     // Available filters
+  groupBy     String[]                  // Grouping options
+  sortBy      String?                   // Default sort
+  
+  // Access
+  allowedRoles String[]                 // Roles can access
+  
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// =======================================
+// EXCEL IMPORT/EXPORT TEMPLATES
+// =======================================
+
+model ExcelTemplate {
+  id          String   @id @default(uuid())
+  code        String   @unique          // TPL_CUSTOMER_IMPORT
+  name        String                    // Template Import Khách hàng
+  type        String                    // IMPORT, EXPORT
+  entity      String                    // CUSTOMER, PRODUCT, ORDER, ROUTE
+  
+  // Template Structure
+  columns     Json                      // Column definitions with mapping
+  validations Json?                     // Validation rules
+  sampleData  Json?                     // Sample row data
+  
+  // File
+  fileUrl     String?                   // URL to download template
+  fileName    String?
+  
+  description String?
+  version     String   @default("1.0")
+  
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// =======================================
+// CHANNEL STRUCTURE (Cấu trúc Kênh)
+// =======================================
+
+// Master Channel definition
+model Channel {
+  id          String   @id @default(uuid())
+  code        String   @unique          // GT, MT, CHAIN, HOSPITAL
+  name        String                    // General Trade, Modern Trade, Chain, Hospital
+  description String?
+  
+  // Parent-Child for hierarchy
+  parentId    String?
+  parent      Channel?  @relation("ChannelHierarchy", fields: [parentId], references: [id])
+  children    Channel[] @relation("ChannelHierarchy")
+  
+  level       Int       @default(0)     // 0: Root, 1: Sub-channel
+  
+  // Metrics
+  targetRevenue    Float?
+  currentRevenue   Float?  @default(0)
+  customerCount    Int?    @default(0)
+  
+  isActive    Boolean   @default(true)
+  order       Int       @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  subChannels SubChannel[]
+}
+
+// Sub-channel for detailed classification
+model SubChannel {
+  id          String   @id @default(uuid())
+  code        String   @unique          // GT_PHARMACY, GT_CLINIC, MT_SUPERMARKET
+  name        String                    // Nhà thuốc GT, Phòng khám, Siêu thị
+  
+  channelId   String
+  channel     Channel   @relation(fields: [channelId], references: [id])
+  
+  description String?
+  isActive    Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// =======================================
+// GEOGRAPHIC HIERARCHY (Cấu trúc Địa lý)
+// VN → Region → Area → Territory
+// =======================================
+
+model Country {
+  id          String   @id @default(uuid())
+  code        String   @unique          // VN
+  name        String                    // Việt Nam
+  
+  regions     GeoRegion[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GeoRegion {
+  id          String   @id @default(uuid())
+  code        String   @unique          // NORTH, CENTRAL, SOUTH
+  name        String                    // Miền Bắc, Miền Trung, Miền Nam
+  
+  countryId   String
+  country     Country   @relation(fields: [countryId], references: [id])
+  
+  // Management
+  rsmId       String?                   // Regional Sales Manager ID
+  rsmName     String?
+  
+  // Metrics
+  targetRevenue    Float?
+  currentRevenue   Float?  @default(0)
+  
+  areas       Area[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Area {
+  id          String   @id @default(uuid())
+  code        String   @unique          // AREA_HCM, AREA_HN
+  name        String                    // Khu vực HCM, Khu vực Hà Nội
+  
+  geoRegionId String
+  geoRegion   GeoRegion @relation(fields: [geoRegionId], references: [id])
+  
+  // Management
+  asmId       String?                   // Area Sales Manager ID
+  asmName     String?
+  
+  // Metrics
+  targetRevenue    Float?
+  currentRevenue   Float?  @default(0)
+  territoryCount   Int?    @default(0)
+  
+  geoTerritories GeoTerritory[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GeoTerritory {
+  id          String   @id @default(uuid())
+  code        String   @unique          // TER_Q1, TER_Q7
+  name        String                    // Quận 1, Quận 7
+  
+  areaId      String
+  area        Area      @relation(fields: [areaId], references: [id])
+  
+  // Management
+  tsmId       String?                   // Territory Sales Manager / Supervisor
+  tsmName     String?
+  
+  // Geography
+  districts   String[]
+  wards       String[]
+  
+  // Metrics
+  targetRevenue    Float?
+  currentRevenue   Float?  @default(0)
+  customerCount    Int?    @default(0)
+  activeCustomers  Int?    @default(0)
+  coverageRate     Float?  @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// =======================================
+// ORGANIZATION HIERARCHY (Cấu trúc Quản lý)
+// BU Head → RSM → ASM → TSM → TDV
+// =======================================
+
+model OrgPosition {
+  id          String   @id @default(uuid())
+  code        String   @unique          // BU_HEAD, RSM, ASM, TSM, TDV
+  name        String                    // BU Head, Regional Sales Manager, Area Sales Manager, Territory Sales Manager, Sales Rep
+  nameVi      String?                   // Trưởng đơn vị KD, Quản lý vùng, Quản lý khu vực, Giám sát, TDV
+  
+  level       Int       @default(0)     // 0: Top, 1, 2, 3, 4: Bottom
+  
+  // Parent position for reporting line
+  reportsToId String?
+  reportsTo   OrgPosition?  @relation("PositionHierarchy", fields: [reportsToId], references: [id])
+  subordinates OrgPosition[] @relation("PositionHierarchy")
+  
+  // Permissions & Scope
+  canApproveOrder   Boolean  @default(false)
+  canApproveCustomer Boolean @default(false)
+  maxApprovalAmount Float?
+  
+  description String?
+  isActive    Boolean   @default(true)
+  
+  employees   Employee[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Employee {
+  id          String   @id @default(uuid())
+  employeeCode String  @unique          // EMP001
+  name        String
+  email       String?
+  phone       String?
+  
+  // Position & Role
+  positionId  String
+  position    OrgPosition @relation(fields: [positionId], references: [id])
+  
+  // Direct Manager
+  managerId   String?
+  manager     Employee?  @relation("ManagerHierarchy", fields: [managerId], references: [id])
+  subordinates Employee[] @relation("ManagerHierarchy")
+  
+  // Geographic Assignment
+  geoRegionId    String?              // RSM: quản lý Region
+  areaId         String?              // ASM: quản lý Area
+  geoTerritoryId String?              // TSM: quản lý Territory
+  
+  // Channel Assignment
+  channelId      String?              // Assigned to specific channel
+  
+  // Linked User Account
+  userId         String?  @unique
+  
+  // Status
+  status      String    @default("ACTIVE") // ACTIVE, INACTIVE, ON_LEAVE
+  joinDate    DateTime?
+  
+  // Targets
+  monthlyTarget   Float?
+  quarterlyTarget Float?
+  yearlyTarget    Float?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([positionId])
+  @@index([managerId])
+}
+
+// =======================================
+// ORGANIZATION CHART CONFIG
+// =======================================
+
+model OrgChartConfig {
+  id          String   @id @default(uuid())
+  
+  // Company Info
+  companyName String   @default("An Minh Pharmaceutical")
+  companyCode String   @default("AMPH")
+  
+  // Structure Settings
+  geoLevels   Json?    // ["Country", "Region", "Area", "Territory"]
+  channelTypes Json?   // ["GT", "MT", "Chain", "Hospital"]
+  positionLevels Json? // ["BU_HEAD", "RSM", "ASM", "TSM", "TDV"]
+  
+  // Display Settings
+  showMetrics   Boolean @default(true)
+  showTargets   Boolean @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// =======================================
+// ROLE HIERARCHY (Salesforce-style)
+// Controls data access and record visibility
+// =======================================
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique           // CEO, BU_HEAD, RSM, ASM, TSM, TDV
+  name        String                     // Chief Executive Officer, Business Unit Head...
+  nameVi      String?                    // Vietnamese name
+  
+  // Hierarchy
+  parentId    String?
+  parent      Role?    @relation("RoleHierarchy", fields: [parentId], references: [id])
+  children    Role[]   @relation("RoleHierarchy")
+  
+  level       Int      @default(0)       // 0: Top, 1, 2, 3... descending
+  
+  // Access Control (Salesforce-style)
+  accessLevel String   @default("PRIVATE") // ALL, PRIVATE, READ_ONLY, READ_WRITE
+  
+  // Can view records of subordinate roles
+  canViewSubordinates Boolean @default(true)
+  canEditSubordinates Boolean @default(false)
+  canDeleteSubordinates Boolean @default(false)
+  
+  // Data Scope
+  dataScope   String   @default("OWN")   // ALL, REGION, AREA, TERRITORY, OWN
+  
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  users       RoleUser[]
+  permissions RolePermission[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([level])
+  @@index([parentId])
+}
+
+// User-Role Assignment
+model RoleUser {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  
+  isPrimary Boolean  @default(true)      // Primary role
+  
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+// Role Permissions
+model RolePermission {
+  id          String   @id @default(uuid())
+  roleId      String
+  role        Role     @relation(fields: [roleId], references: [id])
+  
+  objectType  String                     // Customer, Order, Product, Report, User...
+  canRead     Boolean  @default(true)
+  canCreate   Boolean  @default(false)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  canExport   Boolean  @default(false)
+  
+  // Field-level security
+  restrictedFields String[]              // Fields that are hidden/masked
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([roleId, objectType])
+  @@index([roleId])
+}
+
+// =======================================
+// TERRITORY MANAGEMENT WITH KPIs
+// =======================================
+
+model TerritoryKPI {
+  id              String   @id @default(uuid())
+  
+  // Territory assignment
+  territoryId     String?                // Link to GeoTerritory
+  areaId          String?                // Link to Area
+  regionId        String?                // Link to GeoRegion
+  
+  // Period
+  year            Int
+  month           Int?                   // Null = yearly, else monthly
+  quarter         Int?                   // 1, 2, 3, 4
+  
+  // Sales Targets
+  salesTarget     Float    @default(0)
+  salesActual     Float    @default(0)
+  salesAchievement Float?               // Calculated: actual/target * 100
+  
+  // Visit Targets
+  visitTarget     Int      @default(0)
+  visitActual     Int      @default(0)
+  visitAchievement Float?
+  
+  // Customer Targets
+  newCustomerTarget   Int   @default(0)
+  newCustomerActual   Int   @default(0)
+  activeCustomerTarget Int  @default(0)
+  activeCustomerActual Int  @default(0)
+  
+  // Coverage
+  coverageTarget  Float    @default(0)   // % outlets visited
+  coverageActual  Float    @default(0)
+  
+  // Strike Rate
+  strikeRateTarget Float   @default(0)   // % visits with order
+  strikeRateActual Float   @default(0)
+  
+  // SKU Distribution
+  skuTarget       Float    @default(0)   // Avg SKUs per outlet
+  skuActual       Float    @default(0)
+  
+  // Drop Size
+  dropSizeTarget  Float    @default(0)   // Avg order value
+  dropSizeActual  Float    @default(0)
+  
+  // Notes
+  notes           String?
+  
+  // Status
+  status          String   @default("ACTIVE") // ACTIVE, CLOSED, REVISED
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([territoryId, year, month])
+  @@index([year])
+  @@index([territoryId])
+  @@index([areaId])
+  @@index([regionId])
+}
+
+// =======================================
+// ASSIGNMENT RULES ENGINE
+// Automatic territory/customer assignment
+// =======================================
+
+model AssignmentRule {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  
+  // Rule Type
+  ruleType    String                     // CUSTOMER, TERRITORY, LEAD, ORDER
+  
+  // Priority (lower = higher priority)
+  priority    Int      @default(100)
+  
+  // Conditions (JSON Array)
+  // e.g., [{"field": "district", "operator": "equals", "value": "District 1"}]
+  conditions  Json
+  
+  // Action
+  actionType  String                     // ASSIGN_TO_USER, ASSIGN_TO_TERRITORY, ASSIGN_TO_QUEUE
+  assignToUserId      String?
+  assignToTerritoryId String?
+  assignToRoleId      String?
+  
+  // Notification
+  sendNotification Boolean @default(true)
+  notificationTemplate String?
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Execution Count
+  executionCount Int   @default(0)
+  lastExecutedAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([ruleType])
+  @@index([priority])
+}
+
+// Assignment History
+model AssignmentHistory {
+  id              String   @id @default(uuid())
+  
+  // What was assigned
+  objectType      String                 // Customer, Lead, Order
+  objectId        String
+  
+  // Assignment details
+  fromUserId      String?
+  toUserId        String?
+  fromTerritoryId String?
+  toTerritoryId   String?
+  
+  // How was it assigned
+  assignmentMethod String               // MANUAL, AUTO_RULE, ROUND_ROBIN, LOAD_BALANCE
+  ruleId          String?               // If assigned by rule
+  
+  // Who made the change
+  assignedBy      String?
+  
+  // Reason
+  reason          String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([objectType, objectId])
+  @@index([toUserId])
+  @@index([toTerritoryId])
+}
+
+// =======================================
+// REPORTING LINE VALIDATION
+// =======================================
+
+model ReportingLineConfig {
+  id              String   @id @default(uuid())
+  
+  // Which position reports to which
+  positionId      String   @unique
+  reportsToPositionId String?           // Null = top of hierarchy
+  
+  // Validation Rules
+  maxSubordinates Int?                   // Max direct reports
+  requiresApproval Boolean @default(false) // Changes need approval
+  
+  // Skip levels allowed
+  allowSkipLevel  Boolean  @default(false)
+  
+  // Cross-functional reporting
+  allowCrossFunction Boolean @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Reporting Change Requests
+model ReportingChangeRequest {
+  id              String   @id @default(uuid())
+  
+  // Employee being changed
+  employeeId      String
+  
+  // Current and proposed manager
+  currentManagerId String?
+  proposedManagerId String?
+  
+  // Reason for change
+  reason          String
+  effectiveDate   DateTime
+  
+  // Approval workflow
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  requestedBy     String
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([employeeId])
+  @@index([status])
+}
+

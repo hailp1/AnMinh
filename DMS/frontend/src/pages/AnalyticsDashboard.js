@@ -29,7 +29,7 @@ const AnalyticsDashboard = () => {
     const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 
     return (
-        <div style={{ padding: '24px', background: '#F8FAFC', minHeight: '100vh' }}>
+        <div style={{ padding: '24px', background: '#F8FAFC', minHeight: '100vh', paddingBottom: 100 }}>
             {/* Header with Filter */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <div>
@@ -57,7 +57,6 @@ const AnalyticsDashboard = () => {
                     <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8 }}>Số đơn hàng</div>
                     <div style={{ fontSize: 28, fontWeight: 'bold', color: '#1E293B' }}>{data.summary.totalOrders}</div>
                 </div>
-                {/* Add more metrics later */}
             </div>
 
             {/* Charts Row 1 */}
@@ -90,6 +89,38 @@ const AnalyticsDashboard = () => {
                     </ResponsiveContainer>
                 </div>
             </div>
+
+            {/* Top Products Table */}
+            {data.topProducts && (
+                <div style={{ background: '#fff', padding: 24, borderRadius: 16, border: '1px solid #E2E8F0', marginTop: 24 }}>
+                    <h3 style={{ marginTop: 0, fontSize: 16, color: '#475569', marginBottom: 20 }}>🏆 Top 5 Sản phẩm bán chạy</h3>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                            <thead>
+                                <tr style={{ borderBottom: '2px solid #F1F5F9', color: '#64748B' }}>
+                                    <th style={{ textAlign: 'left', padding: 12 }}>Sản phẩm</th>
+                                    <th style={{ textAlign: 'right', padding: 12 }}>Số lượng</th>
+                                    <th style={{ textAlign: 'right', padding: 12 }}>Doanh số</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.topProducts.map((p, i) => (
+                                    <tr key={i} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: 12, fontWeight: '500', color: '#1E293B' }}>
+                                            {p.name}
+                                            <div style={{ fontSize: 11, color: '#94A3B8' }}>{p.code}</div>
+                                        </td>
+                                        <td style={{ padding: 12, textAlign: 'right' }}>{p.quantity}</td>
+                                        <td style={{ padding: 12, textAlign: 'right', fontWeight: 'bold', color: '#059669' }}>
+                                            {formatCurrency(p.revenue)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
