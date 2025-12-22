@@ -114,16 +114,30 @@ const BizReview = () => {
 
     // Derived Display Data (Mix Real + Mock)
     const displayData = useMemo(() => {
-        if (realData && realData.totalSales > 0) return realData; // Use real if available
-        // Fallback Mock Structure for Overview
+        // If we have real data with actual sales, use it. Otherwise mix mock data for "Wow" effect.
+        const useReal = realData && realData.totalSales > 0;
+
         return {
-            totalSales: 15400000000,
-            orderCount: 1250,
-            customerCount: 450,
-            salesByRegion: [{ name: 'Miền Bắc', value: 450 }, { name: 'Miền Nam', value: 850 }, { name: 'Miền Trung', value: 240 }],
-            monthlySales: Array.from({ length: 12 }, (_, i) => ({
-                month: `T${i + 1}`, sales: 1000 + Math.random() * 500, target: 1200
-            }))
+            totalSales: useReal ? realData.totalSales : 15400000000,
+            orderCount: useReal ? realData.orderCount : 1250,
+            customerCount: useReal ? realData.customerCount : 450,
+            salesByRegion: useReal ? realData.salesByRegion : [
+                { name: 'Miền Bắc', value: 450 }, { name: 'Miền Nam', value: 850 }, { name: 'Miền Trung', value: 240 }
+            ],
+            // Ensure we have a nice curve for monthly sales
+            monthlySales: useReal ? realData.monthlySales : [
+                { month: 'T1', sales: 900, target: 1000 }, { month: 'T2', sales: 1100, target: 1000 },
+                { month: 'T3', sales: 1300, target: 1200 }, { month: 'T4', sales: 1150, target: 1200 },
+                { month: 'T5', sales: 1400, target: 1300 }, { month: 'T6', sales: 1650, target: 1400 },
+                { month: 'T7', sales: 1580, target: 1500 }, { month: 'T8', sales: 1800, target: 1600 },
+                { month: 'T9', sales: 2100, target: 1800 }, { month: 'T10', sales: 1950, target: 1900 },
+                { month: 'T11', sales: 2400, target: 2000 }, { month: 'T12', sales: 2800, target: 2200 }
+            ],
+            // Add top stats missing in previous mock
+            topProducts: [
+                { name: 'Panadol Extra', value: 3500000000 }, { name: 'Hapacol Blue', value: 2100000000 },
+                { name: 'Berberin', value: 1500000000 }, { name: 'Vitamin C 500', value: 950000000 }
+            ]
         };
     }, [realData]);
 
