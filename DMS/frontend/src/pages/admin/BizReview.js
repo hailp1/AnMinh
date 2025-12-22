@@ -3,7 +3,7 @@ import { reportsAPI } from '../../services/api';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, ComposedChart, Line, Area, AreaChart, RadarChart, PolarGrid,
-    PolarAngleAxis, PolarRadiusAxis, Radar, Treemap
+    PolarAngleAxis, PolarRadiusAxis, Radar, Treemap, ScatterChart, Scatter, ZAxis
 } from 'recharts';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
@@ -71,12 +71,41 @@ const generateMockTDV = () => {
     })).sort((a, b) => b.sales - a.sales);
 };
 
-// ... (Other existing code structure preserved but enhanced)
+const generateMockCompliance = () => {
+    // Generate data for scatter plot (Visit Efficiency)
+    const scatterData = Array.from({ length: 20 }, (_, i) => ({
+        x: 80 + Math.random() * 40, // Visit Rate (80-120%)
+        y: 40 + Math.random() * 50, // Strike Rate (40-90%)
+        z: 500000 + Math.random() * 1500000, // Avg Drop Size
+        name: `TDV ${i + 1}`,
+        group: Math.random() > 0.5 ? 'A' : 'B'
+    }));
+
+    // Generate funnel data
+    const funnelData = [
+        { name: 'Plan Call', value: 1250, fill: '#3b82f6' },
+        { name: 'Visited', value: 1150, fill: '#8b5cf6' }, // 92%
+        { name: 'Productive (PC)', value: 750, fill: '#22c55e' }, // 65% Strike
+    ];
+
+    // Generate detail table data
+    const detailData = Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        name: `Trình Dược Viên ${i + 1}`,
+        plan: 26,
+        actual: 24 + Math.floor(Math.random() * 3),
+        pc: 15 + Math.floor(Math.random() * 8),
+        lppc: (3.5 + Math.random() * 2).toFixed(1),
+        vpo: (1200000 + Math.random() * 800000).toFixed(0)
+    }));
+
+    return { scatterData, funnelData, detailData };
+};
 
 const BizReview = () => {
     // State
     const [activeTab, setActiveTab] = useState('overview');
-    const [filters, setFilters] = useState({ region: 'all', month: 'all', channel: 'all' });
+    const [filters, setFilters] = useState({ region: 'all', month: 'all', channel: 'all', stockWarehouse: 'all', manufacturer: 'all' });
     const [loading, setLoading] = useState(true);
 
     // Data Containers
@@ -84,6 +113,7 @@ const BizReview = () => {
     const [mockData, setMockData] = useState({
         inventory: generateMockInventory(),
         tdv: generateMockTDV(),
+        compliance: generateMockCompliance(), // Initialize new mock data
         stockHealth: 85
     });
 
@@ -143,8 +173,9 @@ const BizReview = () => {
 
     const tabs = [
         { id: 'overview', label: '📊 Tổng quan', icon: '📊' },
-        { id: 'inventory', label: '📦 Tồn kho (Mới)', icon: '📦' },
+        { id: 'inventory', label: '📦 Tồn kho', icon: '📦' },
         { id: 'sales', label: '💰 Doanh số', icon: '💰' },
+        { id: 'compliance', label: '✅ Tuân thủ (MCP)', icon: '✅' },
         { id: 'tdv', label: '👤 Đội ngũ TDV', icon: '👤' },
         { id: 'coverage', label: '🌏 Độ phủ', icon: '🌏' },
     ];
@@ -496,6 +527,99 @@ const BizReview = () => {
                                 </ResponsiveContainer>
                             </ChartCard>
                         </div>
+                    </div>
+                )}
+
+                {/* === COMPLIANCE TAB (NEW CONTENT) === */}
+                {activeTab === 'compliance' && (
+                    <div className="animate-fade-in">
+                        <SectionTitle title="PHÂN TÍCH TUÂN THỦ & HIỆU QUẢ VIẾNG THĂM (MCP)" icon="✅" />
+
+                        {/* 4 Key Metrics */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
+                            <KPICard title="TỶ LỆ TUÂN THỦ (MCP)" value="92.5%" sub="Visited / Plan Call" color="#3b82f6" icon="📅" />
+                            <KPICard title="TỶ LỆ CHỐT ĐƠN (STRIKE)" value="65.2%" sub="PO / Visited" color="#22c55e" icon="🎯" />
+                            <KPICard title="AVG DROP SIZE" value={formatCurrency(1250000)} sub="Giá trị TB / Đơn hàng" color="#f59e0b" icon="💰" />
+                            <KPICard title="AVG LPPC" value="4.2 SKUs" sub="Danh mục / Đơn hàng" color="#8b5cf6" icon="📦" />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', marginBottom: '32px' }}>
+                            {/* Funnel: Plan -> Visit -> PC */}
+                            <ChartCard title="PHỄU HIỆU QUẢ (CALL FUNNEL)">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={mockData.compliance.funnelData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#cbd5e1', fontWeight: 600 }} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={tooltipStyle} />
+                                        <Bar dataKey="value" barSize={40} radius={[0, 4, 4, 0]}>
+                                            {mockData.compliance.funnelData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartCard>
+
+                            {/* Scatter: Efficiency Matrix */}
+                            <ChartCard title="MA TRẬN HIỆU QUẢ (VISIT EFFICIENCY MATRIX)">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis type="number" dataKey="x" name="Visit Rate" unit="%" domain={[60, 140]} tick={{ fill: '#94a3b8' }} label={{ value: 'Tỷ lệ viếng thăm (%)', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 12 }} />
+                                        <YAxis type="number" dataKey="y" name="Strike Rate" unit="%" domain={[20, 100]} tick={{ fill: '#94a3b8' }} label={{ value: 'Tỷ lệ chốt đơn (%)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 12 }} />
+                                        <ZAxis type="number" dataKey="z" range={[50, 400]} name="Drop Size" unit="đ" />
+                                        <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={tooltipStyle} formatter={(val, name) => name === 'Drop Size' ? formatCurrency(val) : val} />
+                                        <Scatter name="Efficiency" data={mockData.compliance.scatterData} fill="#8884d8">
+                                            {mockData.compliance.scatterData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.y > 60 && entry.x > 90 ? '#22c55e' : entry.y < 40 ? '#ef4444' : '#f59e0b'} />
+                                            ))}
+                                        </Scatter>
+                                    </ScatterChart>
+                                </ResponsiveContainer>
+                                <div style={{ textAlign: 'center', fontSize: 12, color: '#64748b', marginTop: -10 }}>*Kích thước chấm tròn thể hiện quy mô đơn hàng (Drop Size)</div>
+                            </ChartCard>
+                        </div>
+
+                        {/* Detailed Table */}
+                        <ChartCard title="CHI TIẾT HOẠT ĐỘNG ĐỘI NGŨ (SALES FORCE ACTIVITY)">
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0', fontSize: 13 }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8' }}>
+                                            <th style={{ padding: 12, textAlign: 'left' }}>TDV / Team</th>
+                                            <th style={{ padding: 12, textAlign: 'center' }}>Plan Call</th>
+                                            <th style={{ padding: 12, textAlign: 'center' }}>Visited</th>
+                                            <th style={{ padding: 12, textAlign: 'center' }}>Tuân thủ</th>
+                                            <th style={{ padding: 12, textAlign: 'center' }}>P.Call (PC)</th>
+                                            <th style={{ padding: 12, textAlign: 'center' }}>Strike Rate</th>
+                                            <th style={{ padding: 12, textAlign: 'right' }}>Doanh thu</th>
+                                            <th style={{ padding: 12, textAlign: 'right' }}>Drop Size (VPO)</th>
+                                            <th style={{ padding: 12, textAlign: 'center' }}>LPPC</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {mockData.compliance.detailData.map((row, i) => (
+                                            <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                                                <td style={{ padding: 12, fontWeight: 500 }}>{row.name}</td>
+                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.plan}</td>
+                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.actual}</td>
+                                                <td style={{ padding: 12, textAlign: 'center' }}>
+                                                    <span style={{ color: row.actual / row.plan < 0.9 ? '#ef4444' : '#22c55e' }}>{Math.round(row.actual / row.plan * 100)}%</span>
+                                                </td>
+                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.pc}</td>
+                                                <td style={{ padding: 12, textAlign: 'center', fontWeight: 'bold', color: row.pc / row.actual < 0.5 ? '#f59e0b' : '#3b82f6' }}>
+                                                    {Math.round(row.pc / row.actual * 100)}%
+                                                </td>
+                                                <td style={{ padding: 12, textAlign: 'right' }}>{formatCurrency(row.pc * row.vpo)}</td>
+                                                <td style={{ padding: 12, textAlign: 'right' }}>{formatCurrency(row.vpo)}</td>
+                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.lppc}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </ChartCard>
                     </div>
                 )}
             </div>
