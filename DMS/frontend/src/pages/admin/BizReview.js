@@ -336,8 +336,17 @@ const BizReview = () => {
                 {activeTab === 'overview' && (
                     <div className="animate-fade-in">
                         <SectionTitle title="TỔNG QUAN KINH DOANH" icon="📊" />
-                        {/* Mock Charts for Overview if Real Data missing */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+
+                        {/* Overview KPIs */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
+                            <KPICard title="TỔNG DOANH SỐ" value={formatCurrency(displayData.totalSales)} sub={`${displayData.orderCount.toLocaleString()} đơn hàng`} color="#3b82f6" icon="💰" />
+                            <KPICard title="SỐ LƯỢNG KHÁCH" value={displayData.customerCount} sub="+12% so với tháng trước" color="#22c55e" icon="👥" />
+                            <KPICard title="TỶ LỆ TUÂN THỦ (MCP)" value="92%" sub="Viếng thăm đúng tuyến" color="#f59e0b" icon="✅" />
+                            <KPICard title="ĐỘ PHỦ SẢN PHẨM" value="85 SKU" sub="Trung bình / Điểm bán" color="#8b5cf6" icon="📦" />
+                        </div>
+
+                        {/* Overview Charts */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '24px' }}>
                             <ChartCard title="XU HƯỚNG DOANH SỐ (YTD)">
                                 <ResponsiveContainer width="100%" height={300}>
                                     <AreaChart data={displayData.monthlySales}>
@@ -348,11 +357,11 @@ const BizReview = () => {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="month" tick={{ fill: '#94a3b8' }} />
-                                        <YAxis tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip contentStyle={tooltipStyle} />
-                                        <Area type="monotone" dataKey="sales" stroke="#3b82f6" fill="url(#colorSales)" />
-                                        <Line type="monotone" dataKey="target" stroke="#f59e0b" strokeDasharray="5 5" />
+                                        <XAxis dataKey="month" tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
+                                        <Area type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={3} fill="url(#colorSales)" />
+                                        <Line type="monotone" dataKey="target" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </ChartCard>
@@ -363,20 +372,130 @@ const BizReview = () => {
                                         <Pie data={displayData.salesByRegion} innerRadius={60} outerRadius={90} dataKey="value" paddingAngle={4}>
                                             {displayData.salesByRegion.map((e, i) => <Cell key={i} fill={COLORS[i]} />)}
                                         </Pie>
-                                        <Tooltip contentStyle={tooltipStyle} />
-                                        <Legend iconType="circle" verticalAlign="bottom" />
+                                        <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
+                                        <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ color: '#cbd5e1' }} />
                                     </PieChart>
+                                </ResponsiveContainer>
+                            </ChartCard>
+                        </div>
+
+                        {/* Top Products Row */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <ChartCard title="🏆 TOP 5 SẢN PHẨM BÁN CHẠY">
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={displayData.topProducts} layout="vertical" margin={{ left: 20 }}>
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" width={120} tick={{ fill: '#fff', fontSize: 13, fontWeight: 500 }} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
+                                        <Bar dataKey="value" barSize={20} radius={[0, 4, 4, 0]}>
+                                            {displayData.topProducts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartCard>
+                            <ChartCard title="📈 TĂNG TRƯỞNG KÊNH PHÂN PHỐI">
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={[
+                                        { name: 'Chợ thuốc', t1: 450, t2: 520 },
+                                        { name: 'Nhà thuốc', t1: 850, t2: 980 },
+                                        { name: 'Phòng khám', t1: 320, t2: 350 },
+                                        { name: 'Chuỗi', t1: 650, t2: 890 }, // High growth
+                                    ]} barGap={0}>
+                                        <XAxis dataKey="name" tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Legend wrapperStyle={{ color: '#cbd5e1' }} />
+                                        <Bar name="Tháng trước" dataKey="t1" fill="#64748b" radius={[4, 4, 0, 0]} />
+                                        <Bar name="Tháng này" dataKey="t2" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </ChartCard>
                         </div>
                     </div>
                 )}
 
-                {(activeTab === 'sales' || activeTab === 'coverage') && (
-                    <div style={{ textAlign: 'center', padding: '60px', color: THEME.textSec }}>
-                        <div style={{ fontSize: '48px' }}>🚧</div>
-                        <h3>Chức năng đang được cập nhật thêm dữ liệu</h3>
-                        <p>Vui lòng quay lại tab Tồn kho hoặc Tổng quan</p>
+                {/* === SALES TAB (NEW CONTENT) === */}
+                {activeTab === 'sales' && (
+                    <div className="animate-fade-in">
+                        <SectionTitle title="PHÂN TÍCH DOANH SỐ CHI TIẾT" icon="💰" />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                            <ChartCard title="THEO KÊNH (CHANNEL)">
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <PieChart>
+                                        <Pie data={[
+                                            { name: 'OTC - Nhà thuốc', value: 12500000000 },
+                                            { name: 'ETC - Bệnh viện', value: 4500000000 },
+                                            { name: 'MT - Chuỗi', value: 3200000000 }
+                                        ]} innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+                                            <Cell fill="#3b82f6" /><Cell fill="#f59e0b" /><Cell fill="#22c55e" />
+                                        </Pie>
+                                        <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
+                                        <Legend verticalAlign="bottom" wrapperStyle={{ color: '#cbd5e1' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartCard>
+                            <ChartCard title="THEO NHÓM KHÁCH HÀNG">
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <RadarChart outerRadius={90} data={[
+                                        { subject: 'Diamond', A: 120, fullMark: 150 },
+                                        { subject: 'Gold', A: 98, fullMark: 150 },
+                                        { subject: 'Silver', A: 86, fullMark: 150 },
+                                        { subject: 'Bronze', A: 99, fullMark: 150 },
+                                        { subject: 'New', A: 85, fullMark: 150 },
+                                        { subject: 'Lost', A: 65, fullMark: 150 },
+                                    ]}>
+                                        <PolarGrid stroke="#cbd5e1" strokeOpacity={0.2} />
+                                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#cbd5e1', fontSize: 11 }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 150]} tick={false} axisLine={false} />
+                                        <Radar name="Số lượng" dataKey="A" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.5} />
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </ChartCard>
+                            <ChartCard title="ĐÓNG GÓP THEO TOP SẢN PHẨM">
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <Treemap data={mockData.inventory.stockByCategory} dataKey="value" aspectRatio={4 / 3} stroke="#0a1628" content={<CustomTreemapContent />} >
+                                        <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
+                                    </Treemap>
+                                </ResponsiveContainer>
+                            </ChartCard>
+                        </div>
+                    </div>
+                )}
+
+                {/* === COVERAGE TAB (NEW CONTENT) === */}
+                {activeTab === 'coverage' && (
+                    <div className="animate-fade-in">
+                        <SectionTitle title="ĐỘ PHỦ VÀ PHÂN PHỐI" icon="🌏" />
+                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+                            <ChartCard title="BẢN ĐỒ NHIỆT ĐỘ PHỦ (HEATMAP - MOCK)">
+                                <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
+                                    <div style={{ textAlign: 'center', color: '#64748b' }}>
+                                        <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
+                                        <div>Tích hợp bản đồ GPS (Google Maps API)</div>
+                                    </div>
+                                </div>
+                            </ChartCard>
+                            <ChartCard title="TẦN SUẤT VIẾNG THĂM (F)">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={[
+                                        { name: 'F1 (1 lần/tháng)', value: 120 },
+                                        { name: 'F2 (2 lần/tháng)', value: 450 },
+                                        { name: 'F4 (1 lần/tuần)', value: 200 },
+                                        { name: 'F8 (2 lần/tuần)', value: 50 },
+                                    ]} layout="vertical" margin={{ left: 40 }}>
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#cbd5e1', fontSize: 11 }} />
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Bar dataKey="value" fill="#ec4899" radius={[0, 4, 4, 0]} barSize={30}>
+                                            <Cell fill="#ec4899" opacity={0.4} />
+                                            <Cell fill="#ec4899" opacity={0.6} />
+                                            <Cell fill="#ec4899" opacity={0.8} />
+                                            <Cell fill="#ec4899" opacity={1} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartCard>
+                        </div>
                     </div>
                 )}
             </div>
