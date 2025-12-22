@@ -27,15 +27,15 @@ const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 
 // --- MOCK DATA GENERATORS (The "Wow" Factor) ---
 const generateMockInventory = () => ({
-    totalValue: 15420000000, // 15.4 Ty
+    totalValue: 15420000000,
     itemCount: 450,
-    warehouseCount: 2,
+    warehouseCount: 5,
     turnoverRate: 4.2,
     expiryRisk: [
-        { name: 'Hết hạn < 3 tháng', value: 450000000, count: 12, color: '#ef4444' }, // Danger
-        { name: 'Hết hạn 3-6 tháng', value: 1200000000, count: 45, color: '#f59e0b' }, // Warning
-        { name: 'Hết hạn 6-12 tháng', value: 3500000000, count: 120, color: '#3b82f6' }, // Safe
-        { name: 'An toàn (>12 tháng)', value: 10270000000, count: 273, color: '#22c55e' } // Good
+        { name: 'Hết hạn < 3 tháng', value: 450000000, count: 12, color: '#ef4444' },
+        { name: 'Hết hạn 3-6 tháng', value: 1200000000, count: 45, color: '#f59e0b' },
+        { name: 'Hết hạn 6-12 tháng', value: 3500000000, count: 120, color: '#3b82f6' },
+        { name: 'An toàn (>12 tháng)', value: 10270000000, count: 273, color: '#22c55e' }
     ],
     stockByCategory: [
         { name: 'Kháng sinh', value: 4500000000 },
@@ -46,12 +46,15 @@ const generateMockInventory = () => ({
         { name: 'Khác', value: 1520000000 }
     ],
     stockByWarehouse: [
-        { name: 'Kho Tổng (HCM)', size: 12500000000 },
-        { name: 'Kho CN Hà Nội', size: 2920000000 }
+        { name: 'Kho DMS (Tổng)', size: 9500000000, color: '#3b82f6' },
+        { name: 'Kho Navi (CN)', size: 3200000000, color: '#22c55e' },
+        { name: 'Kho Mobile (Tài xế)', size: 850000000, color: '#f59e0b' },
+        { name: 'Kho Hàng đi đường', size: 1250000000, color: '#8b5cf6' },
+        { name: 'Kho Chờ xử lý', size: 620000000, color: '#ef4444' }
     ],
-    dsiTrend: [ // Days Sales of Inventory logic
+    dsiTrend: [
         { month: 'T1', dsi: 45 }, { month: 'T2', dsi: 42 }, { month: 'T3', dsi: 38 },
-        { month: 'T4', dsi: 40 }, { month: 'T5', dsi: 55 }, { month: 'T6', dsi: 62 }, // Warning rising
+        { month: 'T4', dsi: 40 }, { month: 'T5', dsi: 55 }, { month: 'T6', dsi: 62 },
     ]
 });
 
@@ -61,34 +64,31 @@ const generateMockTDV = () => {
         id: `tdv-mock-${i}`,
         employeeCode: `TDV00${i + 1}`,
         name: name,
-        sales: 450000000 + Math.random() * 200000000, // 450-650tr
+        sales: 450000000 + Math.random() * 200000000,
         target: 600000000,
         visits: 180 + Math.floor(Math.random() * 40),
         visitTarget: 200,
-        strikeRate: 45 + Math.floor(Math.random() * 30), // 45-75%
+        strikeRate: 45 + Math.floor(Math.random() * 30),
         coverage: 85 + Math.floor(Math.random() * 15),
         skus: 4.5 + Math.random() * 2
     })).sort((a, b) => b.sales - a.sales);
 };
 
 const generateMockCompliance = () => {
-    // Generate data for scatter plot (Visit Efficiency)
     const scatterData = Array.from({ length: 20 }, (_, i) => ({
-        x: 80 + Math.random() * 40, // Visit Rate (80-120%)
-        y: 40 + Math.random() * 50, // Strike Rate (40-90%)
-        z: 500000 + Math.random() * 1500000, // Avg Drop Size
+        x: 80 + Math.random() * 40,
+        y: 40 + Math.random() * 50,
+        z: 500000 + Math.random() * 1500000,
         name: `TDV ${i + 1}`,
         group: Math.random() > 0.5 ? 'A' : 'B'
     }));
 
-    // Generate funnel data
     const funnelData = [
         { name: 'Plan Call', value: 1250, fill: '#3b82f6' },
-        { name: 'Visited', value: 1150, fill: '#8b5cf6' }, // 92%
-        { name: 'Productive (PC)', value: 750, fill: '#22c55e' }, // 65% Strike
+        { name: 'Visited', value: 1150, fill: '#8b5cf6' },
+        { name: 'Productive (PC)', value: 750, fill: '#22c55e' },
     ];
 
-    // Generate detail table data
     const detailData = Array.from({ length: 10 }, (_, i) => ({
         id: i,
         name: `Trình Dược Viên ${i + 1}`,
@@ -99,7 +99,16 @@ const generateMockCompliance = () => {
         vpo: (1200000 + Math.random() * 800000).toFixed(0)
     }));
 
-    return { scatterData, funnelData, detailData };
+    // Mock Top Customers
+    const topCustomers = [
+        { name: 'Nhà thuốc Long Châu - Q3', sales: 1250000000, growth: 12 },
+        { name: 'Pharmacity - Hai Bà Trưng', sales: 980000000, growth: 8 },
+        { name: 'Bệnh viện Chợ Rẫy (Kho Dược)', sales: 2500000000, growth: 5 },
+        { name: 'Phòng Khám Đa Khoa Hoàn Mỹ', sales: 850000000, growth: -2 },
+        { name: 'Nhà thuốc An Khang - Gò Vấp', sales: 720000000, growth: 15 },
+    ];
+
+    return { scatterData, funnelData, detailData, topCustomers };
 };
 
 const BizReview = () => {
@@ -424,20 +433,41 @@ const BizReview = () => {
                                     </BarChart>
                                 </ResponsiveContainer>
                             </ChartCard>
-                            <ChartCard title="📈 TĂNG TRƯỞNG KÊNH PHÂN PHỐI">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <ChartCard title="📈 TĂNG TRƯỞNG KÊNH PHÂN PHỐI">
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <BarChart data={[
+                                            { name: 'Chợ thuốc', t1: 450, t2: 520 },
+                                            { name: 'Nhà thuốc', t1: 850, t2: 980 },
+                                            { name: 'Phòng khám', t1: 320, t2: 350 },
+                                            { name: 'Chuỗi', t1: 650, t2: 890 }, // High growth
+                                        ]} barGap={0}>
+                                            <XAxis dataKey="name" tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                            <Tooltip contentStyle={tooltipStyle} />
+                                            <Legend wrapperStyle={{ color: '#cbd5e1' }} />
+                                            <Bar name="Tháng trước" dataKey="t1" fill="#64748b" radius={[4, 4, 0, 0]} />
+                                            <Bar name="Tháng này" dataKey="t2" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartCard>
+                            </div>
+                        </div>
+
+                        {/* New Row: Avg Order Value */}
+                        <div style={{ marginTop: '24px' }}>
+                            <ChartCard title="GIÁ TRỊ ĐƠN HÀNG TRUNG BÌNH (AOV TREND)">
                                 <ResponsiveContainer width="100%" height={250}>
-                                    <BarChart data={[
-                                        { name: 'Chợ thuốc', t1: 450, t2: 520 },
-                                        { name: 'Nhà thuốc', t1: 850, t2: 980 },
-                                        { name: 'Phòng khám', t1: 320, t2: 350 },
-                                        { name: 'Chuỗi', t1: 650, t2: 890 }, // High growth
-                                    ]} barGap={0}>
-                                        <XAxis dataKey="name" tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
-                                        <Tooltip contentStyle={tooltipStyle} />
-                                        <Legend wrapperStyle={{ color: '#cbd5e1' }} />
-                                        <Bar name="Tháng trước" dataKey="t1" fill="#64748b" radius={[4, 4, 0, 0]} />
-                                        <Bar name="Tháng này" dataKey="t2" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
+                                    <ComposedChart data={[
+                                        { month: 'T1', val: 1200000 }, { month: 'T2', val: 1250000 }, { month: 'T3', val: 1180000 },
+                                        { month: 'T4', val: 1350000 }, { month: 'T5', val: 1400000 }, { month: 'T6', val: 1550000 }
+                                    ]}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                                        <XAxis dataKey="month" tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
+                                        <Bar dataKey="val" fill="#3b82f6" barSize={40} radius={[4, 4, 0, 0]} opacity={0.8} />
+                                        <Line type="monotone" dataKey="val" stroke="#f59e0b" strokeWidth={2} />
+                                    </ComposedChart>
                                 </ResponsiveContainer>
                             </ChartCard>
                         </div>
@@ -490,6 +520,38 @@ const BizReview = () => {
                                 </ResponsiveContainer>
                             </ChartCard>
                         </div>
+
+                        {/* Top Customers Section */}
+                        <ChartCard title="KHACH HÀNG DOANH SỐ CAO NHẤT (KEY ACCOUNTS)">
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0', fontSize: 13 }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8', background: 'rgba(255,255,255,0.05)' }}>
+                                            <th style={{ padding: '12px 16px', textAlign: 'left' }}>Tên Khách Hàng</th>
+                                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Doanh số (VNĐ)</th>
+                                            <th style={{ padding: '12px 16px', textAlign: 'center' }}>Tăng trưởng</th>
+                                            <th style={{ padding: '12px 16px', textAlign: 'center' }}>Phân hạng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {mockData.compliance.topCustomers && mockData.compliance.topCustomers.map((cus, i) => (
+                                            <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                                                <td style={{ padding: '12px 16px', fontWeight: 600, color: '#f8fafc' }}>{cus.name}</td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700 }}>{formatCurrency(cus.sales)}</td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center', color: cus.growth > 0 ? '#22c55e' : '#ef4444' }}>
+                                                    {cus.growth > 0 ? '+' : ''}{cus.growth}%
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                    <span style={{ padding: '4px 8px', borderRadius: 4, background: i < 2 ? 'gold' : '#94a3b8', color: '#000', fontSize: 11, fontWeight: 'bold' }}>
+                                                        {i < 2 ? 'DIAMOND' : 'GOLD'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </ChartCard>
                     </div>
                 )}
 
@@ -584,36 +646,38 @@ const BizReview = () => {
                         {/* Detailed Table */}
                         <ChartCard title="CHI TIẾT HOẠT ĐỘNG ĐỘI NGŨ (SALES FORCE ACTIVITY)">
                             <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0', fontSize: 13 }}>
-                                    <thead>
-                                        <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8' }}>
-                                            <th style={{ padding: 12, textAlign: 'left' }}>TDV / Team</th>
-                                            <th style={{ padding: 12, textAlign: 'center' }}>Plan Call</th>
-                                            <th style={{ padding: 12, textAlign: 'center' }}>Visited</th>
-                                            <th style={{ padding: 12, textAlign: 'center' }}>Tuân thủ</th>
-                                            <th style={{ padding: 12, textAlign: 'center' }}>P.Call (PC)</th>
-                                            <th style={{ padding: 12, textAlign: 'center' }}>Strike Rate</th>
-                                            <th style={{ padding: 12, textAlign: 'right' }}>Doanh thu</th>
-                                            <th style={{ padding: 12, textAlign: 'right' }}>Drop Size (VPO)</th>
-                                            <th style={{ padding: 12, textAlign: 'center' }}>LPPC</th>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0', fontSize: 13, background: 'rgba(15, 23, 42, 0.6)' }}>
+                                    <thead style={{ background: '#1e293b' }}>
+                                        <tr style={{ borderBottom: '2px solid #334155', color: '#cbd5e1' }}>
+                                            <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '700' }}>TDV / Team</th>
+                                            <th style={{ padding: '14px', textAlign: 'center' }}>Plan Call</th>
+                                            <th style={{ padding: '14px', textAlign: 'center' }}>Visited</th>
+                                            <th style={{ padding: '14px', textAlign: 'center' }}>Tuân thủ</th>
+                                            <th style={{ padding: '14px', textAlign: 'center' }}>P.Call</th>
+                                            <th style={{ padding: '14px', textAlign: 'center' }}>Strike</th>
+                                            <th style={{ padding: '14px', textAlign: 'right' }}>Doanh thu</th>
+                                            <th style={{ padding: '14px', textAlign: 'right' }}>Drop Size</th>
+                                            <th style={{ padding: '14px', textAlign: 'center' }}>LPPC</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {mockData.compliance.detailData.map((row, i) => (
-                                            <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
-                                                <td style={{ padding: 12, fontWeight: 500 }}>{row.name}</td>
-                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.plan}</td>
-                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.actual}</td>
-                                                <td style={{ padding: 12, textAlign: 'center' }}>
-                                                    <span style={{ color: row.actual / row.plan < 0.9 ? '#ef4444' : '#22c55e' }}>{Math.round(row.actual / row.plan * 100)}%</span>
+                                            <tr key={i} style={{ borderBottom: '1px solid #334155', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.05)' } }}>
+                                                <td style={{ padding: '12px 16px', fontWeight: 600, color: '#f1f5f9' }}>{row.name}</td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{row.plan}</td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{row.actual}</td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                                    <span style={{ padding: '4px 8px', borderRadius: '4px', background: row.actual / row.plan < 0.9 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)', color: row.actual / row.plan < 0.9 ? '#fca5a5' : '#86efac', fontWeight: 600 }}>
+                                                        {Math.round(row.actual / row.plan * 100)}%
+                                                    </span>
                                                 </td>
-                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.pc}</td>
-                                                <td style={{ padding: 12, textAlign: 'center', fontWeight: 'bold', color: row.pc / row.actual < 0.5 ? '#f59e0b' : '#3b82f6' }}>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{row.pc}</td>
+                                                <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: row.pc / row.actual < 0.5 ? '#f59e0b' : '#3b82f6' }}>
                                                     {Math.round(row.pc / row.actual * 100)}%
                                                 </td>
-                                                <td style={{ padding: 12, textAlign: 'right' }}>{formatCurrency(row.pc * row.vpo)}</td>
-                                                <td style={{ padding: 12, textAlign: 'right' }}>{formatCurrency(row.vpo)}</td>
-                                                <td style={{ padding: 12, textAlign: 'center' }}>{row.lppc}</td>
+                                                <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontSize: 13 }}>{formatCurrency(row.pc * row.vpo)}</td>
+                                                <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontSize: 13 }}>{formatCurrency(row.vpo)}</td>
+                                                <td style={{ padding: '12px', textAlign: 'center' }}>{row.lppc}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -684,7 +748,7 @@ const MetricRow = ({ label, value, target, percent, color }) => (
 );
 
 const CustomTreemapContent = (props) => {
-    const { x, y, width, height, index, name, size } = props;
+    const { x, y, width, height, index, name, size, color } = props;
     return (
         <g>
             <rect
@@ -693,7 +757,7 @@ const CustomTreemapContent = (props) => {
                 width={width}
                 height={height}
                 style={{
-                    fill: COLORS[index % COLORS.length],
+                    fill: color || COLORS[index % COLORS.length],
                     stroke: '#0a1628',
                     strokeWidth: 2,
                     strokeOpacity: 1,
