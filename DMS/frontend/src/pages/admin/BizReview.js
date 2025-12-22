@@ -196,13 +196,28 @@ const BizReview = () => {
                 {/* === INVENTORY TAB (NEW) === */}
                 {activeTab === 'inventory' && (
                     <div className="animate-fade-in">
-                        <SectionTitle title="SỨC KHỎE TỒN KHO & CHUỖI CUNG ỨNG" icon="📦" />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <SectionTitle title="SỨC KHỎE TỒN KHO & CHUỖI CUNG ỨNG" icon="📦" />
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <select style={filterStyle} value={filters.stockWarehouse || 'all'} onChange={e => setFilters({ ...filters, stockWarehouse: e.target.value })}>
+                                    <option value="all">Tất cả kho</option>
+                                    <option value="WH001">Kho Tổng (HCM)</option>
+                                    <option value="WH002">Kho CN Hà Nội</option>
+                                </select>
+                                <select style={filterStyle} value={filters.manufacturer || 'all'} onChange={e => setFilters({ ...filters, manufacturer: e.target.value })}>
+                                    <option value="all">Tất cả Hãng</option>
+                                    <option value="GSK">GSK</option>
+                                    <option value="Sanofi">Sanofi</option>
+                                    <option value="DHG">DHG Pharma</option>
+                                </select>
+                            </div>
+                        </div>
 
                         {/* Top KPIs */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
-                            <KPICard title="GIÁ TRỊ TỒN KHO" value={formatCurrency(mockData.inventory.totalValue)} sub="VND" color="#3b82f6" icon="💰" />
-                            <KPICard title="HÀNG CẬN DATE (<6T)" value={formatCurrency(1650000000)} sub="10.7% Tổng kho" color="#f59e0b" icon="⚠️" />
-                            <KPICard title="VÒNG QUAY (TURNOVER)" value={mockData.inventory.turnoverRate + 'x'} sub="Mục tiêu: 5.0x" color="#22c55e" icon="🔄" />
+                            <KPICard title="GIÁ TRỊ TỒN KHO" value={formatCurrency(mockData.inventory.totalValue * (filters.stockWarehouse !== 'all' ? 0.6 : 1))} sub="VND" color="#3b82f6" icon="💰" />
+                            <KPICard title="HÀNG CẬN DATE (<6T)" value={formatCurrency(1650000000 * (filters.stockWarehouse !== 'all' ? 0.4 : 1))} sub="10.7% Tổng kho" color="#f59e0b" icon="⚠️" />
+                            <KPICard title="VÒNG QUAY (TURNOVER)" value={(mockData.inventory.turnoverRate + (filters.stockWarehouse !== 'all' ? 0.5 : 0)).toFixed(1) + 'x'} sub="Mục tiêu: 5.0x" color="#22c55e" icon="🔄" />
                             <KPICard title="DAYS SALES OF INV (DSI)" value="45 Ngày" sub="Cảnh báo: >60" color="#8b5cf6" icon="📅" />
                         </div>
 
@@ -212,7 +227,7 @@ const BizReview = () => {
                                 <ResponsiveContainer width="100%" height={300}>
                                     <BarChart data={mockData.inventory.expiryRisk} layout="vertical">
                                         <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={140} tick={{ fill: '#cbd5e1' }} />
+                                        <YAxis dataKey="name" type="category" width={140} tick={{ fill: '#cbd5e1', fontSize: 13, fontWeight: 500 }} />
                                         <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
                                         <Bar dataKey="value" barSize={32} radius={[0, 4, 4, 0]}>
                                             {mockData.inventory.expiryRisk.map((entry, index) => (
@@ -237,7 +252,7 @@ const BizReview = () => {
                                             ))}
                                         </Pie>
                                         <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
-                                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ color: '#cbd5e1' }} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </ChartCard>
@@ -255,23 +270,26 @@ const BizReview = () => {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="month" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                                        <YAxis tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                        <XAxis dataKey="month" tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
                                         <Tooltip contentStyle={tooltipStyle} />
                                         <Area type="monotone" dataKey="dsi" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorDsi)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </ChartCard>
 
-                            <ChartCard title="TOP KHO HÀNG">
+                            <ChartCard title="TOP KHO HÀNG (TREEMAP)">
                                 <ResponsiveContainer width="100%" height={250}>
-                                    <Treemap data={mockData.inventory.stockByWarehouse} dataKey="size" aspectRatio={4 / 3} stroke="#0a1628" >
+                                    <Treemap
+                                        data={mockData.inventory.stockByWarehouse}
+                                        dataKey="size"
+                                        aspectRatio={4 / 3}
+                                        stroke="#0a1628"
+                                        content={<CustomTreemapContent />}
+                                    >
                                         <Tooltip contentStyle={tooltipStyle} formatter={(val) => formatCurrency(val)} />
                                     </Treemap>
                                 </ResponsiveContainer>
-                                <div style={{ textAlign: 'center', fontSize: '12px', color: '#fff', marginTop: '-25px', position: 'relative', pointerEvents: 'none' }}>
-                                    *Diện tích hình chữ nhật thể hiện giá trị tồn kho
-                                </div>
                             </ChartCard>
                         </div>
                     </div>
@@ -421,6 +439,49 @@ const MetricRow = ({ label, value, target, percent, color }) => (
         </div>
     </div>
 );
+
+const CustomTreemapContent = (props) => {
+    const { x, y, width, height, index, name, size } = props;
+    return (
+        <g>
+            <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                style={{
+                    fill: COLORS[index % COLORS.length],
+                    stroke: '#0a1628',
+                    strokeWidth: 2,
+                    strokeOpacity: 1,
+                }}
+            />
+            {width > 50 && height > 30 && (
+                <text
+                    x={x + width / 2}
+                    y={y + height / 2}
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize={12}
+                    fontWeight={600}
+                >
+                    {name}
+                </text>
+            )}
+            {width > 50 && height > 50 && (
+                <text
+                    x={x + width / 2}
+                    y={y + height / 2 + 14}
+                    textAnchor="middle"
+                    fill="rgba(255,255,255,0.8)"
+                    fontSize={10}
+                >
+                    {(size / 1000000000).toFixed(1)} Tỷ
+                </text>
+            )}
+        </g>
+    );
+};
 
 // Styles
 const filterStyle = { background: '#1e293b', border: '1px solid #334155', color: '#fff', padding: '6px 12px', borderRadius: 6 };
