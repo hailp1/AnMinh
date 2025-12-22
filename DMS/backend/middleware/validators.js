@@ -1,3 +1,4 @@
+
 import { body, query, validationResult } from 'express-validator';
 
 // Middleware to check validation results
@@ -26,8 +27,9 @@ export const inventoryValidators = {
         query('endDate').optional().isISO8601().withMessage('Ngày kết thúc không hợp lệ')
     ],
     createTransaction: [
-        body('type').isIn(['IMPORT', 'EXPORT']).withMessage('Loại giao dịch không hợp lệ'),
-        body('warehouseId').notEmpty().withMessage('Kho là bắt buộc'),
+        body('type').isIn(['IMPORT', 'EXPORT', 'TRANSFER']).withMessage('Loại giao dịch không hợp lệ'),
+        body('warehouseId').notEmpty().withMessage('Kho (nguồn) là bắt buộc'),
+        // toWarehouseId is conditional, handled in controller manually
         body('items').isArray({ min: 1 }).withMessage('Phải có ít nhất 1 sản phẩm'),
         body('items.*.productId').notEmpty().withMessage('Mã sản phẩm là bắt buộc'),
         body('items.*.quantity').isInt({ min: 1 }).withMessage('Số lượng phải lớn hơn 0')

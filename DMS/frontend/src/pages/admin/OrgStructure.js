@@ -35,9 +35,27 @@ const OrgStructure = () => {
     const [formData, setFormData] = useState({});
     const [message, setMessage] = useState(null);
 
+    const [currentUser, setCurrentUser] = useState(null);
+
     useEffect(() => {
+        loadCurrentUser();
         loadData();
     }, [activeTab]);
+
+    const loadCurrentUser = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const user = await res.json();
+                setCurrentUser(user);
+            }
+        } catch (e) {
+            console.error('Error loading current user', e);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -46,6 +64,7 @@ const OrgStructure = () => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
             switch (activeTab) {
+                // ... (Load roles, etc. keep same)
                 case 'roles':
                     const rolesRes = await fetch(`${API_BASE}/role-hierarchy/roles`, { headers });
                     if (rolesRes.ok) {
@@ -57,10 +76,6 @@ const OrgStructure = () => {
                 case 'kpis':
                     const kpiRes = await fetch(`${API_BASE}/territory-kpi/`, { headers });
                     if (kpiRes.ok) setTerritoryKpis(await kpiRes.json());
-                    break;
-                case 'rules':
-                    const rulesRes = await fetch(`${API_BASE}/assignment-rules/`, { headers });
-                    if (rulesRes.ok) setAssignmentRules(await rulesRes.json());
                     break;
                 case 'positions':
                     const posRes = await fetch(`${API_BASE}/org-structure/positions`, { headers });
@@ -174,7 +189,7 @@ const OrgStructure = () => {
 
                         {/* ORG CHART TAB */}
                         {activeTab === 'orgchart' && (
-                            <OrgChartTab data={orgChartData} />
+                            <OrgChartTab data={orgChartData} currentUser={currentUser} />
                         )}
 
                         {/* KPIs TAB */}
@@ -814,67 +829,126 @@ const actionBtnStyle = (type) => ({
 // ================================
 // ORG CHART TAB COMPONENT (SUCCESSFACTORS STYLE)
 // ================================
-const OrgChartTab = ({ data }) => {
-    // State to track collapsed nodes. Key usually ID, value = true (collapsed)
+// ================================
+// ORG CHART TAB COMPONENT (SUCCESSFACTORS STYLE)
+// ================================
+// ================================
+// ORG CHART TAB COMPONENT (SUCCESSFACTORS STYLE)
+// ================================
+const OrgChartTab = ({ data, currentUser }) => {
     const [collapsedNodes, setCollapsedNodes] = useState({});
+    const [displayTree, setDisplayTree] = useState([]);
+    const [showSalesOnly, setShowSalesOnly] = useState(true);
 
-    // Toggle collapse state
+    useEffect(() => {
+        if (!data || data.length === 0) return;
+
+        const findMyNode = (nodes, targetId) => {
+            for (const node of nodes) {
+                if (node.userId === targetId) return node;
+                if (node.subordinates && node.subordinates.length > 0) {
+                    const found = findMyNode(node.subordinates, targetId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        const filterSalesTree = (nodes) => {
+            return nodes.map(node => {
+                const title = (node.position?.name || node.positionCode || '').toUpperCase();
+                const isExcluded = ['IT', 'ACCOUNT', 'KẾ TOÁN', 'DRIVER', 'LÁI XE', 'ADMIN', 'WAREHOUSE', 'KHO', 'MARKETING', 'HR', 'NHÂN SỰ', 'LOGISTIC', 'GIAO HÀNG'].some(k => title.includes(k));
+                if (isExcluded) return null;
+                let filteredChildren = [];
+                if (node.subordinates && node.subordinates.length > 0) {
+                    filteredChildren = filterSalesTree(node.subordinates);
+                }
+                return { ...node, subordinates: filteredChildren };
+            }).filter(n => n !== null);
+        };
+
+        let roots = JSON.parse(JSON.stringify(data));
+
+        if (currentUser && currentUser.role !== 'ADMIN') {
+            const myNode = findMyNode(roots, currentUser.id);
+            if (myNode) roots = [myNode];
+        }
+
+        if (showSalesOnly) {
+            roots = filterSalesTree(roots);
+        }
+
+        setDisplayTree(roots);
+
+        // Auto-expand logic for Vertical Tree: Expand mostly everything for better visibility?
+        // Or keep Level 2 collapsed?
+        // Let's Collapse Level 2+ by default to keep it clean.
+        const initialCollapsed = {};
+        const setInitialCollapseState = (nodes, level) => {
+            nodes.forEach(n => {
+                if (level >= 2) initialCollapsed[n.id] = true; // Collapse deeper levels
+                if (n.subordinates) setInitialCollapseState(n.subordinates, level + 1);
+            });
+        };
+        setInitialCollapseState(roots, 0);
+        setCollapsedNodes(initialCollapsed);
+
+    }, [data, currentUser, showSalesOnly]);
+
     const toggleNode = (nodeId) => {
-        setCollapsedNodes(prev => ({
-            ...prev,
-            [nodeId]: !prev[nodeId]
-        }));
+        setCollapsedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
     };
 
-    // Recursive render function
-    const renderNode = (node) => {
+    const renderNode = (node, level = 0) => {
         if (!node) return null;
 
-        const isVacant = !node.name || node.name.startsWith('VACANT');
-        const isPlan = node.name && node.name.includes('Plan');
+        const isVacant = !node.name || node.name.startsWith('VACANT') || node.name.includes('(Trống)');
         const hasChildren = node.subordinates && node.subordinates.length > 0;
         const isCollapsed = collapsedNodes[node.id];
 
-        // SuccessFactors Card Style Variables
-        const cardWidth = '220px';
-        const cardHeight = '100px';
-        const avatarSize = '50px';
-
-        // Status Strip Color (Top Border)
-        const statusColor = isVacant ? '#ef4444' : isPlan ? '#94a3b8' : THEME.accent;
-        const initials = node.name ? node.name.split(' ').map(n => n[0]).join('').slice(0, 2) : '??';
+        // Compact Card Style
+        const statusColor = isVacant ? '#ef4444' : THEME.accent;
+        const initials = node.name && !isVacant ? node.name.split(' ').map(n => n[0]).join('').slice(0, 2) : '!';
 
         return (
-            <li key={node.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px' }}>
-                <div style={{
-                    position: 'relative',
-                    width: cardWidth,
-                    height: cardHeight,
-                    background: 'linear-gradient(to bottom, #1e293b, #0f172a)',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-                    borderTop: `4px solid ${statusColor}`, // Color strip like SF
-                    border: `1px solid ${THEME.cardBorder}`,
-                    borderTopWidth: '4px', // Restore top strip
-                    borderTopColor: statusColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px',
-                    gap: '12px',
-                    transition: 'all 0.2s ease',
-                    marginBottom: hasChildren && !isCollapsed ? '30px' : '0', // Spacing for line
-                    zIndex: 2,
-                    opacity: isPlan ? 0.7 : 1
-                }}>
-                    {/* Avatar Circle */}
+            <div key={node.id} className="org-node" style={{ marginLeft: level > 0 ? '40px' : '0', position: 'relative' }}>
+                {/* Connector Lines */}
+                {level > 0 && (
                     <div style={{
-                        width: avatarSize,
-                        height: avatarSize,
-                        borderRadius: '50%',
+                        position: 'absolute', top: '35px', left: '-40px', width: '40px', height: '1px',
+                        borderTop: '2px solid #475569'
+                    }}></div>
+                )}
+                {level > 0 && (
+                    <div style={{
+                        position: 'absolute', top: '-20px', left: '-42px', width: '1px', height: 'calc(100% + 20px)',
+                        borderLeft: '2px solid #475569'
+                    }}></div>
+                )}
+
+                {/* Card */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: '15px',
+                    background: 'linear-gradient(to right, #1e293b, #0f172a)',
+                    borderLeft: `4px solid ${statusColor}`,
+                    border: `1px solid ${THEME.cardBorder}`,
+                    borderLeftWidth: '4px',
+                    borderLeftColor: statusColor,
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginBottom: '10px',
+                    width: '350px', // Fixed width for clean column
+                    position: 'relative',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
+                    transition: 'transform 0.2s',
+                    cursor: 'default'
+                }}>
+                    {/* Avatar */}
+                    <div style={{
+                        width: '40px', height: '40px', borderRadius: '50%',
                         background: isVacant ? 'rgba(239, 68, 68, 0.2)' : '#334155',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#fff', fontWeight: '700', fontSize: '18px',
-                        border: `2px solid ${isVacant ? '#ef4444' : '#64748b'}`,
+                        color: '#fff', fontWeight: 'bold', border: `2px solid ${statusColor}`,
                         flexShrink: 0
                     }}>
                         {isVacant ? '!' : initials}
@@ -882,155 +956,80 @@ const OrgChartTab = ({ data }) => {
 
                     {/* Info */}
                     <div style={{ flex: 1, overflow: 'hidden' }}>
-                        <div style={{
-                            fontSize: '14px',
-                            fontWeight: '700',
-                            color: '#fff',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                        }}>
-                            {node.name || 'Position Vacant'}
-                        </div>
-                        <div style={{
-                            fontSize: '12px',
-                            color: statusColor,
-                            marginTop: '2px',
-                            fontWeight: '600'
-                        }}>
-                            {node.position || node.positionCode || 'N/A'}
+                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>{node.name}</div>
+                        <div style={{ fontSize: '13px', color: statusColor, fontWeight: '600' }}>
+                            {node.position?.name || node.positionCode}
                         </div>
                         {node.employeeCode && (
-                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                                #{node.employeeCode}
-                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>#{node.employeeCode}</div>
                         )}
                     </div>
 
-                    {/* Expand/Collapse Button (Bottom Center) - Only if children */}
+                    {/* Toggle Button */}
                     {hasChildren && (
-                        <div
-                            onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }}
-                            style={{
-                                position: 'absolute',
-                                bottom: '-12px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                width: '24px',
-                                height: '24px',
-                                background: '#1e293b',
-                                border: '2px solid #64748b',
-                                borderRadius: '50%',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: '#fff', fontWeight: 'bold', fontSize: '16px', lineHeight: 1,
-                                cursor: 'pointer', zIndex: 10,
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                            }}
-                            title={isCollapsed ? `Expand (${node.subordinates.length} reports)` : 'Collapse'}
-                        >
-                            {isCollapsed ? '+' : '-'}
-                        </div>
-                    )}
-
-                    {/* Count Badge (Top Right) IF collapsed */}
-                    {hasChildren && isCollapsed && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '-8px',
-                            right: '-8px',
-                            background: THEME.accent,
-                            color: '#fff',
-                            borderRadius: '10px',
-                            padding: '2px 8px',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                        <div onClick={(e) => { e.stopPropagation(); toggleNode(node.id); }} style={{
+                            width: '24px', height: '24px', background: '#334155', borderRadius: '4px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            color: '#fff', fontSize: '14px'
                         }}>
-                            {node.subordinates.length}
+                            {isCollapsed ? '+' : '−'}
                         </div>
                     )}
                 </div>
 
-                {/* Recursive Children - UL */}
+                {/* Children Container */}
                 {hasChildren && !isCollapsed && (
-                    <div className="org-children-container">
-                        <ul style={{ display: 'flex', paddingTop: '20px', position: 'relative' }}>
-                            {node.subordinates.map(child => renderNode(child))}
-                        </ul>
+                    <div style={{ position: 'relative' }}>
+                        {/* Vertical line connector for children group */}
+                        <div style={{
+                            position: 'absolute', top: 0, left: '18px', width: '2px', height: '100%',
+                            background: '#475569', display: 'none' // Handled by individual nodes
+                        }}></div>
+
+                        {node.subordinates.map((child, idx) => (
+                            <div key={child.id} style={{ position: 'relative' }}>
+                                {/* Trim vertical line for last child if needed - handled via CSS logic usually, 
+                                    but simple absolute positioning above works relative to child */}
+                                {renderNode(child, level + 1)}
+                            </div>
+                        ))}
                     </div>
                 )}
-            </li>
+            </div>
         );
     };
 
-    if (!data || data.length === 0) {
-        return (
-            <Card title="🌳 Sơ đồ Tổ chức Thực tế" subtitle="Reporting Lines">
-                <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌳</div>
-                    <div>Chưa có dữ liệu cây tổ chức hoặc đang tải...</div>
-                    <small>(Hãy bấm Seed Demo và làm mới trang)</small>
-                </div>
-            </Card>
-        );
-    }
-
     return (
-        <Card title="🌳 Sơ đồ Tổ chức (SuccessFactors Style)" subtitle={`Hiển thị ${data.length} nhánh chính • ${data.reduce((acc, n) => acc + 1 + (n.subordinates?.length || 0), 0)} vị trí`}>
-            <div className="org-chart-wrapper" style={{ overflowX: 'auto', padding: '40px 20px', minHeight: '700px', background: 'rgba(10, 22, 40, 0.5)', borderRadius: '12px' }}>
-                <div className="org-tree" style={{ display: 'flex', justifyContent: 'center', width: 'fit-content', minWidth: '100%' }}>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', gap: '40px' }}>
-                        {data.map(rootNode => renderNode(rootNode))}
-                    </ul>
+        <Card title="🌳 Sơ đồ Tổ chức" subtitle={`Hiển thị ${displayTree.length} nhánh chính (Giao diện dọc chuyên nghiệp)`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '10px', flexWrap: 'wrap' }}>
+                {currentUser && (
+                    <div style={{ padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#94a3b8' }}>
+                        📍 Góc nhìn: <strong>{currentUser.name}</strong>
+                    </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)' }}>
+                    <input type="checkbox" id="showSalesOnly" checked={showSalesOnly} onChange={e => setShowSalesOnly(e.target.checked)} style={{ cursor: 'pointer' }} />
+                    <label htmlFor="showSalesOnly" style={{ color: '#fff', fontSize: '14px', cursor: 'pointer', userSelect: 'none' }}>
+                        Chỉ hiển thị Sales Team
+                    </label>
                 </div>
+            </div>
 
-                {/* CSS for Tree Connectors */}
+            <div style={{ padding: '20px', background: 'rgba(10, 22, 40, 0.3)', borderRadius: '12px', minHeight: '600px', overflowX: 'auto' }}>
+                {displayTree.length > 0 ? (
+                    displayTree.map(root => (
+                        <div key={root.id} style={{ marginBottom: '40px' }}>
+                            {renderNode(root)}
+                        </div>
+                    ))
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Chưa có dữ liệu hiển thị.</div>
+                )}
+
+                {/* CSS to clean up lines for last child */}
                 <style>{`
-                    .org-tree ul {
-                        position: relative; transition: all 0.5s;
-                        display: flex; justify-content: center;
-                    }
-                    .org-tree li {
-                        float: left; text-align: center; list-style-type: none;
-                        position: relative; padding: 20px 10px 0 10px;
-                        transition: all 0.5s;
-                    }
-                    /* Vertical line down from parent */
-                    .org-tree ul::before {
-                        content: ''; position: absolute; top: 0; left: 50%; border-left: 1px solid #94a3b8; width: 0; height: 20px;
-                    }
-                    /* Horizontal lines connecting siblings */
-                    .org-tree li::before, .org-tree li::after {
-                        content: ''; position: absolute; top: 0; right: 50%;
-                        border-top: 1px solid #94a3b8; width: 51%; height: 20px;
-                    }
-                    .org-tree li::after {
-                        right: auto; left: 50%; border-left: 1px solid #94a3b8;
-                    }
-                    /* Remove connectors from single child */
-                    .org-tree li:only-child::after, .org-tree li:only-child::before {
-                        display: none;
-                    }
-                    .org-tree li:only-child { padding-top: 0; }
-                    /* Remove left connector from first child and right connector from last child */
-                    .org-tree li:first-child::before, .org-tree li:last-child::after {
-                        border: 0 none;
-                    }
-                    /* Add back vertical line for last child */
-                    .org-tree li:last-child::before {
-                        border-right: 1px solid #94a3b8; border-radius: 0 0 0 0;
-                    }
-                    .org-tree li:first-child::after {
-                        border-radius: 0 0 0 0;
-                    }
-                    /* Connector down from node to children */
-                    .org-tree li > div::after {
-                        content: ''; position: absolute; bottom: -20px; left: 50%;
-                        border-left: 1px solid #94a3b8; width: 0; height: 20px;
-                    }
-                    /* Hide connector if collapsed or no children */
-                    .org-tree li:has(> div + div) > div::after {
-                         display: none;
+                    .org-node:last-child > div:nth-child(2) {
+                        height: 35px !important; /* Cut line at horizontal connector */
                     }
                 `}</style>
             </div>

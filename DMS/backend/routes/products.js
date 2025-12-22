@@ -3,6 +3,10 @@ import { prisma } from '../lib/prisma.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import logger from '../lib/logger.js';
+import multer from 'multer';
+import ExcelJS from 'exceljs';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -24,6 +28,19 @@ router.get('/groups', auth, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching product groups:', error);
     res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Lấy danh sách danh mục (Category)
+router.get('/categories', auth, async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.json([]);
   }
 });
 
@@ -136,7 +153,7 @@ router.put('/admin/groups/:id', adminAuth, async (req, res) => {
 router.post('/admin/products', adminAuth, async (req, res) => {
   try {
     const {
-      name, code, description, groupId, unit, price,
+      name, code, description, groupId, categoryId, unit, price,
       isPrescription, concentration, usage, genericName, manufacturer, countryOfOrigin,
       registrationNo, packingSpec, storageCondition, indications, contraindications,
       dosage, sideEffects, shelfLife, vat, images
@@ -152,6 +169,7 @@ router.post('/admin/products', adminAuth, async (req, res) => {
         code: code || null,
         description: description || null,
         groupId,
+        categoryId: categoryId || null,
         unit: unit || 'hộp',
         price: parseFloat(price),
         isActive: true,
@@ -191,7 +209,7 @@ router.post('/admin/products', adminAuth, async (req, res) => {
 router.put('/admin/products/:id', adminAuth, async (req, res) => {
   try {
     const {
-      name, code, description, groupId, unit, price, isActive,
+      name, code, description, groupId, categoryId, unit, price, isActive,
       isPrescription, concentration, usage, genericName, manufacturer, countryOfOrigin,
       registrationNo, packingSpec, storageCondition, indications, contraindications,
       dosage, sideEffects, shelfLife, vat, images
@@ -202,6 +220,7 @@ router.put('/admin/products/:id', adminAuth, async (req, res) => {
     if (code !== undefined) updateData.code = code || null;
     if (description !== undefined) updateData.description = description || null;
     if (groupId !== undefined) updateData.groupId = groupId;
+    if (categoryId !== undefined) updateData.categoryId = categoryId || null;
     if (unit !== undefined) updateData.unit = unit;
     if (price !== undefined) updateData.price = parseFloat(price);
     if (isActive !== undefined) updateData.isActive = isActive;
@@ -238,6 +257,128 @@ router.put('/admin/products/:id', adminAuth, async (req, res) => {
     }
     logger.error('Error updating product:', error);
     res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Admin: Import sản phẩm từ Excel
+router.post('/admin/products/import', [adminAuth, upload.single('file')], async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Chưa chọn file' });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const sheet = workbook.getWorksheet(1);
+
+    if (!sheet) return res.status(400).json({ error: 'File không đúng định dạng' });
+
+    let count = 0;
+    const errors = [];
+
+    // Iterate rows (skip header row 1)
+    // Using eachRow
+    const rows = [];
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) rows.push(row);
+    });
+
+    for (const row of rows) {
+      // Helper to get cell value safely
+      const getVal = (idx) => {
+        const val = row.getCell(idx).value;
+        return (val && typeof val === 'object' && val.text) ? val.text : val;
+      };
+
+      // Map columns based on Template
+      // 1:Code, 2:Name, 3:Generic, 4:GroupCode, 5:CatCode, 6:Unit, 7:Packing, 8:Cost, 9:Price, 10:Wholesale, 11:Retail, 12:VAT, 13:Manuf, 14:Country, 15:RegNo, 16:Barcode, 17:Min, 18:Max, 19:Rx, 20:Storage, 21:Conc, 22:Usage, 23:Ind
+
+      const code = getVal(1)?.toString();
+      const name = getVal(2)?.toString();
+
+      if (!name) continue; // Name mandatory
+
+      const productData = {
+        code: code || null,
+        name: name,
+        genericName: getVal(3)?.toString() || null,
+        // groupCode: getVal(4) handled below
+        // categoryCode: getVal(5) handled below
+        unit: getVal(6)?.toString() || 'Hộp',
+        packingSpec: getVal(7)?.toString() || null,
+        // costPrice: 8
+        price: Number(getVal(9)) || 0,
+        vat: Number(getVal(12)) || null,
+        manufacturer: getVal(13)?.toString() || null,
+        countryOfOrigin: getVal(14)?.toString() || null,
+        registrationNo: getVal(15)?.toString() || null,
+        // barcode: 16
+        minStock: Number(getVal(17)) || 10,
+        // maxStock: 18
+        isPrescription: getVal(19) === 'TRUE' || getVal(19) === true || getVal(19) === 'Có',
+        storageCondition: getVal(20)?.toString() || null,
+        concentration: getVal(21)?.toString() || null,
+        usage: getVal(22)?.toString() || null,
+        indications: getVal(23)?.toString() || null,
+        isActive: true
+      };
+
+      // Resolve Group
+      const groupCode = getVal(4)?.toString();
+      let groupId = null;
+      if (groupCode) {
+        let group = await prisma.productGroup.findFirst({
+          where: { name: { equals: groupCode, mode: 'insensitive' } }
+        });
+        if (!group) {
+          group = await prisma.productGroup.create({
+            data: { name: groupCode, code: groupCode.toUpperCase().replace(/\s+/g, '_') }
+          });
+        }
+        groupId = group.id;
+      }
+      // If still no group, check default or skip (Mandatory)
+      if (!groupId) {
+        let defGroup = await prisma.productGroup.findFirst({ where: { name: 'Chung' } });
+        if (!defGroup) defGroup = await prisma.productGroup.create({ data: { name: 'Chung', code: 'GENERAL' } });
+        groupId = defGroup.id;
+      }
+      productData.groupId = groupId; // Mandatory
+
+      // Resolve Category
+      const catCode = getVal(5)?.toString();
+      let categoryId = null;
+      if (catCode) {
+        let cat = await prisma.category.findFirst({
+          where: { name: { equals: catCode, mode: 'insensitive' } }
+        });
+        if (!cat) {
+          cat = await prisma.category.create({
+            data: { name: catCode, code: catCode.toUpperCase().replace(/\s+/g, '_') }
+          });
+        }
+        categoryId = cat.id;
+      }
+      productData.categoryId = categoryId;
+
+      // Upsert
+      if (code) {
+        await prisma.product.upsert({
+          where: { code: code },
+          update: productData,
+          create: productData
+        }).catch(e => errors.push(`Row ${row.number}: ${e.message}`));
+        count++;
+      } else {
+        // Create only if no code
+        await prisma.product.create({ data: productData })
+          .then(() => count++)
+          .catch(e => errors.push(`Row ${row.number}: ${e.message}`));
+      }
+    }
+
+    res.json({ message: `Import thành công ${count} sản phẩm`, errors });
+  } catch (error) {
+    logger.error('Import error:', error);
+    res.status(500).json({ error: 'Lỗi server khi import' });
   }
 });
 

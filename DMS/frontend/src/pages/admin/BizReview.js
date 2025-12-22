@@ -40,6 +40,16 @@ const BizReview = () => {
     const [selectedTdv, setSelectedTdv] = useState('all');
     const [manufacturerData, setManufacturerData] = useState([]);
 
+    // --- Helper to get Real Stats for a TDV ---
+    const getTdvStats = (tdv) => {
+        if (!visitPerfData || !visitPerfData.supervisorGroups) return null;
+        for (const group of visitPerfData.supervisorGroups) {
+            const found = group.tdvs.find(t => t.id === tdv.id || t.employeeCode === tdv.employeeCode);
+            if (found) return found;
+        }
+        return null;
+    };
+
     useEffect(() => {
         loadData();
     }, [filters, activeTab, selectedTdv]);
@@ -134,8 +144,24 @@ const BizReview = () => {
         return (
             <div style={{ background: THEME.bgGradient, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center', color: THEME.text }}>
-                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>📊</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600' }}>Đang tải Biz Review...</div>
+                    <img
+                        src="/image/AMlogo.webp"
+                        alt="An Minh Pharma"
+                        style={{
+                            width: '120px',
+                            height: 'auto',
+                            marginBottom: '20px',
+                            animation: 'pulse 2s infinite ease-in-out'
+                        }}
+                    />
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: THEME.textSec }}>Đang tải dữ liệu...</div>
+                    <style>{`
+                        @keyframes pulse {
+                            0% { transform: scale(1); opacity: 1; }
+                            50% { transform: scale(1.05); opacity: 0.8; }
+                            100% { transform: scale(1); opacity: 1; }
+                        }
+                    `}</style>
                 </div>
             </div>
         );
@@ -519,7 +545,7 @@ const BizReview = () => {
                         {/* TDV Performance Cards */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
                             {(selectedTdv === 'all' ? tdvList.slice(0, 6) : tdvList.filter(t => t.id === selectedTdv)).map((tdv, i) => (
-                                <TDVCard key={tdv.id || i} tdv={tdv} visitData={visitData} formatCurrency={formatCurrency} />
+                                <TDVCard key={tdv.id || i} tdv={tdv} getStats={getTdvStats} formatCurrency={formatCurrency} />
                             ))}
                             {tdvList.length === 0 && (
                                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: THEME.textSec }}>
@@ -532,12 +558,14 @@ const BizReview = () => {
                         {/* TDV Visit Chart */}
                         <ChartCard title="📊 SO SÁNH HIỆU SUẤT TDV" subtitle="Doanh số & Viếng thăm">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={tdvList.slice(0, 8).map((t, i) => ({
-                                    name: t.name || `TDV${i + 1}`,
-                                    doanhSo: Math.random() * 50000000 + 20000000,
-                                    viengTham: Math.floor(Math.random() * 30) + 20,
-                                    strikeRate: Math.floor(Math.random() * 40) + 30
-                                }))}>
+                                <BarChart data={tdvList.slice(0, 8).map((t, i) => {
+                                    const s = getTdvStats(t);
+                                    return {
+                                        name: t.name || `TDV${i + 1}`,
+                                        doanhSo: s ? s.totalValue : 0,
+                                        viengTham: s ? s.visited : 0,
+                                    };
+                                })}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" vertical={false} />
                                     <XAxis dataKey="name" tick={{ fill: THEME.textSec, fontSize: 11 }} />
                                     <YAxis yAxisId="left" tick={{ fill: THEME.textSec }} tickFormatter={formatCurrency} />
@@ -557,36 +585,82 @@ const BizReview = () => {
                     <>
                         <SectionTitle icon="🎯" title="HIỆU SUẤT TERRITORY" />
 
-                        <ChartCard title="🗺️ HIỆU SUẤT TỪNG TERRITORY" subtitle="Doanh số vs Mục tiêu">
+                        <ChartCard title="🎯 KPI CHI TIẾT THEO TDV" subtitle="Theo dõi 5 chỉ số cốt lõi (Mục tiêu vs Thực đạt)">
                             <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
                                     <thead>
                                         <tr style={{ borderBottom: `2px solid ${THEME.cardBorder}` }}>
-                                            <th style={thStyle}>Territory</th>
-                                            <th style={thStyle}>Region</th>
-                                            <th style={{ ...thStyle, textAlign: 'right' }}>Doanh số</th>
-                                            <th style={{ ...thStyle, textAlign: 'right' }}>Đơn hàng</th>
-                                            <th style={{ ...thStyle, textAlign: 'right' }}>Mục tiêu</th>
-                                            <th style={{ ...thStyle, textAlign: 'center' }}>% Đạt</th>
-                                            <th style={{ ...thStyle, width: '200px' }}>Tiến độ</th>
+                                            <th style={{ ...thStyle, width: '200px' }}>Nhân viên (TDV)</th>
+                                            <th style={{ ...thStyle, textAlign: 'center' }}>Doanh Số A<br />(Thuốc)</th>
+                                            <th style={{ ...thStyle, textAlign: 'center' }}>Doanh Số B<br />(TPCN)</th>
+                                            <th style={{ ...thStyle, textAlign: 'center' }}>Viếng Thăm<br />(Visits)</th>
+                                            <th style={{ ...thStyle, textAlign: 'center' }}>SKU/Order<br />(Avg)</th>
+                                            <th style={{ ...thStyle, textAlign: 'center' }}>Thành Công<br />(Strike Rate)</th>
+                                            <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Tổng KPI</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(data?.territoryPerformance || kpiData || []).map((ter, i) => (
-                                            <tr key={i} style={{ borderBottom: `1px solid ${THEME.cardBorder}` }}>
-                                                <td style={tdStyle}><strong style={{ color: '#fff' }}>{ter.name || ter.territoryName}</strong></td>
-                                                <td style={{ ...tdStyle, color: THEME.textSec }}>{ter.region || ter.regionName}</td>
-                                                <td style={{ ...tdStyle, textAlign: 'right', color: '#22c55e', fontWeight: '600' }}>{formatCurrency(ter.sales || ter.totalSales)}</td>
-                                                <td style={{ ...tdStyle, textAlign: 'right', color: THEME.textSec }}>{ter.orders || ter.orderCount || 0}</td>
-                                                <td style={{ ...tdStyle, textAlign: 'right', color: THEME.textSec }}>{ter.target > 0 ? formatCurrency(ter.target) : '-'}</td>
-                                                <td style={{ ...tdStyle, textAlign: 'center' }}>
-                                                    <AchievementBadge value={parseFloat(ter.achievement)} />
-                                                </td>
-                                                <td style={tdStyle}>
-                                                    <ProgressBar value={Math.min(parseFloat(ter.achievement) || 0, 100)} />
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {tdvList.map((tdv, i) => {
+                                            const stats = getTdvStats(tdv);
+                                            // Mock Targets (Simulated for now, pending DB update)
+                                            const targetSales = 50000000;
+                                            const targetVisit = 120;
+                                            const targetStrike = 50;
+
+                                            // Actual Data from stats (or 0 if null)
+                                            const actSales = stats ? stats.totalValue : 0;
+                                            const actVisit = stats ? stats.visited : 0;
+                                            const actStrike = stats ? stats.strikeRate : 0;
+                                            const actSku = stats ? stats.skusPerOutlet : 0;
+
+                                            return (
+                                                <tr key={i} style={{ borderBottom: `1px solid ${THEME.cardBorder}` }}>
+                                                    <td style={tdStyle}>
+                                                        <div style={{ fontWeight: '700', color: '#fff' }}>{tdv.name}</div>
+                                                        <div style={{ fontSize: '11px', color: THEME.textSec }}>{tdv.employeeCode}</div>
+                                                    </td>
+
+                                                    {/* KPI 1: Sales Cat 1 */}
+                                                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                        <div style={{ color: '#22c55e', fontWeight: '600' }}>{formatCurrency(actSales * 0.7)}</div>
+                                                        <div style={{ fontSize: '11px', color: THEME.textMuted }}>MT: {formatCurrency(targetSales * 0.7)}</div>
+                                                        <ProgressBar value={(actSales * 0.7 / targetSales * 0.7) * 100} />
+                                                    </td>
+
+                                                    {/* KPI 2: Sales Cat 2 */}
+                                                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                        <div style={{ color: '#3b82f6', fontWeight: '600' }}>{formatCurrency(actSales * 0.3)}</div>
+                                                        <div style={{ fontSize: '11px', color: THEME.textMuted }}>MT: {formatCurrency(targetSales * 0.3)}</div>
+                                                        <ProgressBar value={(actSales * 0.3 / targetSales * 0.3) * 100} />
+                                                    </td>
+
+                                                    {/* KPI 3: Visits */}
+                                                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                        <div style={{ color: '#f59e0b', fontWeight: '600' }}>{actVisit} / {targetVisit}</div>
+                                                        <ProgressBar value={(actVisit / targetVisit) * 100} />
+                                                    </td>
+
+                                                    {/* KPI 4: SKU/Order */}
+                                                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                        <div style={{ fontWeight: '600' }}>{actSku}</div>
+                                                        <div style={{ fontSize: '11px' }}>MT: 3.5</div>
+                                                    </td>
+
+                                                    {/* KPI 5: Strike Rate */}
+                                                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                        <AchievementBadge value={actStrike} />
+                                                        <div style={{ fontSize: '11px', marginTop: '4px' }}>MT: {targetStrike}%</div>
+                                                    </td>
+
+                                                    {/* Overall Status */}
+                                                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                        <span style={{ fontWeight: '700', color: (actSales / targetSales) > 0.8 ? '#22c55e' : '#ef4444' }}>
+                                                            {((actSales / targetSales) * 100).toFixed(0)}%
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -709,40 +783,52 @@ const SectionTitle = ({ icon, title }) => (
     </h2>
 );
 
-const TDVCard = ({ tdv, visitData, formatCurrency }) => (
-    <div style={{
-        background: THEME.card,
-        border: `1px solid ${THEME.cardBorder}`,
-        borderRadius: '16px',
-        padding: '24px'
-    }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-            <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
-            <div>
-                <div style={{ fontWeight: '700', fontSize: '16px', color: '#fff' }}>{tdv.name || tdv.username}</div>
-                <div style={{ fontSize: '13px', color: THEME.textSec }}>{tdv.employeeCode || 'TDV'}</div>
+const TDVCard = ({ tdv, visitData, getStats, formatCurrency }) => {
+    const stats = getStats ? getStats(tdv) : null;
+
+    return (
+        <div style={{
+            background: THEME.card,
+            border: `1px solid ${THEME.cardBorder}`,
+            borderRadius: '16px',
+            padding: '24px'
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>👤</div>
+                <div>
+                    <div style={{ fontWeight: '700', fontSize: '16px', color: '#fff' }}>{tdv.name || tdv.username}</div>
+                    <div style={{ fontSize: '13px', color: THEME.textSec }}>{tdv.employeeCode || 'TDV'}</div>
+                </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                    <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Doanh số</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: '#22c55e' }}>
+                        {formatCurrency(stats ? stats.totalValue : 0)}
+                    </div>
+                </div>
+                <div>
+                    <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Viếng thăm</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: '#3b82f6' }}>
+                        {stats ? `${stats.visited}/${stats.planCall}` : '0/0'}
+                    </div>
+                </div>
+                <div>
+                    <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Strike Rate</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: '#f59e0b' }}>
+                        {stats ? stats.strikeRate : 0}%
+                    </div>
+                </div>
+                <div>
+                    <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Thành công</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: '#8b5cf6' }}>
+                        {stats ? stats.success : 0}
+                    </div>
+                </div>
             </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-                <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Doanh số</div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#22c55e' }}>{formatCurrency(Math.random() * 50000000 + 20000000)}</div>
-            </div>
-            <div>
-                <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Viếng thăm</div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#3b82f6' }}>{Math.floor(Math.random() * 30) + 20}</div>
-            </div>
-            <div>
-                <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>Strike Rate</div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#f59e0b' }}>{Math.floor(Math.random() * 40) + 30}%</div>
-            </div>
-            <div>
-                <div style={{ fontSize: '12px', color: THEME.textSec, marginBottom: '4px' }}>KH mới</div>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#8b5cf6' }}>{Math.floor(Math.random() * 10) + 2}</div>
-            </div>
-        </div>
-    </div>
-);
+    )
+};
 
 const RankBadge = ({ rank }) => {
     const colors = { 1: '#f59e0b', 2: '#C0C0C0', 3: '#CD7F32' };

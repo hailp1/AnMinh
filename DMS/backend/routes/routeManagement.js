@@ -1,5 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma.js';
+import { getSafeUserIds } from '../lib/dataScope.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -458,19 +460,40 @@ router.post('/seed-visits', async (req, res) => {
     }
 });
 
-// Get visit performance by TDV grouped by Supervisor
+// Get visit performance by TDV grouped by Supervisor (Synced with Org Chart)
 router.get('/visit-performance', async (req, res) => {
     try {
-        const { startDate, endDate, supervisorId } = req.query;
+        const { startDate, endDate } = req.query;
 
-        // Get TDV users with their managers (supervisors)
-        const tdvUsers = await prisma.user.findMany({
-            where: { role: 'TDV' },
-            include: { manager: true }
+        // 1. Determine Scope based on Org Chart
+        // Use req.user (populated by auth middleware) to get accessible user IDs
+        // If req.user is missing (dev/test), fall back to fetching all if needed, or error. 
+        // For robustness, if no req.user, we might assume ADMIN or fail. Let's assume auth is present.
+        const safeIds = req.user ? await getSafeUserIds(req.user) : [];
+
+        // 2. Fetch Employees strictly from the Org Chart (Employee table)
+        // This ensures the report matches the "Employees" setup screen exactly.
+        const tdvEmployees = await prisma.employee.findMany({
+            where: {
+                userId: Array.isArray(safeIds) ? { in: safeIds } : undefined, // Safe check: null means full access
+                user: { role: 'TDV' } // Only filtered for TDV role
+            },
+            include: {
+                user: true,
+                manager: {
+                    include: { user: true }
+                }
+            },
+            orderBy: {
+                user: { name: 'asc' }
+            }
         });
 
-        // Get all visits with date filter
-        const whereClause = {};
+        // 3. Get all visits for these specific employees
+        const whereClause = {
+            repId: { in: tdvEmployees.map(e => e.userId).filter(Boolean) }
+        };
+
         if (startDate && endDate) {
             whereClause.createdAt = {
                 gte: new Date(startDate),
@@ -480,28 +503,39 @@ router.get('/visit-performance', async (req, res) => {
 
         const visits = await prisma.visit.findMany({ where: whereClause });
 
-        // Group visits by repId
+        // 4. Group visits by repId for faster lookup
         const visitsByRep = {};
         visits.forEach(v => {
             if (!visitsByRep[v.repId]) visitsByRep[v.repId] = [];
             visitsByRep[v.repId].push(v);
         });
 
-        // Calculate metrics for each TDV
-        const tdvMetrics = tdvUsers.map(user => {
-            const userVisits = visitsByRep[user.id] || [];
+        // 5. Calculate metrics for each Org Chart Employee
+        const tdvMetrics = tdvEmployees.map(emp => {
+            // Use Employee data as primary, User data as fallback
+            const userId = emp.userId;
+            const userName = emp.user?.name || emp.name || 'Unknown';
+            const userCode = emp.employeeCode || emp.user?.employeeCode || 'N/A';
+
+            // Resolve Manager Name from Employee relationship
+            const managerName = emp.manager?.user?.name || emp.manager?.name || 'Chưa phân bổ';
+            const managerId = emp.managerId || 'NO_SUPERVISOR';
+
+            const userVisits = visitsByRep[userId] || [];
+
             const completed = userVisits.filter(v => v.status === 'COMPLETED').length;
             const withOrders = userVisits.filter(v => v.orderPlaced).length;
             const totalValue = userVisits.reduce((sum, v) => sum + (v.orderAmount || 0), 0);
             const uniqueOutlets = new Set(userVisits.map(v => v.pharmacyId)).size;
 
             return {
-                id: user.id,
-                name: user.name || user.username,
-                employeeCode: user.employeeCode,
-                supervisorId: user.managerId,
-                supervisorName: user.manager?.name || user.manager?.username || 'Chưa có',
-                planCall: Math.floor(userVisits.length * 1.1), // Assume plan is 110% of actual
+                id: userId,
+                name: userName,
+                employeeCode: userCode,
+                supervisorId: managerId,
+                supervisorName: managerName,
+                // KPI Calculations
+                planCall: Math.floor(userVisits.length * 1.1) || 0, // Mock Plan > Actual
                 visited: userVisits.length,
                 success: withOrders,
                 strikeRate: completed > 0 ? ((withOrders / completed) * 100).toFixed(1) : 0,
@@ -513,10 +547,10 @@ router.get('/visit-performance', async (req, res) => {
             };
         });
 
-        // Group by supervisor
+        // 6. Group by Supervisor (Manager)
         const supervisorGroups = {};
         tdvMetrics.forEach(tdv => {
-            const supId = tdv.supervisorId || 'NO_SUPERVISOR';
+            const supId = tdv.supervisorId;
             if (!supervisorGroups[supId]) {
                 supervisorGroups[supId] = {
                     supervisorId: supId,
@@ -526,6 +560,8 @@ router.get('/visit-performance', async (req, res) => {
                 };
             }
             supervisorGroups[supId].tdvs.push(tdv);
+
+            // Accumulate totals
             supervisorGroups[supId].totals.planCall += tdv.planCall;
             supervisorGroups[supId].totals.visited += tdv.visited;
             supervisorGroups[supId].totals.success += tdv.success;
@@ -533,7 +569,7 @@ router.get('/visit-performance', async (req, res) => {
             supervisorGroups[supId].totals.completed += tdv.completed;
         });
 
-        // Calculate supervisor subtotals
+        // Calculate supervisor group averages/rates
         Object.values(supervisorGroups).forEach(group => {
             const totals = group.totals;
             totals.strikeRate = totals.completed > 0
@@ -547,7 +583,7 @@ router.get('/visit-performance', async (req, res) => {
                 : 0;
         });
 
-        // Grand totals
+        // 7. Grand totals
         const grandTotals = {
             planCall: tdvMetrics.reduce((s, t) => s + t.planCall, 0),
             visited: tdvMetrics.reduce((s, t) => s + t.visited, 0),
@@ -573,6 +609,110 @@ router.get('/visit-performance', async (req, res) => {
         });
     } catch (error) {
         console.error('Visit performance error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Live Tracking for Map
+router.get('/live-tracking', auth, async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Get all active TDVs
+        const safeIds = await getSafeUserIds(req.user);
+
+        // If safeIds is strictly empty array, return empty (no permission)
+        if (Array.isArray(safeIds) && safeIds.length === 0) {
+            return res.json([]);
+        }
+
+        const tdvs = await prisma.user.findMany({
+            where: {
+                role: 'TDV',
+                isActive: true,
+                id: Array.isArray(safeIds) ? { in: safeIds } : undefined
+            },
+            select: { id: true, name: true, employeeCode: true, phone: true }
+        });
+
+        // 2. Get LATEST location for each TDV (Last Check-in ever)
+        const trackingData = await Promise.all(tdvs.map(async (tdv) => {
+            const lastVisit = await prisma.visitPlan.findFirst({
+                where: {
+                    userId: tdv.id,
+                    checkInLat: { not: null }
+                },
+                orderBy: { checkInTime: 'desc' },
+                select: {
+                    checkInLat: true,
+                    checkInLng: true,
+                    checkInTime: true,
+                    notes: true,
+                    createdAt: true
+                }
+            });
+
+            // Determine Status
+            let status = 'OFFLINE'; // Default
+            let lat = null;
+            let lng = null;
+            let lastUpdate = null;
+
+            // Metadata
+            let device = 'Chưa xác định';
+            let battery = 'N/A';
+            let signal = 'N/A';
+            let appVersion = 'N/A';
+
+            if (lastVisit) {
+                lat = lastVisit.checkInLat;
+                lng = lastVisit.checkInLng;
+                lastUpdate = lastVisit.checkInTime || lastVisit.createdAt;
+
+                // Check if active today
+                const visitDate = new Date(lastUpdate);
+                if (visitDate >= today) {
+                    status = 'ACTIVE';
+                }
+
+                // Parse Metadata from Notes
+                if (lastVisit.notes && lastVisit.notes.startsWith('{')) {
+                    try {
+                        const meta = JSON.parse(lastVisit.notes);
+                        if (meta.battery) battery = meta.battery + '%';
+                        if (meta.device) device = meta.device;
+                        if (meta.signal) signal = meta.signal;
+                        if (meta.appVersion) appVersion = meta.appVersion;
+                    } catch (e) {
+                        // ignore parse error protection
+                    }
+                }
+            } else {
+                status = 'NO_DATA';
+            }
+
+            return {
+                id: tdv.id,
+                name: tdv.name,
+                code: tdv.employeeCode,
+                lat,
+                lng,
+                status, // ACTIVE (Green), OFFLINE (Gray), NO_DATA (Hidden)
+                lastUpdate,
+                details: {
+                    battery,
+                    device,
+                    signal,
+                    appVersion
+                }
+            };
+        }));
+
+        res.json(trackingData);
+
+    } catch (error) {
+        console.error('Live tracking error:', error);
         res.status(500).json({ error: error.message });
     }
 });

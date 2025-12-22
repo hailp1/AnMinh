@@ -2,16 +2,24 @@ import express from 'express';
 import { prisma } from '../lib/prisma.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
+import { getSafeUserIds } from '../lib/dataScope.js'; // Import Update
 
 const router = express.Router();
 
-// Lấy danh sách users (cho tính năng tìm đồng nghiệp)
+// Lấy danh sách users (cho tính năng tìm đồng nghiệp & Dropdown lọc nhân viên của Manager)
 router.get('/', auth, async (req, res) => {
   try {
     const { role, hub } = req.query;
     const where = {};
 
     if (role) where.role = role;
+
+    // --- DATA SCOPING ---
+    // Ensure Managers only see their own subordinates in dropdowns/lists
+    const allowedIds = await getSafeUserIds(req.user);
+    if (allowedIds) {
+      where.id = { in: allowedIds };
+    }
 
     const users = await prisma.user.findMany({
       where,
@@ -23,8 +31,11 @@ router.get('/', auth, async (req, res) => {
         email: true,
         routeCode: true,
         channel: true,
-        region: { select: { id: true, name: true } }
-      }
+        region: { select: { id: true, name: true } },
+        manager: { select: { id: true, name: true } }, // Useful for frontend to show manager
+        employeeCode: true
+      },
+      orderBy: { name: 'asc' }
     });
     res.json(users);
   } catch (error) {
@@ -53,7 +64,6 @@ router.get('/profile', auth, async (req, res) => {
       }
     });
 
-    // Calculate KPI Stats for Current Month
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -106,12 +116,7 @@ router.put('/profile', auth, async (req, res) => {
       where: { id: req.user.id },
       data: { name, phone },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        phone: true,
-        createdAt: true
+        id: true, name: true, email: true, role: true, phone: true, createdAt: true
       }
     });
 
@@ -122,9 +127,11 @@ router.put('/profile', auth, async (req, res) => {
   }
 });
 
-// Admin: Lấy danh sách tất cả users
+// Admin: Lấy danh sách tất cả users (Full Access)
 router.get('/admin/users', adminAuth, async (req, res) => {
   try {
+    // Admin always sees all, but we can add scope here if we want 'Super Admin' vs 'Regular Admin'
+    // For now, keep as full access
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -160,14 +167,13 @@ router.post('/admin/users', adminAuth, async (req, res) => {
       return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
     }
 
-    // Hash password
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.default.hash(password, 10);
 
     const user = await prisma.user.create({
       data: {
         name,
-        username: employeeCode.toUpperCase(), // Username defaults to employeeCode
+        username: employeeCode.toUpperCase(),
         employeeCode: employeeCode.toUpperCase(),
         routeCode: routeCode || null,
         email: email || null,
@@ -180,20 +186,15 @@ router.post('/admin/users', adminAuth, async (req, res) => {
         channel: channel || null
       },
       select: {
-        id: true,
-        name: true,
-        employeeCode: true,
-        routeCode: true,
-        email: true,
-        role: true,
-        phone: true,
-        isActive: true,
-        createdAt: true,
-        channel: true,
+        id: true, name: true, employeeCode: true, routeCode: true, email: true,
+        role: true, phone: true, isActive: true, createdAt: true, channel: true,
         manager: { select: { id: true, name: true } },
         region: { select: { id: true, name: true } }
       }
     });
+
+    // Auto-sync to Employee (Org Chart)
+    await syncEmployeeForUser(user.id);
 
     res.status(201).json(user);
   } catch (error) {
@@ -214,7 +215,7 @@ router.put('/admin/users/:id', adminAuth, async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (employeeCode !== undefined) {
       updateData.employeeCode = employeeCode.toUpperCase();
-      updateData.username = employeeCode.toUpperCase(); // Sync username
+      updateData.username = employeeCode.toUpperCase();
     }
     if (routeCode !== undefined) updateData.routeCode = routeCode || null;
     if (email !== undefined) updateData.email = email || null;
@@ -234,26 +235,19 @@ router.put('/admin/users/:id', adminAuth, async (req, res) => {
       where: { id: req.params.id },
       data: updateData,
       select: {
-        id: true,
-        name: true,
-        employeeCode: true,
-        routeCode: true,
-        email: true,
-        role: true,
-        phone: true,
-        isActive: true,
-        createdAt: true,
-        channel: true,
+        id: true, name: true, employeeCode: true, routeCode: true, email: true,
+        role: true, phone: true, isActive: true, createdAt: true, channel: true,
         manager: { select: { id: true, name: true } },
         region: { select: { id: true, name: true } }
       }
     });
 
+    // Auto-sync to Employee (Org Chart)
+    await syncEmployeeForUser(user.id);
+
     res.json(user);
   } catch (error) {
-    if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Mã nhân viên hoặc Email đã tồn tại' });
-    }
+    if (error.code === 'P2002') return res.status(400).json({ error: 'Mã nhân viên hoặc Email đã tồn tại' });
     console.error(error.message);
     res.status(500).json({ error: 'Lỗi server' });
   }
@@ -262,9 +256,7 @@ router.put('/admin/users/:id', adminAuth, async (req, res) => {
 // Admin: Xóa user
 router.delete('/admin/users/:id', adminAuth, async (req, res) => {
   try {
-    await prisma.user.delete({
-      where: { id: req.params.id }
-    });
+    await prisma.user.delete({ where: { id: req.params.id } });
     res.json({ message: 'Xóa user thành công' });
   } catch (error) {
     console.error(error.message);
@@ -273,3 +265,57 @@ router.delete('/admin/users/:id', adminAuth, async (req, res) => {
 });
 
 export default router;
+
+// --- OPTIMIZED SYNC HELPER ---
+async function syncEmployeeForUser(userId) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return;
+
+    // 1. Map Role -> Position Code
+    const roleToPos = {
+      'ADMIN': 'BU_HEAD', 'CEO': 'CEO', 'BU_HEAD': 'BU_HEAD',
+      'RSM': 'RSM', 'ASM': 'ASM', 'QL': 'ASM', // Map QL -> ASM generic
+      'SS': 'SS', 'TDV': 'TDV'
+    };
+    let posCode = roleToPos[user.role] || 'TDV';
+
+    // 2. Get Position ID
+    let pos = await prisma.orgPosition.findUnique({ where: { code: posCode } });
+    // Fallback: If position code not found, try to find ANY existing position or default to TDV
+    if (!pos) pos = await prisma.orgPosition.findFirst({ where: { code: 'TDV' } });
+
+    // 3. Find Manager's Employee Record (to link hierarchy)
+    let managerEmpId = null;
+    if (user.managerId) {
+      const managerEmp = await prisma.employee.findUnique({ where: { userId: user.managerId } });
+      if (managerEmp) managerEmpId = managerEmp.id;
+    }
+
+    // 4. Update or Create Employee Record
+    await prisma.employee.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        employeeCode: user.employeeCode || `E${user.username}`,
+        name: user.name || user.username,
+        email: user.email,
+        phone: user.phone,
+        status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+        positionId: pos ? pos.id : undefined,
+        managerId: managerEmpId
+      },
+      update: {
+        name: user.name || user.username,
+        email: user.email,
+        phone: user.phone,
+        status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+        positionId: pos ? pos.id : undefined,
+        managerId: managerEmpId
+      }
+    });
+
+  } catch (err) {
+    console.error("Auto-Sync Employee Failed:", err.message);
+  }
+}

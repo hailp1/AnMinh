@@ -49,6 +49,7 @@ import AdminApprovals from './pages/admin/AdminApprovals';
 import AdminInventory from './pages/admin/AdminInventory';
 import BizReview from './pages/admin/BizReview';
 import OrgStructure from './pages/admin/OrgStructure';
+import AdminAOP from './pages/admin/AdminAOP';
 
 const AppContent = () => {
   const location = useLocation();
@@ -91,6 +92,7 @@ const AppContent = () => {
               <Route path="inventory" element={<AdminInventory />} />
               <Route path="biz-review" element={<BizReview />} />
               <Route path="org-structure" element={<OrgStructure />} />
+              <Route path="aop-planning" element={<AdminAOP />} />
             </Routes>
           </AdminWrapper>
         } />

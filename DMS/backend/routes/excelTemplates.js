@@ -111,6 +111,7 @@ router.get('/template/products', async (req, res) => {
             { header: 'Tên SP*', key: 'name', width: 35 },
             { header: 'Hoạt chất', key: 'genericName', width: 25 },
             { header: 'Mã Nhóm', key: 'groupCode', width: 12 },
+            { header: 'Mã Danh Mục', key: 'categoryCode', width: 12 },
             { header: 'Đơn vị', key: 'unit', width: 10 },
             { header: 'Quy cách', key: 'packingSpec', width: 20 },
             { header: 'Giá nhập', key: 'costPrice', width: 15 },
@@ -118,7 +119,7 @@ router.get('/template/products', async (req, res) => {
             { header: 'Giá sỉ', key: 'wholesalePrice', width: 15 },
             { header: 'Giá lẻ', key: 'retailPrice', width: 15 },
             { header: 'VAT (%)', key: 'vat', width: 10 },
-            { header: 'NSX', key: 'manufacturer', width: 20 },
+            { header: 'NSX (Hãng)', key: 'manufacturer', width: 20 },
             { header: 'Nước SX', key: 'countryOfOrigin', width: 12 },
             { header: 'Số ĐK', key: 'registrationNo', width: 15 },
             { header: 'Barcode', key: 'barcode', width: 15 },
@@ -127,6 +128,7 @@ router.get('/template/products', async (req, res) => {
             { header: 'Thuốc kê đơn', key: 'isPrescription', width: 12 },
             { header: 'Bảo quản', key: 'storageCondition', width: 20 },
             { header: 'Hàm lượng', key: 'concentration', width: 15 },
+            { header: 'Công dụng (Usage)', key: 'usage', width: 25 },
             { header: 'Chỉ định', key: 'indications', width: 40 },
         ];
 
@@ -357,7 +359,7 @@ router.get('/export/customers', async (req, res) => {
 router.get('/export/products', async (req, res) => {
     try {
         const products = await prisma.product.findMany({
-            include: { group: true },
+            include: { group: true, category: true },
             orderBy: { name: 'asc' }
         });
 
@@ -369,10 +371,12 @@ router.get('/export/products', async (req, res) => {
             { header: 'Tên', key: 'name', width: 35 },
             { header: 'Hoạt chất', key: 'genericName', width: 25 },
             { header: 'Nhóm', key: 'group', width: 15 },
+            { header: 'Danh Mục', key: 'category', width: 15 },
             { header: 'Đơn vị', key: 'unit', width: 10 },
             { header: 'Giá nhập', key: 'costPrice', width: 12 },
             { header: 'Giá bán', key: 'price', width: 12 },
-            { header: 'NSX', key: 'manufacturer', width: 20 },
+            { header: 'NSX (Hãng)', key: 'manufacturer', width: 20 },
+            { header: 'Công dụng', key: 'usage', width: 25 },
             { header: 'Tồn Min', key: 'minStock', width: 10 },
             { header: 'Kê đơn', key: 'isPrescription', width: 10 },
         ];
@@ -385,10 +389,12 @@ router.get('/export/products', async (req, res) => {
                 name: p.name,
                 genericName: p.genericName,
                 group: p.group?.name,
+                category: p.category?.name,
                 unit: p.unit,
                 costPrice: p.costPrice,
                 price: p.price,
                 manufacturer: p.manufacturer,
+                usage: p.usage,
                 minStock: p.minStock,
                 isPrescription: p.isPrescription ? 'Có' : 'Không'
             });

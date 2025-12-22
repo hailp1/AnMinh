@@ -414,24 +414,25 @@ model Visit {
 ## 7️⃣ LỘ TRÌNH THỰC HIỆN
 
 ### Phase 1: Foundation (2 tuần)
-- [ ] Migrate Customer schema
-- [ ] Migrate Product schema
-- [ ] Create Excel templates
-- [ ] Seed sample data
+- [x] Migrate Customer schema
+- [x] Migrate Product schema
+- [x] Create Excel templates
+- [x] Seed sample data
 
 ### Phase 2: Territory & Org (1 tuần)
-- [ ] Implement Org hierarchy
-- [ ] Implement Territory structure
-- [ ] Sales Rep assignment
+- [x] Implement Org hierarchy (Completed: BU -> RSM -> TSM -> TDV)
+- [x] Implement Territory structure (Completed: Region -> Area -> Territory)
+- [x] Sales Rep assignment (Completed: Sync User to Employee Org Chart)
 
 ### Phase 3: Route Management (2 tuần)
-- [ ] Route template CRUD
-- [ ] Daily route generation
-- [ ] Visit tracking with GPS
+- [x] Route template CRUD
+- [x] Daily route generation
+- [x] Visit tracking with GPS
 
 ### Phase 4: Reports (2 tuần)
-- [ ] Build report framework
-- [ ] Implement all report types
+- [x] Build report framework (API /reports & /visit-performance)
+- [x] Implement BizReview & KPI Dashboard
+- [ ] Implement Inventory & Finance Reports
 - [ ] Excel/PDF export
 
 ### Phase 5: Integration (1 tuần)

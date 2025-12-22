@@ -54,10 +54,14 @@ const AdminRoutes = () => {
             const routes = await routesAPI.getAll({ userId });
             // Transform to flat list
             const formatted = routes.map(r => {
-                let dayInt = r.dayOfWeek === 'CN' ? 8 : parseInt(r.dayOfWeek.replace('T', ''));
+                let dayInt = 2;
+                if (r.dayOfWeek) {
+                    const d = String(r.dayOfWeek);
+                    dayInt = d === 'CN' ? 8 : (d.startsWith('T') ? parseInt(d.replace('T', '')) : parseInt(d));
+                }
                 return {
                     ...r.pharmacy,
-                    day: dayInt,
+                    day: dayInt || 2,
                     frequency: r.frequency || 'F4' // Default if missing
                 };
             });
@@ -106,7 +110,11 @@ const AdminRoutes = () => {
             const toDelete = [];
 
             for (const route of currentRoutes) {
-                const dayInt = route.dayOfWeek === 'CN' ? 8 : parseInt(route.dayOfWeek.replace('T', ''));
+                let dayInt = 2;
+                if (route.dayOfWeek) {
+                    const d = String(route.dayOfWeek);
+                    dayInt = d === 'CN' ? 8 : (d.startsWith('T') ? parseInt(d.replace('T', '')) : parseInt(d));
+                }
                 // Check if this specific route (Pharmacy + Day) is still in routeData
                 // route.pharmacy might be null if deleted? Hopefully not.
                 if (route.pharmacy) {

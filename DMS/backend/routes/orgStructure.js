@@ -62,7 +62,7 @@ router.put('/employees/:id', async (req, res) => {
 router.get('/org-chart', async (req, res) => {
     try {
         const employees = await prisma.employee.findMany({
-            where: { status: 'ACTIVE' },
+            where: { status: { in: ['ACTIVE', 'VACANT'] } },
             include: { position: true, manager: true, subordinates: true }
         });
         const topLevel = employees.filter(e => !e.managerId);

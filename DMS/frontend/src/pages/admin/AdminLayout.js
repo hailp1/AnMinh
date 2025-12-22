@@ -137,6 +137,7 @@ const AdminLayout = ({ children }) => {
       subItems: [
         { id: 'sys_org', label: '🏢 Cấu trúc Tổ chức', path: '/Anminh/admin/org-structure' },
         { id: 'sys_kpi', label: 'KPI & Thưởng', path: '/Anminh/admin/kpi' },
+        { id: 'sys_aop', label: '📈 AOP Planning 2026', path: '/Anminh/admin/aop-planning' },
         { id: 'sys_settings', label: 'Cài đặt chung', path: '/Anminh/admin/settings' }
       ]
     }

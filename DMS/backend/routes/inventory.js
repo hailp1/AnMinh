@@ -67,6 +67,21 @@ router.put('/warehouses/:id', adminAuth, async (req, res) => {
     }
 });
 
+// Delete warehouse
+router.delete('/warehouses/:id', adminAuth, async (req, res) => {
+    try {
+        const hasItems = await prisma.inventoryItem.findFirst({
+            where: { warehouseId: req.params.id, currentQty: { gt: 0 } }
+        });
+        if (hasItems) return res.status(400).json({ error: 'Kho còn hàng, không thể xóa' });
+
+        await prisma.warehouse.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Deleted warehouse' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- STOCK & INVENTORY ---
 
 // Get inventory items (stock overview)
@@ -147,6 +162,93 @@ router.get('/batches', auth, async (req, res) => {
     }
 });
 
+// --- STATISTICS ---
+// Get Dashboard Stats
+router.get('/dashboard', auth, async (req, res) => {
+    try {
+        const warehouseId = req.query.warehouseId;
+        const whereWarehouse = (warehouseId && warehouseId !== 'all') ? { warehouseId } : {};
+
+        // 1. Inventory Value & Low Stock
+        const items = await prisma.inventoryItem.findMany({
+            where: whereWarehouse,
+            include: { product: { select: { price: true, minStock: true } } }
+        });
+
+        let totalValue = 0;
+        let lowStockCount = 0;
+
+        items.forEach(item => {
+            const price = Number(item.product?.price || 0);
+            totalValue += (item.currentQty * price);
+            if (item.currentQty < (item.product?.minStock || 10)) {
+                lowStockCount++;
+            }
+        });
+
+        // 2. Transactions This Month
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const trxs = await prisma.inventoryTransaction.groupBy({
+            by: ['type'],
+            _sum: { totalAmount: true },
+            where: {
+                ...whereWarehouse,
+                transactionDate: { gte: startOfMonth }
+            }
+        });
+
+        let importVal = 0;
+        let exportVal = 0;
+        trxs.forEach(t => {
+            if (t.type === 'IMPORT') importVal = Number(t._sum.totalAmount || 0);
+            if (t.type === 'EXPORT') exportVal = Number(t._sum.totalAmount || 0);
+        });
+
+        // 3. Expiring Batches
+        const expiringDate = new Date();
+        expiringDate.setDate(expiringDate.getDate() + 30);
+
+        const expiringCount = await prisma.productBatch.count({
+            where: {
+                ...whereWarehouse,
+                expiryDate: { lte: expiringDate, gte: now },
+                currentQuantity: { gt: 0 }
+            }
+        });
+
+        // 4. Chart Data (Last 30 days transactions trend)
+        const startOf30d = new Date();
+        startOf30d.setDate(startOf30d.getDate() - 30);
+
+        const dailyTrx = await prisma.inventoryTransaction.groupBy({
+            by: ['transactionDate', 'type'],
+            _sum: { totalAmount: true },
+            where: {
+                ...whereWarehouse,
+                transactionDate: { gte: startOf30d }
+            },
+            orderBy: { transactionDate: 'asc' }
+        });
+
+        res.json({
+            stats: {
+                totalValue,
+                lowStockCount,
+                importMonth: importVal,
+                exportMonth: exportVal,
+                expiringCount
+            },
+            chart: dailyTrx
+        });
+
+    } catch (error) {
+        console.error('Inventory dashboard stats error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- TRANSACTIONS ---
 
 // Get transactions history
@@ -181,11 +283,12 @@ router.get('/transactions', [auth, ...inventoryValidators.getTransactions, valid
     }
 });
 
-// Create stock transaction (Import/Export)
+// Create stock transaction (Import/Export/Transfer)
 router.post('/transactions', [auth, ...inventoryValidators.createTransaction, validate], async (req, res) => {
     const {
-        type, // IMPORT, EXPORT
+        type, // IMPORT, EXPORT, TRANSFER
         warehouseId,
+        toWarehouseId, // Required for TRANSFER
         items, // Array of { productId, quantity, batchNumber, expiryDate, price, unitPrice }
         reason,
         notes,
@@ -200,28 +303,29 @@ router.post('/transactions', [auth, ...inventoryValidators.createTransaction, va
     try {
         const result = await prisma.$transaction(async (tx) => {
             const createdTransactions = [];
-
-            // Generate a common transaction number group if needed, or specific per item
-            // Here we create one Transaction Record per item for simplified tracking, 
-            // but usually a ticket has one code. 
-            // Let's assume the frontend sends items and we create individual transactions records 
-            // but sharing a reference or just simply processed.
-            // Requirement says "Tạo phiếu nhập", suggesting a Document model for "InventoryTicket". 
-            // Current schema has InventoryTransaction which is effectively line-item based.
-            // We can generate a generic transactionNo for this batch.
             const transactionGroupCode = `TRX${Date.now()}`;
 
             for (const item of items) {
                 const { productId, quantity, batchNumber, expiryDate, unitPrice } = item;
                 const qty = parseInt(quantity);
 
-                // 1. Create Transaction Record
+                // Validation for TRANSFER
+                if (type === 'TRANSFER' && !toWarehouseId) {
+                    throw new Error('Thiếu kho đích cho chuyển kho');
+                }
+                const targetWarehouseId = type === 'TRANSFER' ? toWarehouseId : warehouseId;
+
+                // 1. Create Transaction Logs
+                // For TRANSFER, we might want to log Source Out and Dest In? 
+                // Currently schema supports single record with from/to.
                 const transaction = await tx.inventoryTransaction.create({
                     data: {
                         type,
                         transactionNo: `${transactionGroupCode}-${productId}`,
                         productId,
-                        warehouseId,
+                        warehouseId: warehouseId, // Source / Main Point
+                        fromWarehouseId: (type === 'TRANSFER' || type === 'EXPORT') ? warehouseId : null,
+                        toWarehouseId: (type === 'TRANSFER' || type === 'IMPORT') ? targetWarehouseId : null,
                         quantity: qty,
                         unitPrice: parseFloat(unitPrice || 0),
                         totalAmount: parseFloat(unitPrice || 0) * qty,
@@ -235,74 +339,98 @@ router.post('/transactions', [auth, ...inventoryValidators.createTransaction, va
                 });
                 createdTransactions.push(transaction);
 
-                // 2. Update or Create Batch (If Import)
-                if (batchNumber && type === 'IMPORT') {
-                    await tx.productBatch.upsert({
-                        where: {
-                            productId_batchNumber: { productId, batchNumber }
-                        },
-                        update: {
-                            currentQuantity: { increment: qty },
-                            warehouseId, // Update current warehouse location
-                            status: 'ACTIVE'
-                        },
-                        create: {
-                            productId,
-                            batchNumber,
-                            expiryDate: new Date(expiryDate),
-                            initialQuantity: qty,
-                            currentQuantity: qty,
-                            warehouseId,
-                            status: 'ACTIVE'
-                        }
-                    });
-                } else if (batchNumber && type === 'EXPORT') {
-                    // Deduct from batch
-                    await tx.productBatch.update({
-                        where: {
-                            productId_batchNumber: { productId, batchNumber }
-                        },
-                        data: {
-                            currentQuantity: { decrement: qty }
-                        }
-                    });
-                }
+                // --- STOCK MOVEMENTS ---
 
-                // 3. Update Inventory Item (Stock in Warehouse)
-                const inventoryItem = await tx.inventoryItem.findUnique({
-                    where: {
-                        productId_warehouseId: { productId, warehouseId }
+                // A. SOURCE (Decrease) - For EXPORT and TRANSFER
+                if (type === 'EXPORT' || type === 'TRANSFER') {
+                    // Check Stock
+                    const sourceItem = await tx.inventoryItem.findUnique({
+                        where: { productId_warehouseId: { productId, warehouseId } }
+                    });
+                    if (!sourceItem || sourceItem.currentQty < qty) {
+                        throw new Error(`Kho nguồn không đủ hàng: SP ${productId}`);
                     }
-                });
 
-                if (inventoryItem) {
+                    // Decrement Source
                     await tx.inventoryItem.update({
-                        where: { id: inventoryItem.id },
+                        where: { id: sourceItem.id },
                         data: {
-                            currentQty: type === 'IMPORT'
-                                ? { increment: qty }
-                                : { decrement: qty },
-                            receivedQty: type === 'IMPORT'
-                                ? { increment: qty }
-                                : undefined,
-                            issuedQty: type === 'EXPORT'
-                                ? { increment: qty }
-                                : undefined,
+                            currentQty: { decrement: qty },
+                            issuedQty: { increment: type === 'EXPORT' ? qty : 0 },
                             lastUpdated: new Date()
                         }
                     });
-                } else if (type === 'IMPORT') {
-                    await tx.inventoryItem.create({
-                        data: {
-                            productId,
-                            warehouseId,
-                            currentQty: qty,
-                            receivedQty: qty,
-                            issuedQty: 0
+
+                    // Decrement Source Batch
+                    if (batchNumber) {
+                        const sourceBatch = await tx.productBatch.findFirst({
+                            where: { productId, batchNumber, warehouseId }
+                        });
+                        if (!sourceBatch || sourceBatch.currentQuantity < qty) {
+                            throw new Error(`Lô ${batchNumber} không đủ hàng tại kỹ nguồn`);
                         }
+                        await tx.productBatch.update({
+                            where: { id: sourceBatch.id },
+                            data: { currentQuantity: { decrement: qty } }
+                        });
+                    }
+                }
+
+                // B. DESTINATION (Increase) - For IMPORT and TRANSFER
+                if (type === 'IMPORT' || type === 'TRANSFER') {
+                    const destWhId = type === 'TRANSFER' ? targetWarehouseId : warehouseId;
+
+                    // Increment Dest Item
+                    const destItem = await tx.inventoryItem.findUnique({
+                        where: { productId_warehouseId: { productId, warehouseId: destWhId } }
                     });
-                } else {
-                    throw new Error(`Không thấy tồn kho cho sản phẩm ${productId} trong kho này để xuất`);
+
+                    if (destItem) {
+                        await tx.inventoryItem.update({
+                            where: { id: destItem.id },
+                            data: {
+                                currentQty: { increment: qty },
+                                receivedQty: { increment: type === 'IMPORT' ? qty : 0 }, // For Transfer, we don't count as "received" in Purchase sense, but maybe we should? Let's skip for now to distinct.
+                                lastUpdated: new Date()
+                            }
+                        });
+                    } else {
+                        await tx.inventoryItem.create({
+                            data: {
+                                productId,
+                                warehouseId: destWhId,
+                                currentQty: qty,
+                                receivedQty: type === 'IMPORT' ? qty : 0,
+                                issuedQty: 0
+                            }
+                        });
+                    }
+
+                    // Increment Dest Batch
+                    if (batchNumber) {
+                        const destBatch = await tx.productBatch.findFirst({
+                            where: { productId, batchNumber, warehouseId: destWhId }
+                        });
+
+                        if (destBatch) {
+                            await tx.productBatch.update({
+                                where: { id: destBatch.id },
+                                data: { currentQuantity: { increment: qty } }
+                            });
+                        } else {
+                            await tx.productBatch.create({
+                                data: {
+                                    productId,
+                                    batchNumber,
+                                    expiryDate: expiryDate ? new Date(expiryDate) : null,
+                                    initialQuantity: qty,
+                                    currentQuantity: qty,
+                                    warehouseId: destWhId,
+                                    status: 'ACTIVE'
+                                }
+                            });
+                        }
+                    }
                 }
             }
 

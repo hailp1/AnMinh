@@ -1,1019 +1,570 @@
-import React, { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Package, Search, Filter, Plus, Edit, Trash2, Tag,
+  Layers, MoreVertical, LayoutGrid, List, Image as ImageIcon,
+  DollarSign, Activity, AlertCircle, ShoppingBag, Archive, ChevronRight,
+  Download, Upload, X, Save
+} from 'lucide-react';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
+// --- STYLES (Enterprise Theme - Consistent with CRM) ---
+const THEME = {
+  primary: '#0f172a',    // Slate 900
+  secondary: '#334155',  // Slate 700
+  accent: '#6366f1',     // Indigo 500 (Different from CRM Blue)
+  success: '#10b981',    // Emerald 500
+  warning: '#f59e0b',    // Amber 500
+  danger: '#ef4444',     // Red 500
+  bg: '#f8fafc',         // Slate 50
+  cardBg: '#ffffff',
+  text: '#1e293b',       // Slate 800
+  textLight: '#64748b',  // Slate 500
+  border: '#e2e8f0'      // Slate 200
+};
+
+const STAT_CARDS = [
+  { title: 'Tổng Sản Phẩm', icon: Package, color: THEME.accent, key: 'total' },
+  { title: 'Sắp Hết Hàng', icon: AlertCircle, color: THEME.danger, key: 'lowStock' },
+  { title: 'Hàng Mới', icon: Tag, color: THEME.success, key: 'new' },
+  { title: 'Danh Mục', icon: Layers, color: THEME.warning, key: 'groups' }
+];
+
 const AdminProducts = () => {
-  const [productGroups, setProductGroups] = useState([]);
+  // State
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [groups, setGroups] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('grid'); // 'list' | 'grid'
+  const [selectedProduct, setSelectedProduct] = useState(null); // For Right Panel Detail
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editingGroup, setEditingGroup] = useState(null);
-  const [modalType, setModalType] = useState('product'); // 'product' or 'group'
-  const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState('products'); // 'products' or 'groups'
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  const [activeTab, setActiveTab] = useState('basic');
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    description: '',
-    unit: 'hộp',
-    price: '',
-    groupId: '',
-    order: 0,
-    isPrescription: false,
-    concentration: '',
-    usage: '',
-    genericName: '',
-    manufacturer: '',
-    countryOfOrigin: '',
-    registrationNo: '',
-    packingSpec: '',
-    storageCondition: '',
-    indications: '',
-    contraindications: '',
-    dosage: '',
-    sideEffects: '',
-    shelfLife: '',
-    vat: '',
-    image: ''
-  });
+  const fileInputRef = useRef(null);
 
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeGroup, setActiveGroup] = useState('ALL');
+
+  // Load Data
   useEffect(() => {
-    loadProducts();
+    loadData();
   }, []);
 
-  useEffect(() => {
-    filterProducts();
-  }, [searchTerm, selectedGroup, products]);
-
-  const loadProducts = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
-      // Load groups
-      const groupsResponse = await fetch(`${API_BASE}/products/groups`, {
-        headers: { 'x-auth-token': token }
-      });
-      if (groupsResponse.ok) {
-        const groups = await groupsResponse.json();
-        setProductGroups(Array.isArray(groups) ? groups : []);
-      }
+      const headers = { 'x-auth-token': token };
 
-      // Load products
-      const productsResponse = await fetch(`${API_BASE}/products`, {
-        headers: { 'x-auth-token': token }
-      });
-      if (productsResponse.ok) {
-        const productsData = await productsResponse.json();
-        setProducts(Array.isArray(productsData) ? productsData : []);
-      }
+      const [prodRes, groupRes, catRes] = await Promise.all([
+        fetch(`${API_BASE}/products`, { headers }),
+        fetch(`${API_BASE}/products/groups`, { headers }),
+        fetch(`${API_BASE}/products/categories`, { headers }).catch(() => ({ ok: false }))
+      ]);
+
+      if (prodRes.ok) setProducts(await prodRes.json());
+      if (groupRes.ok) setGroups(await groupRes.json());
+      if (catRes.ok) setCategories(await catRes.json());
+      else setCategories([]);
     } catch (error) {
-      console.error('Error loading products:', error);
-      alert(`Lỗi khi tải danh sách sản phẩm: ${error.message}`);
-      setProductGroups([]);
-      setProducts([]);
+      console.error('Error loading Product Catalog:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filterProducts = () => {
-    let filtered = [...products];
-
-    if (searchTerm) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.code.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (selectedGroup !== 'all') {
-      filtered = filtered.filter(p => p.groupId === selectedGroup || p.group?.id === selectedGroup);
-    }
-
-    setFilteredProducts(filtered);
-  };
-
-  const handleAddProduct = () => {
-    setEditingProduct(null);
-    setEditingGroup(null);
-    setModalType('product');
-    setActiveTab('basic');
-    setFormData({
-      code: '',
-      name: '',
-      description: '',
-      unit: 'hộp',
-      price: '',
-      groupId: productGroups.length > 0 ? productGroups[0].id : '',
-      order: 0,
-      isPrescription: false,
-      concentration: '',
-      usage: '',
-      genericName: '',
-      manufacturer: '',
-      countryOfOrigin: '',
-      registrationNo: '',
-      packingSpec: '',
-      storageCondition: '',
-      indications: '',
-      contraindications: '',
-      dosage: '',
-      sideEffects: '',
-      shelfLife: '',
-      vat: '',
-      image: ''
-    });
-    setShowModal(true);
-  };
-
-  const handleEditProduct = (product) => {
-    setEditingProduct(product);
-    setEditingGroup(null);
-    setModalType('product');
-    setActiveTab('basic');
-    setFormData({
-      code: product.code || '',
-      name: product.name || '',
-      description: product.description || '',
-      unit: product.unit || 'hộp',
-      price: product.price?.toString() || '',
-      groupId: product.groupId || product.group?.id || '',
-      order: product.order || 0,
-      isPrescription: product.isPrescription || false,
-      concentration: product.concentration || '',
-      usage: product.usage || '',
-      genericName: product.genericName || '',
-      manufacturer: product.manufacturer || '',
-      countryOfOrigin: product.countryOfOrigin || '',
-      registrationNo: product.registrationNo || '',
-      packingSpec: product.packingSpec || '',
-      storageCondition: product.storageCondition || '',
-      indications: product.indications || '',
-      contraindications: product.contraindications || '',
-      dosage: product.dosage || '',
-      sideEffects: product.sideEffects || '',
-      shelfLife: product.shelfLife || '',
-      vat: product.vat?.toString() || '',
-      image: (product.images && product.images.length > 0) ? product.images[0] : ''
-    });
-    setShowModal(true);
-  };
-
-  const handleAddGroup = () => {
-    setEditingProduct(null);
-    setEditingGroup(null);
-    setModalType('group');
-    setFormData({
-      name: '',
-      description: '',
-      order: 0,
-      code: '',
-      unit: 'hộp',
-      price: '',
-      groupId: ''
-    });
-    setShowModal(true);
-  };
-
-  const handleEditGroup = (group) => {
-    setEditingProduct(null);
-    setEditingGroup(group);
-    setModalType('group');
-    setFormData({
-      name: group.name || '',
-      description: group.description || '',
-      order: group.order || 0,
-      code: '',
-      unit: 'hộp',
-      price: '',
-      groupId: group.id || ''
-    });
-    setShowModal(true);
-  };
-
-  const handleDeleteGroup = async (id) => {
-    if (!window.confirm('Xóa danh mục sẽ xóa tất cả sản phẩm trong danh mục. Bạn có chắc chắn?')) return;
-
+  // Create/Edit Handler
+  const handleSave = async (formData) => {
     try {
-      setLoading(true);
-      // First, delete all products in this group
       const token = localStorage.getItem('token');
-      const productsInGroup = products.filter(p => p.groupId === id);
-      for (const product of productsInGroup) {
-        await fetch(`${API_BASE}/products/admin/products/${product.id}`, {
-          method: 'DELETE',
-          headers: { 'x-auth-token': token }
-        });
-      }
+      const headers = {
+        'x-auth-token': token,
+        'Content-Type': 'application/json'
+      };
 
-      // Then delete the group
-      const response = await fetch(`${API_BASE}/products/admin/groups/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({ isActive: false }),
+      const method = editingProduct ? 'PUT' : 'POST';
+      const url = editingProduct
+        ? `${API_BASE}/products/admin/products/${editingProduct.id}`
+        : `${API_BASE}/products/admin/products`;
+
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(formData)
       });
 
-      if (response.ok) {
-        alert('Xóa danh mục thành công!');
-        loadProducts();
+      if (res.ok) {
+        alert('Lưu sản phẩm thành công!');
+        setShowModal(false);
+        setEditingProduct(null);
+        loadData();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Lỗi khi xóa danh mục');
+        const err = await res.json();
+        alert(`Lỗi: ${err.error}`);
       }
     } catch (error) {
-      console.error('Error deleting group:', error);
-      alert('Lỗi khi xóa danh mục');
-    } finally {
-      setLoading(false);
+      console.error('Save error:', error);
+      alert('Có lỗi xảy ra khi lưu.');
     }
   };
 
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
-
+  const handleDelete = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) return;
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/products/admin/products/${id}`, {
+      const res = await fetch(`${API_BASE}/products/admin/products/${id}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': token }
       });
-
-      if (response.ok) {
-        alert('Xóa sản phẩm thành công!');
-        loadProducts();
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Lỗi khi xóa sản phẩm');
+      if (res.ok) {
+        setProducts(products.filter(p => p.id !== id));
+        if (selectedProduct?.id === id) setSelectedProduct(null);
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Lỗi khi xóa sản phẩm');
-    } finally {
-      setLoading(false);
+      console.error('Delete error:', error);
     }
   };
 
-  const handleSave = async () => {
-    if (modalType === 'group') {
-      // Save group
-      if (!formData.name) {
-        alert('Vui lòng nhập tên danh mục');
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const payload = {
-          name: formData.name,
-          description: formData.description || null,
-          order: formData.order || 0,
-        };
-
-        const url = editingGroup
-          ? `${API_BASE}/products/admin/groups/${editingGroup.id}`
-          : `${API_BASE}/products/admin/groups`;
-        const method = editingGroup ? 'PUT' : 'POST';
-
-        const token = localStorage.getItem('token');
-        const response = await fetch(url, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          alert(editingGroup ? 'Cập nhật danh mục thành công!' : 'Tạo danh mục thành công!');
-          setShowModal(false);
-          setEditingGroup(null);
-          setModalType('product');
-          loadProducts();
-        } else {
-          const error = await response.json();
-          alert(error.error || 'Lỗi khi lưu danh mục');
-        }
-      } catch (error) {
-        console.error('Error saving group:', error);
-        alert('Lỗi khi lưu danh mục');
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Save product
-      if (!formData.name || !formData.price || !formData.groupId) {
-        alert('Vui lòng điền đầy đủ thông tin');
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const payload = {
-          name: formData.name,
-          code: formData.code || null,
-          description: formData.description || null,
-          groupId: formData.groupId,
-          unit: formData.unit || 'hộp',
-          price: parseFloat(formData.price),
-          isPrescription: formData.isPrescription,
-          concentration: formData.concentration,
-          usage: formData.usage,
-          genericName: formData.genericName,
-          manufacturer: formData.manufacturer,
-          countryOfOrigin: formData.countryOfOrigin,
-          registrationNo: formData.registrationNo,
-          packingSpec: formData.packingSpec,
-          storageCondition: formData.storageCondition,
-          indications: formData.indications,
-          contraindications: formData.contraindications,
-          dosage: formData.dosage,
-          sideEffects: formData.sideEffects,
-          shelfLife: formData.shelfLife,
-          vat: formData.vat ? parseFloat(formData.vat) : null,
-          images: formData.image ? [formData.image] : []
-        };
-
-        const url = editingProduct?.id
-          ? `${API_BASE}/products/admin/products/${editingProduct.id}`
-          : `${API_BASE}/products/admin/products`;
-        const method = editingProduct?.id ? 'PUT' : 'POST';
-
-        const token = localStorage.getItem('token');
-        const response = await fetch(url, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          alert(editingProduct?.id ? 'Cập nhật sản phẩm thành công!' : 'Tạo sản phẩm thành công!');
-          setShowModal(false);
-          setEditingProduct(null);
-          setModalType('product');
-          loadProducts();
-        } else {
-          const error = await response.json();
-          alert(error.error || 'Lỗi khi lưu sản phẩm');
-        }
-      } catch (error) {
-        console.error('Error saving product:', error);
-        alert('Lỗi khi lưu sản phẩm');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(amount);
+  const handleExport = () => {
+    window.open(`${API_BASE}/excel/export/products`, '_blank');
   };
 
   const handleDownloadTemplate = () => {
-    const headers = [
-      {
-        'Mã SP': 'SP001',
-        'Tên sản phẩm': 'Thuốc A',
-        'Mã Nhóm SP': 'GROUP001',
-        'Đơn vị': 'Hộp',
-        'Giá bán': 100000,
-        'Giá vốn': 80000,
-        'Tồn kho min': 10,
-        'Tồn kho max': 1000,
-        'Mô tả': 'Công dụng điều trị...',
-        'Hoạt chất': 'Paracetamol',
-        'Hàm lượng': '500mg',
-        'Hãng SX': 'NADYPHAR',
-        'Nước SX': 'Việt Nam',
-        'Số ĐK': 'VD-12345-23',
-        'Quy cách': 'Hộp 10 vỉ x 10 viên',
-        'ETC': 'C',
-        'VAT': 5,
-        'Barcode': '8936079123456',
-        'Trạng thái': 'true'
-      }
-    ];
-    const ws = XLSX.utils.json_to_sheet(headers);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'Template_San_pham_DMS.xlsx');
+    window.open(`${API_BASE}/excel/template/products`, '_blank');
   };
 
-  const handleImportExcel = async (e) => {
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
+    const formData = new FormData();
+    formData.append('file', file);
 
-        if (data.length === 0) {
-          alert('File không có dữ liệu');
-          return;
-        }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/products/admin/products/import`, {
+        method: 'POST',
+        headers: { 'x-auth-token': token },
+        body: formData
+      });
 
-        if (!window.confirm(`Tìm thấy ${data.length} dòng dữ liệu. Bạn có muốn import không?`)) return;
-
-        setLoading(true);
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const row of data) {
-          try {
-            // Lookup Group
-            const groupName = row['Danh mục'];
-            const group = productGroups.find(g => g.name === groupName);
-
-            if (!group) {
-              console.warn('Group not found:', groupName);
-              errorCount++;
-              continue;
-            }
-
-            const payload = {
-              code: row['Mã SP']?.toString(),
-              name: row['Tên sản phẩm'],
-              description: row['Mô tả'],
-              unit: row['Đơn vị'] || 'hộp',
-              price: parseFloat(row['Giá bán']),
-              groupId: group.id,
-              genericName: row['Hoạt chất'],
-              concentration: row['Hàm lượng'],
-              manufacturer: row['Hãng SX'],
-              countryOfOrigin: row['Nước SX'],
-              registrationNo: row['Số ĐK'],
-              packingSpec: row['Quy cách'],
-              isPrescription: row['ETC'] === 'C' || row['ETC'] === 'True',
-              vat: row['VAT'] ? parseFloat(row['VAT']) : null
-            };
-
-            if (!payload.name || !payload.price || !payload.groupId) {
-              console.warn('Skipping invalid row:', row);
-              errorCount++;
-              continue;
-            }
-
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/products/admin/products`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token
-              },
-              body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-              successCount++;
-            } else {
-              errorCount++;
-            }
-          } catch (err) {
-            console.error('Error importing row:', err);
-            errorCount++;
-          }
-        }
-
-        alert(`Import hoàn tất!\nThành công: ${successCount}\nThất bại: ${errorCount}`);
-        loadProducts();
-      } catch (error) {
-        console.error('Error parsing excel:', error);
-        alert('Lỗi khi đọc file Excel');
-      } finally {
-        setLoading(false);
-        e.target.value = null;
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        loadData();
+      } else {
+        alert(`Lỗi Import: ${data.error}`);
+        if (data.errors) console.error(data.errors);
       }
+    } catch (error) {
+      console.error('Import Error:', error);
+      alert('Lỗi khi upload file');
+    }
+    // Reset input
+    e.target.value = null;
+  };
+
+  // KPIs
+  const kpiData = useMemo(() => {
+    return {
+      total: products.length,
+      lowStock: products.filter(p => (p.currentStock || 0) < (p.minStock || 10)).length,
+      new: products.filter(p => new Date(p.createdAt) > new Date(new Date().setDate(new Date().getDate() - 30))).length,
+      groups: groups.length
     };
-    reader.readAsBinaryString(file);
+  }, [products, groups]);
+
+  // Filtering
+  const filteredData = useMemo(() => {
+    let data = products;
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      data = data.filter(p =>
+        p.name?.toLowerCase().includes(lower) ||
+        p.code?.toLowerCase().includes(lower) ||
+        p.genericName?.toLowerCase().includes(lower)
+      );
+    }
+    if (activeGroup !== 'ALL') {
+      data = data.filter(p => p.groupId === activeGroup);
+    }
+    return data;
+  }, [products, searchTerm, activeGroup]);
+
+  // Styles
+  const ss = {
+    container: { fontFamily: 'Inter, sans-serif', background: THEME.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' },
+    header: { padding: '20px 30px', background: THEME.cardBg, borderBottom: `1px solid ${THEME.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    title: { fontSize: '24px', fontWeight: '700', color: THEME.primary, display: 'flex', alignItems: 'center', gap: '10px' },
+
+    mainLayout: { display: 'flex', flex: 1, padding: '24px 30px', gap: '24px', overflow: 'hidden' },
+    sidebar: { width: '260px', background: 'white', borderRadius: '12px', border: `1px solid ${THEME.border}`, display: 'flex', flexDirection: 'column', overflowY: 'auto' },
+    content: { flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', overflow: 'hidden' },
+
+    // Grid
+    gridContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px', overflowY: 'auto', paddingBottom: '20px' },
+    card: { background: 'white', border: `1px solid ${THEME.border}`, borderRadius: '12px', overflow: 'hidden', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer', display: 'flex', flexDirection: 'column' },
+    cardImg: { height: '160px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    cardBody: { padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' },
+    cardTitle: { fontWeight: '600', fontSize: '15px', marginBottom: '4px', color: THEME.text, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' },
+    cardSub: { fontSize: '13px', color: THEME.textLight, marginBottom: '8px' },
+    cardPrice: { fontSize: '16px', fontWeight: '700', color: THEME.accent, marginTop: 'auto' },
+    badge: { position: 'absolute', top: 10, right: 10, padding: '4px 8px', background: 'rgba(255,255,255,0.9)', borderRadius: '4px', fontSize: '11px', fontWeight: '600', color: THEME.textLight, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+
+    // Sidebar Items
+    menuItem: (active) => ({ padding: '12px 20px', fontSize: '14px', fontWeight: active ? '600' : '500', color: active ? THEME.accent : THEME.text, background: active ? '#eef2ff' : 'transparent', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRight: active ? `3px solid ${THEME.accent}` : 'none' }),
+
+    // Action Bar
+    actionBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 20px', borderRadius: '12px', border: `1px solid ${THEME.border}` },
+    searchBox: { display: 'flex', alignItems: 'center', gap: '10px', background: '#f8fafc', padding: '8px 16px', borderRadius: '8px', border: `1px solid ${THEME.border}`, width: '300px' },
+    input: { border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', width: '100%' },
+
+    // Detail Panel
+    detailPanel: { width: '400px', background: 'white', borderRadius: '12px', border: `1px solid ${THEME.border}`, padding: '0', display: 'flex', flexDirection: 'column', overflowY: 'auto', borderLeft: `1px solid ${THEME.border}` },
+
+    // Modal
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    modalContent: { background: 'white', borderRadius: '16px', width: '900px', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' },
+    formGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' },
+    formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    label: { fontSize: '13px', fontWeight: '600', color: THEME.text },
+    input: { padding: '10px', borderRadius: '8px', border: `1px solid ${THEME.border}`, fontSize: '14px', outline: 'none' },
+    header: { fontSize: '20px', fontWeight: '700', marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }
   };
 
   return (
-    <div style={{ padding: isMobile ? '0' : '0' }}>
-      {/* Header & Tabs */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '600', color: '#1a1a2e', marginBottom: '8px' }}>
-          Quản lý sản phẩm
-        </h1>
-        <div style={{ display: 'flex', gap: '2px', borderBottom: '2px solid #e5e7eb', marginTop: '16px' }}>
-          <div
-            onClick={() => setViewMode('products')}
-            style={{
-              padding: '12px 24px', cursor: 'pointer', fontWeight: '600',
-              color: viewMode === 'products' ? '#F29E2E' : '#666',
-              borderBottom: viewMode === 'products' ? '2px solid #F29E2E' : 'transparent', marginBottom: '-2px'
-            }}
-          >
-            Danh sách sản phẩm
-          </div>
-          <div
-            onClick={() => setViewMode('groups')}
-            style={{
-              padding: '12px 24px', cursor: 'pointer', fontWeight: '600',
-              color: viewMode === 'groups' ? '#F29E2E' : '#666',
-              borderBottom: viewMode === 'groups' ? '2px solid #F29E2E' : 'transparent', marginBottom: '-2px'
-            }}
-          >
-            Quản lý Danh mục
-          </div>
+    <div style={ss.container}>
+      {/* HEADER */}
+      <div style={ss.header}>
+        <div style={ss.title}>
+          <Package size={28} color={THEME.accent} />
+          Product Catalog
         </div>
-      </div>
-
-      {/* Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ flex: 1, display: viewMode === 'products' ? 'flex' : 'none', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <input
-            type="text"
-            placeholder="🔍 Tìm kiếm sản phẩm..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              flex: 1, minWidth: '200px', padding: '10px 16px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px'
-            }}
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            accept=".xlsx, .xls"
           />
-          <select
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            style={{ padding: '10px 16px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}
-          >
-            <option value="all">Tất cả danh mục</option>
-            {productGroups.map(group => (
-              <option key={group.id} value={group.id}>{group.name}</option>
-            ))}
-          </select>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
-          {viewMode === 'products' && (
-            <>
-              <button onClick={handleDownloadTemplate} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📥</span> Template
-              </button>
-              <label style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>📤</span> Import
-                <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} style={{ display: 'none' }} />
-              </label>
-              <button onClick={handleAddProduct} style={{ padding: '10px 20px', background: '#F29E2E', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>➕</span> Thêm sản phẩm
-              </button>
-            </>
-          )}
-          {viewMode === 'groups' && (
-            <button onClick={handleAddGroup} style={{ padding: '10px 20px', background: '#F29E2E', border: 'none', borderRadius: '8px', color: '#fff', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📂</span> Thêm danh mục
-            </button>
-          )}
+          <button onClick={handleDownloadTemplate} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Download size={18} /> Template
+          </button>
+          <button onClick={handleImportClick} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Upload size={18} /> Import
+          </button>
+          <button onClick={handleExport} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Upload size={18} /> Export
+          </button>
+          <button onClick={() => { setEditingProduct(null); setShowModal(true); }} style={{ background: THEME.accent, color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} /> Thêm Sản Phẩm
+          </button>
         </div>
       </div>
 
-      {/* View Content */}
-      {viewMode === 'groups' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-          {productGroups.map(group => {
-            const groupProducts = products.filter(p => p.groupId === group.id || p.group?.id === group.id);
-            const totalRevenue = groupProducts.reduce((sum, p) => sum + (p.price || 0), 0);
-            return (
-              <div key={group.id} style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1a1a2e', marginBottom: '4px' }}>📂 {group.name}</h3>
-                    <div style={{ fontSize: '13px', color: '#666' }}>{groupProducts.length} sản phẩm</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => handleEditGroup(group)} style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px' }}>✏️</button>
-                    <button onClick={() => handleDeleteGroup(group.id)} style={{ padding: '6px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '16px' }}>🗑️</button>
-                  </div>
+      {/* MAIN */}
+      <div style={ss.mainLayout}>
+        {/* SIDEBAR: CATEGORIES */}
+        <div style={ss.sidebar}>
+          <div style={{ padding: '20px', fontSize: '12px', fontWeight: '700', color: THEME.textLight, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Danh Mục</div>
+          <div
+            style={ss.menuItem(activeGroup === 'ALL')}
+            onClick={() => setActiveGroup('ALL')}
+          >
+            <span>Tất Cả</span>
+            <span style={{ fontSize: '11px', background: '#e2e8f0', padding: '2px 8px', borderRadius: '10px' }}>{kpiData.total}</span>
+          </div>
+          {groups.map(g => (
+            <div
+              key={g.id}
+              style={ss.menuItem(activeGroup === g.id)}
+              onClick={() => setActiveGroup(g.id)}
+            >
+              <span>{g.name}</span>
+              <ChevronRight size={14} color={THEME.textLight} />
+            </div>
+          ))}
+        </div>
+
+        {/* CONTENT AREA */}
+        <div style={ss.content}>
+          {/* Stats Strip */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            {STAT_CARDS.map(c => (
+              <div key={c.key} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: `1px solid ${THEME.border}`, display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '10px', background: `${c.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.color }}>
+                  <c.icon size={20} />
                 </div>
-                <div style={{ padding: '8px', background: '#f9fafb', borderRadius: '6px', fontSize: '12px', color: '#666' }}>
-                  Giá TB: {formatCurrency(totalRevenue / (groupProducts.length || 1))}
+                <div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: THEME.text }}>{kpiData[c.key]}</div>
+                  <div style={{ fontSize: '12px', color: THEME.textLight }}>{c.title}</div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {viewMode === 'products' && (
-        <div style={{ background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '50px 100px 1fr 150px 100px 120px 100px', gap: '16px', padding: '12px 16px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontWeight: '600', fontSize: '13px', color: '#4b5563' }}>
-            <div>STT</div>
-            <div>Mã SP</div>
-            <div>Tên sản phẩm</div>
-            <div>Danh mục</div>
-            <div>Đơn vị</div>
-            <div>Giá bán</div>
-            <div>Thao tác</div>
+            ))}
           </div>
-          <div style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
-            {filteredProducts.map((product, index) => (
-              <div key={product.id} style={{ display: 'grid', gridTemplateColumns: '50px 100px 1fr 150px 100px 120px 100px', gap: '16px', padding: '12px 16px', borderBottom: '1px solid #f3f4f6', alignItems: 'center', fontSize: '13px' }}>
-                <div style={{ color: '#6b7280' }}>{index + 1}</div>
-                <div style={{ fontWeight: '600', color: '#1E4A8B' }}>{product.code}</div>
-                <div style={{ color: '#111827' }}>{product.name}</div>
-                <div style={{ color: '#6b7280' }}>{product.group?.name || product.groupName || '-'}</div>
-                <div style={{ color: '#374151' }}>{product.unit}</div>
-                <div style={{ fontWeight: '600', color: '#059669' }}>{formatCurrency(product.price)}</div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => handleEditProduct(product)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>✏️</button>
-                  <button onClick={() => handleDeleteProduct(product.id)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>🗑️</button>
+
+          {/* Action Bar */}
+          <div style={ss.actionBar}>
+            <div style={ss.searchBox}>
+              <Search size={18} color={THEME.textLight} />
+              <input
+                style={ss.input}
+                placeholder="Tìm tên, mã, hoạt chất..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setViewMode('grid')} style={{ padding: '8px', borderRadius: '6px', border: 'none', background: viewMode === 'grid' ? '#e2e8f0' : 'transparent', cursor: 'pointer' }}><LayoutGrid size={20} /></button>
+              <button onClick={() => setViewMode('list')} style={{ padding: '8px', borderRadius: '6px', border: 'none', background: viewMode === 'list' ? '#e2e8f0' : 'transparent', cursor: 'pointer' }}><List size={20} /></button>
+            </div>
+          </div>
+
+          {/* DATA GRID */}
+          <div style={ss.gridContainer}>
+            {filteredData.map(p => (
+              <div
+                key={p.id}
+                style={{
+                  ...ss.card,
+                  boxShadow: selectedProduct?.id === p.id ? `0 0 0 2px ${THEME.accent}` : 'none',
+                  transform: selectedProduct?.id === p.id ? 'scale(1.02)' : 'none'
+                }}
+                onClick={() => setSelectedProduct(p)}
+              >
+                <div style={ss.cardImg}>
+                  {p.image ? (
+                    <img src={p.image.startsWith('http') ? p.image : `${API_BASE}/${p.image}`} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <ImageIcon size={40} color={THEME.textLight} />
+                  )}
+                  {p.isPrescription && <div style={{ position: 'absolute', top: 10, left: 10, background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px' }}>Rx</div>}
+                  <div style={ss.badge}>{p.code}</div>
+                </div>
+                <div style={ss.cardBody}>
+                  <div style={ss.cardTitle} title={p.name}>{p.name}</div>
+                  <div style={ss.cardSub}>{p.genericName || p.manufacturer || 'Unknown'}</div>
+
+                  <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div style={ss.cardPrice}>{(p.price || 0).toLocaleString()} ₫</div>
+                    <div style={{ fontSize: '12px', color: (p.currentStock || 100) < 20 ? THEME.danger : THEME.success, fontWeight: '600' }}>
+                      Stock: {p.currentStock || 100}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      )}
 
-      {/* Modal */}
-      {
-        showModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-            onClick={() => setShowModal(false)}
-          >
-            <div
-              style={{
-                background: '#fff',
-                borderRadius: '16px',
-                padding: '32px',
-                width: '90%',
-                maxWidth: '600px',
-                maxHeight: '90vh',
-                overflowY: 'auto'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                marginBottom: '24px'
-              }}>
-                {modalType === 'group'
-                  ? (editingGroup ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới')
-                  : (editingProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới')
-                }
-              </h2>
-
-              {modalType === 'group' ? (
-                // Group Form
-                <div>
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      marginBottom: '8px'
-                    }}>
-                      Tên danh mục *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="VD: Thuốc kê đơn"
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-                </div>
+        {/* RIGHT PANEL: PRODUCT DETAIL */}
+        {selectedProduct && (
+          <div style={ss.detailPanel}>
+            <div style={{ height: '200px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: `1px solid ${THEME.border}` }}>
+              {selectedProduct.image ? (
+                <img src={selectedProduct.image} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               ) : (
-                // Product Form
-                <>
-                  <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid #e5e7eb', marginBottom: '20px' }}>
-                    {['basic', 'pharma', 'detail', 'other'].map(tab => (
-                      <div key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 0', cursor: 'pointer', borderBottom: activeTab === tab ? '2px solid #F29E2E' : '2px solid transparent', color: activeTab === tab ? '#F29E2E' : '#666', fontWeight: activeTab === tab ? '600' : '500', fontSize: '14px' }}>
-                        {tab === 'basic' ? 'Cơ bản' : tab === 'pharma' ? 'Dược lý' : tab === 'detail' ? 'Chi tiết' : 'Khác'}
-                      </div>
-                    ))}
-                  </div>
-
-                  {activeTab === 'basic' && (
-                    <>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Hình ảnh (URL)</label>
-                        <input type="text" value={formData.image || ''} onChange={(e) => setFormData({ ...formData, image: e.target.value })} placeholder="https://example.com/image.jpg" style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }} />
-                        {formData.image && <img src={formData.image} alt="Preview" style={{ marginTop: '8px', height: '100px', borderRadius: '8px', objectFit: 'cover' }} />}
-                      </div>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '16px',
-                        marginBottom: '16px'
-                      }}>
-                        <div>
-                          <label style={{
-                            display: 'block',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            marginBottom: '8px'
-                          }}>
-                            Mã sản phẩm *
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.code}
-                            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                            placeholder="VD: PAR500"
-                            style={{
-                              width: '100%',
-                              padding: '12px',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '8px',
-                              fontSize: '14px'
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{
-                            display: 'block',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            marginBottom: '8px'
-                          }}>
-                            Đơn vị *
-                          </label>
-                          <select
-                            value={formData.unit}
-                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '12px',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '8px',
-                              fontSize: '14px'
-                            }}
-                          >
-                            <option value="Vĩ">Vĩ</option>
-                            <option value="Hộp">Hộp</option>
-                            <option value="Lọ">Lọ</option>
-                            <option value="Chai">Chai</option>
-                            <option value="Tuýp">Tuýp</option>
-                            <option value="Viên">Viên</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          marginBottom: '8px'
-                        }}>
-                          Tên sản phẩm *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder="VD: Paracetamol 500mg"
-                          style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '8px',
-                            fontSize: '14px'
-                          }}
-                        />
-                      </div>
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '16px',
-                        marginBottom: '16px'
-                      }}>
-                        <div>
-                          <label style={{
-                            display: 'block',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            marginBottom: '8px'
-                          }}>
-                            Danh mục *
-                          </label>
-                          <select
-                            value={formData.groupId}
-                            onChange={(e) => {
-                              setFormData({
-                                ...formData,
-                                groupId: e.target.value
-                              });
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '12px',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '8px',
-                              fontSize: '14px'
-                            }}
-                          >
-                            <option value="">Chọn danh mục</option>
-                            {productGroups.map(group => (
-                              <option key={group.id} value={group.id}>{group.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label style={{
-                            display: 'block',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            marginBottom: '8px'
-                          }}>
-                            Giá bán (VNĐ) *
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.price}
-                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                            placeholder="VD: 50000"
-                            style={{
-                              width: '100%',
-                              padding: '12px',
-                              border: '2px solid #e5e7eb',
-                              borderRadius: '8px',
-                              fontSize: '14px'
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>VAT (%)</label>
-                        <input type="number" value={formData.vat} onChange={(e) => setFormData({ ...formData, vat: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Mô tả ngắn</label>
-                        <textarea rows="3" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                    </>
-                  )}
-
-                  {activeTab === 'pharma' && (
-                    <>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600' }}>
-                          <input type="checkbox" checked={formData.isPrescription} onChange={(e) => setFormData({ ...formData, isPrescription: e.target.checked })} />
-                          Thuốc kê đơn (ETC)
-                        </label>
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Hoạt chất (Generic Name)</label>
-                        <input type="text" value={formData.genericName} onChange={(e) => setFormData({ ...formData, genericName: e.target.value })} placeholder="VD: Paracetamol" style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Hàm lượng</label>
-                          <input type="text" value={formData.concentration} onChange={(e) => setFormData({ ...formData, concentration: e.target.value })} placeholder="VD: 500mg" style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Đường dùng</label>
-                          <input type="text" value={formData.usage} onChange={(e) => setFormData({ ...formData, usage: e.target.value })} placeholder="VD: Uống" style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Quy cách đóng gói</label>
-                        <input type="text" value={formData.packingSpec} onChange={(e) => setFormData({ ...formData, packingSpec: e.target.value })} placeholder="VD: Hộp 10 vỉ x 10 viên" style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                    </>
-                  )}
-
-                  {activeTab === 'detail' && (
-                    <>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Chỉ định</label>
-                        <textarea rows="3" value={formData.indications} onChange={(e) => setFormData({ ...formData, indications: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Chống chỉ định</label>
-                        <textarea rows="3" value={formData.contraindications} onChange={(e) => setFormData({ ...formData, contraindications: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Liều dùng & Cách dùng</label>
-                        <textarea rows="3" value={formData.dosage} onChange={(e) => setFormData({ ...formData, dosage: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Tác dụng phụ</label>
-                        <textarea rows="3" value={formData.sideEffects} onChange={(e) => setFormData({ ...formData, sideEffects: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                    </>
-                  )}
-
-                  {activeTab === 'other' && (
-                    <>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Hãng sản xuất</label>
-                          <input type="text" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Nước sản xuất</label>
-                          <input type="text" value={formData.countryOfOrigin} onChange={(e) => setFormData({ ...formData, countryOfOrigin: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Số đăng ký</label>
-                          <input type="text" value={formData.registrationNo} onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Hạn dùng</label>
-                          <input type="text" value={formData.shelfLife} onChange={(e) => setFormData({ ...formData, shelfLife: e.target.value })} placeholder="VD: 36 tháng" style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Điều kiện bảo quản</label>
-                        <input type="text" value={formData.storageCondition} onChange={(e) => setFormData({ ...formData, storageCondition: e.target.value })} style={{ width: '100%', padding: '12px', border: '2px solid #e5e7eb', borderRadius: '8px' }} />
-                      </div>
-                    </>
-                  )}
-                </>
+                <ImageIcon size={64} color={THEME.textLight} />
               )}
+            </div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: THEME.accent }}>{selectedProduct.code}</div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '700', marginTop: '4px', marginBottom: '8px' }}>{selectedProduct.name}</h2>
+                  <div style={{ fontSize: '13px', color: THEME.textLight }}>{selectedProduct.genericName}</div>
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: '700', color: THEME.text }}>
+                  {(selectedProduct.price || 0).toLocaleString()} <span style={{ fontSize: '12px', fontWeight: '400', color: THEME.textLight }}>/ {selectedProduct.unit}</span>
+                </div>
+              </div>
 
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'flex-end',
-                marginTop: '24px'
-              }}>
+              <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <InfoItem label="Nhóm" value={groups.find(g => g.id === selectedProduct.groupId)?.name || 'N/A'} />
+                <InfoItem label="Danh Mục" value={categories.find(c => c.id === selectedProduct.categoryId)?.name || 'N/A'} />
+                <InfoItem label="Nhà SX (Brand)" value={selectedProduct.manufacturer} />
+                <InfoItem label="Quy cách" value={selectedProduct.packingSpec} />
+                <InfoItem label="SDK" value={selectedProduct.registrationNo} />
+                <InfoItem label="Công dụng" value={selectedProduct.usage} span={2} />
+                <InfoItem label="Hàm lượng" value={selectedProduct.concentration} />
+                <InfoItem label="Chỉ định" value={selectedProduct.indications} span={2} />
+              </div>
+
+              <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
                 <button
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#f3f4f6',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => { setEditingProduct(selectedProduct); setShowModal(true); }}
+                  style={{ flex: 1, padding: '10px', background: THEME.text, color: 'white', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer' }}
                 >
-                  Hủy
+                  Edit Details
                 </button>
                 <button
-                  onClick={handleSave}
-                  style={{
-                    padding: '12px 24px',
-                    background: '#F29E2E',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => handleDelete(selectedProduct.id)}
+                  style={{ padding: '10px', background: 'white', border: `1px solid ${THEME.danger}`, borderRadius: '8px', color: THEME.danger, cursor: 'pointer' }}
                 >
-                  Lưu
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
+            <div style={{ marginTop: 'auto', padding: '16px', borderTop: `1px solid ${THEME.border}`, background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSelectedProduct(null)} style={{ background: 'transparent', border: 'none', color: THEME.textLight, cursor: 'pointer', fontWeight: '500' }}>Close Panel</button>
+            </div>
           </div>
-        )
-      }
-    </div >
+        )}
+      </div>
+
+      {/* CREATE/EDIT MODAL */}
+      {showModal && (
+        <ProductModal
+          product={editingProduct}
+          groups={groups}
+          categories={categories}
+          onClose={() => setShowModal(false)}
+          onSave={handleSave}
+        />
+      )}
+    </div>
   );
 };
 
-export default AdminProducts;
+const ProductModal = ({ product, groups, categories, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: '', code: '', groupId: '', categoryId: '', unit: '', price: 0,
+    genericName: '', manufacturer: '', usage: '', indications: '', concentration: '',
+    packingSpec: '', isPrescription: false, minStock: 10,
+    ...product // Override defaults if editing
+  });
 
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  const ss = {
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    modalContent: { background: 'white', borderRadius: '16px', width: '900px', maxHeight: '90vh', overflowY: 'auto', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' },
+    formGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' },
+    formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    label: { fontSize: '13px', fontWeight: '600', color: THEME.text },
+    input: { padding: '10px', borderRadius: '8px', border: `1px solid ${THEME.border}`, fontSize: '14px', outline: 'none' },
+    header: { fontSize: '20px', fontWeight: '700', marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }
+  };
+
+  return (
+    <div style={ss.modalOverlay}>
+      <div style={ss.modalContent}>
+        <div style={ss.header}>
+          <span>{product ? 'Cập nhật Sản Phẩm' : 'Thêm Sản Phẩm Mới'}</span>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}><X /></button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={ss.formGrid}>
+            <div style={{ gridColumn: 'span 3', fontSize: '16px', fontWeight: 'bold', color: THEME.accent, marginTop: '0px' }}>Thông tin cơ bản</div>
+
+            <FormGroup label="Tên Sản Phẩm *" style={ss}>
+              <input style={ss.input} name="name" value={formData.name} onChange={handleChange} required />
+            </FormGroup>
+            <FormGroup label="Mã SKU (Code)" style={ss}>
+              <input style={ss.input} name="code" value={formData.code} onChange={handleChange} />
+            </FormGroup>
+            <FormGroup label="Đơn vị tính" style={ss}>
+              <input style={ss.input} name="unit" value={formData.unit} onChange={handleChange} placeholder="Hộp/Lọ/Vỉ" />
+            </FormGroup>
+
+            <FormGroup label="Nhóm Hàng" style={ss}>
+              <select style={ss.input} name="groupId" value={formData.groupId} onChange={handleChange} required>
+                <option value="">-- Chọn Nhóm --</option>
+                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </FormGroup>
+
+            <FormGroup label="Danh Mục" style={ss}>
+              <select style={ss.input} name="categoryId" value={formData.categoryId} onChange={handleChange}>
+                <option value="">-- Chọn Danh Mục --</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </FormGroup>
+
+            <FormGroup label="Giá Bán" style={ss}>
+              <input style={ss.input} type="number" name="price" value={formData.price} onChange={handleChange} required />
+            </FormGroup>
+
+            <div style={{ gridColumn: 'span 3', fontSize: '16px', fontWeight: 'bold', color: THEME.accent, marginTop: '10px' }}>Thông tin dược phẩm</div>
+
+            <FormGroup label="Hoạt chất (Active Ingredient)" style={ss}>
+              <input style={ss.input} name="genericName" value={formData.genericName} onChange={handleChange} />
+            </FormGroup>
+            <FormGroup label="Hãng SX (Brand)" style={ss}>
+              <input style={ss.input} name="manufacturer" value={formData.manufacturer} onChange={handleChange} />
+            </FormGroup>
+            <FormGroup label="Hàm lượng" style={ss}>
+              <input style={ss.input} name="concentration" value={formData.concentration} onChange={handleChange} />
+            </FormGroup>
+
+            <FormGroup label="Công dụng (Usage)" style={ss}>
+              <input style={ss.input} name="usage" value={formData.usage} onChange={handleChange} placeholder="VD: Giảm đau, hạ sốt" />
+            </FormGroup>
+
+            <FormGroup label="Quy cách đóng gói" style={ss}>
+              <input style={ss.input} name="packingSpec" value={formData.packingSpec} onChange={handleChange} />
+            </FormGroup>
+            <FormGroup label="Số Đăng Ký" style={ss}>
+              <input style={ss.input} name="registrationNo" value={formData.registrationNo} onChange={handleChange} />
+            </FormGroup>
+
+            <div style={{ gridColumn: 'span 3' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '600', cursor: 'pointer' }}>
+                <input type="checkbox" name="isPrescription" checked={formData.isPrescription} onChange={handleChange} style={{ width: '20px', height: '20px' }} />
+                Thuốc Kê Đơn (Rx)
+              </label>
+            </div>
+
+            <FormGroup label="Chỉ định (Indications)" style={{ ...ss, gridColumn: 'span 3' }}>
+              <textarea style={{ ...ss.input, height: '80px', fontFamily: 'inherit' }} name="indications" value={formData.indications} onChange={handleChange} />
+            </FormGroup>
+
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '30px', borderTop: `1px solid ${THEME.border}`, paddingTop: '20px' }}>
+            <button type="button" onClick={onClose} style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', background: '#e2e8f0', color: THEME.text, fontWeight: '600', cursor: 'pointer' }}>Hủy bỏ</button>
+            <button type="submit" style={{ padding: '12px 24px', borderRadius: '8px', border: 'none', background: THEME.accent, color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Save size={18} /> Lưu Sản Phẩm
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const FormGroup = ({ label, children, style }) => (
+  <div style={style.formGroup}>
+    <label style={style.label}>{label}</label>
+    {children}
+  </div>
+);
+
+const InfoItem = ({ label, value, span = 1 }) => (
+  <div style={{ gridColumn: `span ${span}` }}>
+    <div style={{ fontSize: '11px', color: THEME.textLight, marginBottom: '2px' }}>{label}</div>
+    <div style={{ fontSize: '14px', fontWeight: '500', color: THEME.text }}>{value || '--'}</div>
+  </div>
+);
+
+export default AdminProducts;
