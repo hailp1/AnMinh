@@ -135,6 +135,57 @@ docker exec dms_backend npx prisma db seed
 
 ---
 
+## 🌐 Production Deployment
+
+### Publish to Production (via Cloudflare Tunnel)
+
+**Quick Start:**
+```bash
+cd d:\AM_DMS
+scripts\PUBLISH_PRODUCTION.bat
+```
+
+This will:
+1. ✅ Check Docker and Cloudflare credentials
+2. 🛑 Stop old containers
+3. 🏗️ Build all services
+4. 🚀 Start the system
+5. 🌐 Connect Cloudflare Tunnel
+
+**Production URLs:**
+- **DMS System:** https://dms.ammedtech.com
+- **Backend API:** https://dms.ammedtech.com/api
+- **Landing Page:** https://ammedtech.com (Vercel)
+
+**Management Commands:**
+```bash
+# Check system status
+scripts\CHECK_PRODUCTION.bat
+
+# Stop production
+scripts\STOP_PRODUCTION.bat
+
+# View logs
+docker-compose -f docker-compose.yml logs -f
+
+# Restart a service
+docker-compose -f docker-compose.yml restart backend
+```
+
+**After Code Changes:**
+```bash
+# Rebuild backend
+docker-compose -f docker-compose.yml up -d --build backend
+
+# Rebuild frontend
+docker-compose -f docker-compose.yml up -d --build frontend
+```
+
+📖 **Detailed Guide:** See [HUONG_DAN_PUBLISH_PRODUCTION.md](HUONG_DAN_PUBLISH_PRODUCTION.md)  
+⚡ **Quick Reference:** See [QUICK_START_PUBLISH.md](QUICK_START_PUBLISH.md)
+
+---
+
 ## 👥 Default Credentials
 
 ### Admin
