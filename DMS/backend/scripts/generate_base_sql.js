@@ -1,0 +1,103 @@
+
+import fs from 'fs';
+
+const HASHED_PASS = '$2a$10$abcdefghijklmnopqrstuvwxyz123456';
+
+function getRandomLoc(centerLat, centerLng, radiusInKm) {
+    const y0 = centerLat;
+    const x0 = centerLng;
+    const rd = radiusInKm / 111300;
+    const u = Math.random();
+    const v = Math.random();
+    const w = rd * Math.sqrt(u);
+    const t = 2 * Math.PI * v;
+    const x = w * Math.cos(t);
+    const y = w * Math.sin(t);
+    return { lat: y + y0, lng: x + x0 };
+}
+
+async function generate() {
+    let sql = '-- Generated Seed Data (With TRUNCATE & UPSERT)\n';
+
+    // 1. Unlink FKs to allow Region Truncate
+    sql += `UPDATE "User" SET "regionId" = NULL;\n`;
+
+    // 2. TRUNCATE DATA TABLES
+    // Attempt truncate, if it fails, the UPSERTs below should handle it
+    sql += `TRUNCATE "VisitPlan", "Route", "CustomerAssignment", "OrderItem", "Order", "Pharmacy", "Territory", "BusinessUnit", "Region" CASCADE;\n`;
+
+
+    // 1. REGION, BU, TERRITORY
+    const regionId = 'REGION_SOUTH_ID';
+    const buId = 'BU_HCM_ID';
+    const terrIds = [];
+
+    sql += `INSERT INTO "Region" (id, code, name, "createdAt", "updatedAt") VALUES ('${regionId}', 'SOUTH', 'Miền Nam', NOW(), NOW()) ON CONFLICT (code) DO NOTHING;\n`;
+    sql += `INSERT INTO "BusinessUnit" (id, code, name, "regionId", "createdAt", "updatedAt") VALUES ('${buId}', 'BU_HCM', 'HCM Business Unit', '${regionId}', NOW(), NOW()) ON CONFLICT (code) DO NOTHING;\n`;
+
+    const dists = ['Q1', 'Q3', 'Q5', 'Q10', 'TanBinh', 'BinhThanh'];
+    dists.forEach((d, i) => {
+        const tid = `TERR_ID_${d}`;
+        terrIds.push(tid);
+        sql += `INSERT INTO "Territory" (id, code, name, "businessUnitId", "regionId", districts, "createdAt", "updatedAt") VALUES ('${tid}', 'TER_${d}', 'Khu vực ${d}', '${buId}', '${regionId}', ARRAY['${d}'], NOW(), NOW()) ON CONFLICT (code) DO NOTHING;\n`;
+    });
+
+    // 2. USERS
+    const ssId = 'USER_SS001';
+    sql += `INSERT INTO "User" (id, "employeeCode", username, name, email, password, role, "isActive", channel, "createdAt", "updatedAt") VALUES ('${ssId}', 'SS001', 'SS001', 'Nguyễn Văn Quản Lý', 'ss001@ammedtech.com', '${HASHED_PASS}', 'MANAGER', true, 'OTC', NOW(), NOW()) ON CONFLICT ("employeeCode") DO UPDATE SET "role" = 'MANAGER', "isActive" = true;\n`;
+
+    const tdvIds = [];
+    for (let i = 1; i <= 5; i++) {
+        const uid = `USER_TDV00${i}`;
+        const code = `TDV${i.toString().padStart(3, '0')}`;
+        tdvIds.push(uid);
+        sql += `INSERT INTO "User" (id, "employeeCode", username, name, email, password, role, "managerId", "isActive", channel, "regionId", "createdAt", "updatedAt") VALUES ('${uid}', '${code}', '${code}', 'Trình Dược Viên ${i}', '${code.toLowerCase()}@ammedtech.com', '${HASHED_PASS}', 'TDV', '${ssId}', true, 'OTC', '${regionId}', NOW(), NOW()) ON CONFLICT ("employeeCode") DO UPDATE SET "regionId" = '${regionId}', "managerId" = '${ssId}';\n`;
+    }
+
+    // 3. PRODUCTS
+    const prodIds = [];
+    for (let i = 1; i <= 20; i++) {
+        const pid = `PROD_ID_${i}`;
+        const code = `PROD${i.toString().padStart(3, '0')}`;
+        prodIds.push(pid);
+        const price = 100000 + (i * 5000);
+        sql += `INSERT INTO "Product" (id, code, name, price, unit, "packingSpec", manufacturer, "countryOfOrigin", "isActive", "createdAt", "updatedAt") VALUES ('${pid}', '${code}', 'Sản phẩm mẫu AM ${i}', ${price}, 'Hộp', 'Hộp 3 vỉ x 10 viên', 'AM Pharma', 'Vietnam', true, NOW(), NOW()) ON CONFLICT (code) DO NOTHING;\n`;
+    }
+
+    // 4. CUSTOMERS & ASSIGNMENTS & ROUTES (500)
+    const hcmCenter = { lat: 10.7769, lng: 106.7009 };
+    const customersPerTDV = 500 / 5;
+    let custGlobalIndex = 1;
+
+    for (let tdvIndex = 0; tdvIndex < tdvIds.length; tdvIndex++) {
+        const tdvId = tdvIds[tdvIndex];
+
+        for (let j = 0; j < customersPerTDV; j++) {
+            const cid = `CUST_ID_${custGlobalIndex}`;
+            const code = `KH${custGlobalIndex.toString().padStart(4, '0')}`;
+            const terrId = terrIds[Math.floor(Math.random() * terrIds.length)];
+            const loc = getRandomLoc(hcmCenter.lat, hcmCenter.lng, 10);
+
+            sql += `INSERT INTO "Pharmacy" (id, code, name, address, district, province, phone, type, channel, status, latitude, longitude, "territoryId", "visitFrequency", "createdAt", "updatedAt") VALUES ('${cid}', '${code}', 'Nhà Thuốc Demo ${custGlobalIndex}', 'Số ${custGlobalIndex} Đường Demo, HCM', 'Q1', 'Hồ Chí Minh', '0901234567', 'PHARMACY', 'OTC', 'ACTIVE', ${loc.lat}, ${loc.lng}, '${terrId}', 4, NOW(), NOW()) ON CONFLICT (code) DO UPDATE SET "territoryId" = '${terrId}';\n`;
+
+            const assignId = `ASSIGN_${tdvIndex}_${custGlobalIndex}`;
+            sql += `INSERT INTO "CustomerAssignment" (id, "userId", "pharmacyId", "territoryId", "assignedBy", "isActive", "createdAt", "updatedAt") VALUES ('${assignId}', '${tdvId}', '${cid}', '${terrId}', 'SYSTEM', true, NOW(), NOW()) ON CONFLICT (id) DO NOTHING;\n`;
+
+            const dayOfWeek = Math.floor(Math.random() * 6) + 1;
+            const routeId = `ROUTE_${tdvIndex}_${custGlobalIndex}`;
+            sql += `INSERT INTO "Route" (id, "userId", "pharmacyId", "dayOfWeek", frequency, "visitOrder", "createdAt", "updatedAt") VALUES ('${routeId}', '${tdvId}', '${cid}', ${dayOfWeek}, 'F4', 1, NOW(), NOW()) ON CONFLICT (id) DO NOTHING;\n`;
+
+            const vpId = `VP_${tdvIndex}_${custGlobalIndex}`;
+            // Use 1 day intervals for visit plans to show dense data?
+            // "NOW() + interval '1 day'"
+            sql += `INSERT INTO "VisitPlan" (id, "userId", "pharmacyId", "territoryId", "visitDate", status, "dayOfWeek", "createdAt", "updatedAt") VALUES ('${vpId}', '${tdvId}', '${cid}', '${terrId}', NOW() + interval '1 day', 'PLANNED', ${dayOfWeek}, NOW(), NOW()) ON CONFLICT (id) DO NOTHING;\n`;
+
+            custGlobalIndex++;
+        }
+    }
+
+    fs.writeFileSync('scripts/seed_base.sql', sql);
+    console.log('SQL Generated: seed_base.sql');
+}
+
+generate();
