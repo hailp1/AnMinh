@@ -40,7 +40,7 @@ import roleHierarchyRoutes from './routes/roleHierarchy.js';
 import territoryKpiRoutes from './routes/territoryKpi.js';
 import assignmentRulesRoutes from './routes/assignmentRules.js';
 import reportingLineRoutes from './routes/reportingLine.js';
-import dashboardRoutes from './routes/dashboard.js';
+// import dashboardRoutes from './routes/dashboard.js'; // Disabled - causing import errors
 
 config();
 
