@@ -40,6 +40,7 @@ import roleHierarchyRoutes from './routes/roleHierarchy.js';
 import territoryKpiRoutes from './routes/territoryKpi.js';
 import assignmentRulesRoutes from './routes/assignmentRules.js';
 import reportingLineRoutes from './routes/reportingLine.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 config();
 
@@ -128,6 +129,7 @@ app.use('/api/role-hierarchy', roleHierarchyRoutes);
 app.use('/api/territory-kpi', territoryKpiRoutes);
 app.use('/api/assignment-rules', assignmentRulesRoutes);
 app.use('/api/reporting-line', reportingLineRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Root endpoint
 app.get('/api', (req, res) => {
