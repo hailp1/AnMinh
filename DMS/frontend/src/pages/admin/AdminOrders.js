@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ImportModal from '../../components/ImportModal';
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
 const AdminOrders = () => {
@@ -21,6 +22,7 @@ const AdminOrders = () => {
     delivered: 0,
     cancelled: 0
   });
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -243,6 +245,26 @@ const AdminOrders = () => {
         }}>
           📦 Quản lý Đơn hàng
         </h1>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <button
+            onClick={() => setShowImportModal(true)}
+            style={{
+              padding: '10px 16px',
+              background: '#fff',
+              color: '#1E4A8B',
+              border: '2px solid #fff',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            📥 Import
+          </button>
+        </div>
         <p style={{
           fontSize: isMobile ? '14px' : '16px',
           opacity: 0.9
@@ -645,6 +667,18 @@ const AdminOrders = () => {
           formatDate={formatDate}
         />
       )}
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        endpoint="orders"
+        title="Import Đơn Hàng"
+        onSuccess={() => {
+          loadOrders();
+          setShowImportModal(false);
+        }}
+      />
     </div>
   );
 };

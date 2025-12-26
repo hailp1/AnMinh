@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { usersAPI, routesAPI, visitPlansAPI, pharmaciesAPI } from '../../services/api'; // Removed Leaflet imports
+import { usersAPI, routesAPI, visitPlansAPI, pharmaciesAPI } from '../../services/api';
+import ImportModal from '../../components/ImportModal';
 import * as XLSX from 'xlsx';
 import './AdminRoutes.css';
 
@@ -13,6 +14,7 @@ const AdminRoutes = () => {
     const [message, setMessage] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Load Metadata
     useEffect(() => {
@@ -307,9 +309,12 @@ const AdminRoutes = () => {
                         <span>📥</span> Xuất Template Excel
                     </button>
                     <label style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>📤</span> Import Excel
+                        <span>📤</span> Import Excel (Old)
                         <input type="file" onChange={handleImportExcel} accept=".xlsx" style={{ display: 'none' }} />
                     </label>
+                    <button onClick={() => setShowImportModal(true)} style={{ padding: '10px 20px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>📥</span> Import (New)
+                    </button>
                 </div>
             </div>
 
@@ -447,6 +452,18 @@ const AdminRoutes = () => {
                     </div>
                 </div>
             )}
+
+            {/* Import Modal */}
+            <ImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                endpoint="routes"
+                title="Import Tuyến"
+                onSuccess={() => {
+                    if (selectedUser) loadRoutes(selectedUser);
+                    setShowImportModal(false);
+                }}
+            />
         </div>
     );
 };
