@@ -91,47 +91,59 @@ AM_DMS/
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Local Development
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js 20+ (for local development)
-- PostgreSQL 15+ (or use Docker)
+- Node.js 20+ (optional, for local dev without Docker)
 
-### Installation
+### Option 1: Docker (Recommended - Fastest)
 
-1. **Clone repository**
+**1. Start the system:**
 ```bash
+cd d:\AM_DMS
+scripts\START_LOCAL.bat
+```
+
+**2. Access the system:**
+- **DMS Frontend:** http://localhost:3099
+- **Backend API:** http://localhost:5001
+- **Landing Page:** http://localhost:3000
+- **Database:** localhost:5433
+
+**3. Login:**
+- Username: `admin`
+- Password: `123456`
+
+**4. Stop the system:**
+```bash
+scripts\STOP_LOCAL.bat
+```
+
+📖 **Detailed Guide:** See [HUONG_DAN_CHAY_LOCAL.md](HUONG_DAN_CHAY_LOCAL.md)
+
+### Option 2: Manual Docker Commands
+
+```bash
+# Clone repository
 git clone https://github.com/yourusername/am-dms.git
 cd am-dms
-```
 
-2. **Setup environment variables**
-```bash
-# Backend
-cp DMS/backend/.env.example DMS/backend/.env
-# Edit DMS/backend/.env with your settings
-
-# Frontend
-cp DMS/frontend/.env.example DMS/frontend/.env
-# Edit DMS/frontend/.env
-```
-
-3. **Start with Docker**
-```bash
+# Start all services
 docker-compose up -d
-```
 
-4. **Initialize database**
-```bash
+# Initialize database (first time only)
 docker exec dms_backend npx prisma db push
-docker exec dms_backend npx prisma db seed
-```
+scripts\SEED_COMPLETE_DATA.bat
 
-5. **Access the system**
-- Admin Portal: http://localhost:3001
-- Backend API: http://localhost:5000
-- Landing Page: http://localhost:3000
+# Access the system
+# - DMS Frontend: http://localhost:3099
+# - Backend API: http://localhost:5001
+# - Landing Page: http://localhost:3000
+
+# Stop services
+docker-compose down
+```
 
 ---
 

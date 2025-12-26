@@ -289,6 +289,224 @@ router.get('/template/orders', async (req, res) => {
     }
 });
 
+// Export Visit Plan Template
+router.get('/template/visit-plans', async (req, res) => {
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Kế hoạch ghé thăm');
+
+        sheet.columns = [
+            { header: 'Ngày ghé*', key: 'visitDate', width: 12 },
+            { header: 'Giờ ghé', key: 'visitTime', width: 10 },
+            { header: 'Mã KH*', key: 'customerCode', width: 15 },
+            { header: 'Tên KH', key: 'customerName', width: 30 },
+            { header: 'Mã TDV*', key: 'repCode', width: 12 },
+            { header: 'Tên TDV', key: 'repName', width: 25 },
+            { header: 'Mã Territory', key: 'territoryCode', width: 15 },
+            { header: 'Thứ', key: 'dayOfWeek', width: 12 },
+            { header: 'Tần suất', key: 'frequency', width: 12 },
+            { header: 'Mục đích', key: 'purpose', width: 30 },
+            { header: 'Trạng thái', key: 'status', width: 12 },
+            { header: 'Ghi chú', key: 'notes', width: 35 },
+        ];
+
+        sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+        sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '7C3AED' } };
+        sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        sheet.getRow(1).height = 25;
+
+        sheet.addRow({
+            visitDate: 'Hướng dẫn:',
+            visitTime: 'Ngày: YYYY-MM-DD. Giờ: HH:MM. Thứ: MONDAY/TUESDAY/WEDNESDAY/THURSDAY/FRIDAY/SATURDAY. Tần suất: F1/F2/F4/F8. Trạng thái: PLANNED/IN_PROGRESS/COMPLETED/CANCELLED/MISSED'
+        });
+        sheet.getRow(2).font = { italic: true, color: { argb: '666666' } };
+
+        // Sample data rows
+        sheet.addRow({
+            visitDate: '2025-01-02',
+            visitTime: '08:30',
+            customerCode: 'KH-HCM-001',
+            customerName: 'Nhà thuốc ABC',
+            repCode: 'TDV001',
+            repName: 'Nguyễn Văn A',
+            territoryCode: 'TER_HCM_Q1',
+            dayOfWeek: 'MONDAY',
+            frequency: 'F2',
+            purpose: 'Giới thiệu sản phẩm mới',
+            status: 'PLANNED',
+            notes: 'Khách VIP, cần chuẩn bị catalog'
+        });
+
+        sheet.addRow({
+            visitDate: '2025-01-02',
+            visitTime: '10:00',
+            customerCode: 'KH-HCM-002',
+            customerName: 'Nhà thuốc XYZ',
+            repCode: 'TDV001',
+            repName: 'Nguyễn Văn A',
+            territoryCode: 'TER_HCM_Q1',
+            dayOfWeek: 'MONDAY',
+            frequency: 'F1',
+            purpose: 'Thu tiền công nợ',
+            status: 'PLANNED',
+            notes: 'Công nợ 15 triệu'
+        });
+
+        sheet.addRow({
+            visitDate: '2025-01-03',
+            visitTime: '09:00',
+            customerCode: 'KH-HCM-003',
+            customerName: 'Phòng khám DEF',
+            repCode: 'TDV002',
+            repName: 'Trần Thị B',
+            territoryCode: 'TER_HCM_Q2',
+            dayOfWeek: 'TUESDAY',
+            frequency: 'F4',
+            purpose: 'Kiểm tra tồn kho',
+            status: 'PLANNED',
+            notes: 'Ghé 2 tuần/lần'
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=Template_KeHoachGheTham.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Visit plan template error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Export User/Employee Template
+router.get('/template/users', async (req, res) => {
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Danh sách Nhân viên');
+
+        sheet.columns = [
+            { header: 'Mã NV*', key: 'employeeCode', width: 12 },
+            { header: 'Username*', key: 'username', width: 15 },
+            { header: 'Mật khẩu*', key: 'password', width: 15 },
+            { header: 'Họ tên*', key: 'name', width: 25 },
+            { header: 'Email', key: 'email', width: 30 },
+            { header: 'Điện thoại', key: 'phone', width: 15 },
+            { header: 'Vai trò*', key: 'role', width: 12 },
+            { header: 'Mã Quản lý', key: 'managerCode', width: 12 },
+            { header: 'Tên Quản lý', key: 'managerName', width: 25 },
+            { header: 'Mã Region', key: 'regionCode', width: 15 },
+            { header: 'Mã Route', key: 'routeCode', width: 15 },
+            { header: 'Kênh', key: 'channel', width: 12 },
+            { header: 'Trạng thái', key: 'isActive', width: 12 },
+        ];
+
+        sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+        sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0891B2' } };
+        sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+        sheet.getRow(1).height = 25;
+
+        sheet.addRow({
+            employeeCode: 'Hướng dẫn:',
+            username: 'Các cột có * là bắt buộc. Vai trò: ADMIN/TDV/QL/KT/DELIVERY. Kênh: OTC/ETC. Trạng thái: TRUE/FALSE'
+        });
+        sheet.getRow(2).font = { italic: true, color: { argb: '666666' } };
+
+        // Sample data - Admin
+        sheet.addRow({
+            employeeCode: 'ADMIN001',
+            username: 'admin.hcm',
+            password: '123456',
+            name: 'Nguyễn Văn Admin',
+            email: 'admin@ammedtech.com',
+            phone: '0901234567',
+            role: 'ADMIN',
+            managerCode: '',
+            managerName: '',
+            regionCode: 'MIEN_NAM',
+            routeCode: '',
+            channel: '',
+            isActive: 'TRUE'
+        });
+
+        // Sample data - Manager
+        sheet.addRow({
+            employeeCode: 'QL001',
+            username: 'ql.hcm',
+            password: '123456',
+            name: 'Trần Thị Quản Lý',
+            email: 'ql001@ammedtech.com',
+            phone: '0901234568',
+            role: 'QL',
+            managerCode: 'ADMIN001',
+            managerName: 'Nguyễn Văn Admin',
+            regionCode: 'MIEN_NAM',
+            routeCode: '',
+            channel: '',
+            isActive: 'TRUE'
+        });
+
+        // Sample data - TDV
+        sheet.addRow({
+            employeeCode: 'TDV001',
+            username: 'tdv001',
+            password: '123456',
+            name: 'Lê Văn TDV',
+            email: 'tdv001@ammedtech.com',
+            phone: '0901234569',
+            role: 'TDV',
+            managerCode: 'QL001',
+            managerName: 'Trần Thị Quản Lý',
+            regionCode: 'MIEN_NAM',
+            routeCode: 'RT-HCM-Q1',
+            channel: 'OTC',
+            isActive: 'TRUE'
+        });
+
+        // Sample data - Accountant
+        sheet.addRow({
+            employeeCode: 'KT001',
+            username: 'kt001',
+            password: '123456',
+            name: 'Phạm Thị Kế Toán',
+            email: 'kt001@ammedtech.com',
+            phone: '0901234570',
+            role: 'KT',
+            managerCode: 'ADMIN001',
+            managerName: 'Nguyễn Văn Admin',
+            regionCode: 'MIEN_NAM',
+            routeCode: '',
+            channel: '',
+            isActive: 'TRUE'
+        });
+
+        // Sample data - Delivery
+        sheet.addRow({
+            employeeCode: 'DLV001',
+            username: 'dlv001',
+            password: '123456',
+            name: 'Hoàng Văn Giao Hàng',
+            email: 'dlv001@ammedtech.com',
+            phone: '0901234571',
+            role: 'DELIVERY',
+            managerCode: 'QL001',
+            managerName: 'Trần Thị Quản Lý',
+            regionCode: 'MIEN_NAM',
+            routeCode: '',
+            channel: '',
+            isActive: 'TRUE'
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=Template_NhanVien.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('User template error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ================================
 // FULL DATA EXPORT
 // ================================

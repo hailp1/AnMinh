@@ -261,6 +261,19 @@ export const reportsAPI = {
   getBizReview: (params) => {
     const query = new URLSearchParams(params).toString();
     return apiCall(`/reports/biz-review?${query}`);
+  },
+  // New endpoints for BizReview
+  getInventorySummary: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/inventory-summary?${query}`);
+  },
+  getTDVPerformance: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/tdv-performance?${query}`);
+  },
+  getCompliance: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/reports/compliance?${query}`);
   }
 };
 

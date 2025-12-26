@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import { validate, inventoryValidators } from '../middleware/validators.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // --- WAREHOUSES ---
 

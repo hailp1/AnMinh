@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma.js';
+import { cache } from '../lib/cache.js';
 import auth from '../middleware/auth.js';
 import adminAuth from '../middleware/adminAuth.js';
 import logger from '../lib/logger.js';
@@ -13,16 +14,27 @@ const router = express.Router();
 // Lấy danh sách nhóm sản phẩm và sản phẩm
 router.get('/groups', auth, async (req, res) => {
   try {
-    const groups = await prisma.productGroup.findMany({
-      where: { isActive: true },
-      include: {
-        products: {
-          where: { isActive: true },
-          orderBy: { name: 'asc' },
+    const cacheKey = 'products:groups:active';
+
+    // Try cache first
+    let groups = await cache.get(cacheKey);
+
+    if (!groups) {
+      // Cache miss - fetch from database
+      groups = await prisma.productGroup.findMany({
+        where: { isActive: true },
+        include: {
+          products: {
+            where: { isActive: true },
+            orderBy: { name: 'asc' },
+          },
         },
-      },
-      orderBy: { order: 'asc' },
-    });
+        orderBy: { order: 'asc' },
+      });
+
+      // Cache for 10 minutes
+      await cache.set(cacheKey, groups, 600);
+    }
 
     res.json(groups);
   } catch (error) {
@@ -34,9 +46,21 @@ router.get('/groups', auth, async (req, res) => {
 // Lấy danh sách danh mục (Category)
 router.get('/categories', auth, async (req, res) => {
   try {
-    const categories = await prisma.category.findMany({
-      orderBy: { name: 'asc' }
-    });
+    const cacheKey = 'products:categories:all';
+
+    // Try cache first
+    let categories = await cache.get(cacheKey);
+
+    if (!categories) {
+      // Cache miss - fetch from database
+      categories = await prisma.category.findMany({
+        orderBy: { name: 'asc' }
+      });
+
+      // Cache for 10 minutes
+      await cache.set(cacheKey, categories, 600);
+    }
+
     res.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -122,6 +146,10 @@ router.post('/admin/groups', adminAuth, async (req, res) => {
         isActive: true
       }
     });
+
+    // Invalidate cache
+    await cache.del('products:groups:active');
+
     res.status(201).json(group);
   } catch (error) {
     logger.error('Error creating product group:', error);
@@ -142,12 +170,119 @@ router.put('/admin/groups/:id', adminAuth, async (req, res) => {
         isActive
       }
     });
+
+    // Invalidate cache
+    await cache.del('products:groups:active');
+
     res.json(group);
   } catch (error) {
     logger.error('Error updating product group:', error);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
+
+// Admin: Xóa nhóm sản phẩm
+router.delete('/admin/groups/:id', adminAuth, async (req, res) => {
+  try {
+    await prisma.productGroup.update({
+      where: { id: req.params.id },
+      data: { isActive: false }
+    });
+
+    // Invalidate cache
+    await cache.del('products:groups:active');
+
+    res.json({ message: 'Xóa nhóm sản phẩm thành công' });
+  } catch (error) {
+    logger.error('Error deleting product group:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Admin: Tạo danh mục
+router.post('/admin/categories', adminAuth, async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Tên danh mục là bắt buộc' });
+    }
+
+    const category = await prisma.category.create({
+      data: {
+        name,
+        code: code || name.toUpperCase().replace(/\s+/g, '_'),
+        description: description || null
+      }
+    });
+
+    // Invalidate cache
+    await cache.del('products:categories:all');
+
+    res.status(201).json(category);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Mã danh mục đã tồn tại' });
+    }
+    logger.error('Error creating category:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Admin: Cập nhật danh mục
+router.put('/admin/categories/:id', adminAuth, async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+    const category = await prisma.category.update({
+      where: { id: req.params.id },
+      data: {
+        name,
+        code,
+        description
+      }
+    });
+
+    // Invalidate cache
+    await cache.del('products:categories:all');
+
+    res.json(category);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Mã danh mục đã tồn tại' });
+    }
+    logger.error('Error updating category:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Admin: Xóa danh mục
+router.delete('/admin/categories/:id', adminAuth, async (req, res) => {
+  try {
+    // Check if any products are using this category
+    const productsCount = await prisma.product.count({
+      where: { categoryId: req.params.id }
+    });
+
+    if (productsCount > 0) {
+      return res.status(400).json({
+        error: `Không thể xóa danh mục này vì có ${productsCount} sản phẩm đang sử dụng`
+      });
+    }
+
+    await prisma.category.delete({
+      where: { id: req.params.id }
+    });
+
+    // Invalidate cache
+    await cache.del('products:categories:all');
+
+    res.json({ message: 'Xóa danh mục thành công' });
+  } catch (error) {
+    logger.error('Error deleting category:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 
 // Admin: Tạo sản phẩm
 router.post('/admin/products', adminAuth, async (req, res) => {

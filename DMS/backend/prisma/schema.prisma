@@ -271,6 +271,9 @@ model Pharmacy {
   @@index([status])
   @@index([segment])
   @@index([createdAt])
+  @@index([isActive, segment])  // For active customer filtering
+  @@index([territoryId, isActive])  // For territory queries
+  @@index([status, segment])  // For status and segment filtering
 }
 
 model CustomerAssignment {
@@ -373,6 +376,9 @@ model Product {
   sideEffects       String?   @db.Text // Tác dụng phụ
   shelfLife         String?   // Hạn dùng
   vat               Float?    // VAT
+  
+  // Promotion
+  promotionNote     String?   // Ghi chú khuyến mãi (VD: Mua 10 tặng 1)
   
   // Status
   isActive        Boolean   @default(true)
@@ -617,6 +623,9 @@ model Order {
   @@index([createdAt])
   @@index([userId])
   @@index([pharmacyId])
+  @@index([userId, createdAt])  // For user order history queries
+  @@index([pharmacyId, createdAt])  // For pharmacy order queries
+  @@index([status, createdAt])  // For status filtering with date
 }
 
 model OrderItem {
@@ -690,6 +699,11 @@ model VisitPlan {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  @@index([userId, visitDate])  // For daily plan queries
+  @@index([status])  // For status filtering
+  @@index([visitDate])  // For date-based queries
+  @@index([pharmacyId])  // For pharmacy visit history
 }
 
 // --- PROMOTIONS & LOYALTY ---

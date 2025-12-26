@@ -20,13 +20,30 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if admin is already logged in
+    const adminUser = localStorage.getItem('adminUser');
+    if (adminUser) {
+      try {
+        const user = JSON.parse(adminUser);
+        const allowedRoles = ['ADMIN', 'QL', 'KT'];
+        if (user && allowedRoles.includes(user.role?.toUpperCase())) {
+          // Already logged in as admin, redirect to dashboard
+          navigate('/Anminh/admin/dashboard', { replace: true });
+          return;
+        }
+      } catch (e) {
+        // Invalid session, clear it
+        localStorage.removeItem('adminUser');
+      }
+    }
+
     // Check for remembered user
     const rememberedUser = localStorage.getItem('rememberedAdminUser');
     if (rememberedUser) {
       setFormData(prev => ({ ...prev, username: rememberedUser }));
       setRememberMe(true);
     }
-  }, []);
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({

@@ -37,6 +37,7 @@ import AdminMap from './pages/admin/AdminMap';
 import AdminReports from './pages/admin/AdminReports';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminProducts from './pages/admin/AdminProducts';
+import AdminCategories from './pages/admin/AdminCategories';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminReset from './pages/admin/AdminReset';
@@ -56,7 +57,7 @@ const AppContent = () => {
   const isOnboarding = location.pathname === '/';
   const isAuthPage = ['/login', '/login-simple', '/forgot-password', '/reset-password'].includes(location.pathname);
   const isAdminRoute = location.pathname.startsWith('/Anminh/admin');
-  const isOldAdminRoute = location.pathname.startsWith('/admin');
+  const isOldAdminRoute = location.pathname.startsWith('/admin') && !location.pathname.startsWith('/Anminh/admin');
 
   // Redirect old /admin routes to /Anminh/admin
   if (isOldAdminRoute) {
@@ -67,36 +68,38 @@ const AppContent = () => {
 
   // Handle Admin Routes
   if (isAdminRoute) {
+    // Check if it's exactly /Anminh/admin (login page)
+    if (location.pathname === '/Anminh/admin') {
+      return <AdminLogin />;
+    }
+
+    // Otherwise, it's an admin dashboard route
     return (
-      <Routes>
-        <Route path="/Anminh/admin" element={<AdminLogin />} />
-        <Route path="/Anminh/admin/*" element={
-          <AdminWrapper>
-            <Routes>
-              <Route path="dashboard" element={<AdminDashboardPage />} />
-              <Route path="customers" element={<AdminCustomers />} />
-              <Route path="routes" element={<AdminRoutes />} />
-              <Route path="map" element={<AdminMap />} />
-              <Route path="reports" element={<AdminReports />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="reset" element={<AdminReset />} />
-              <Route path="promotions" element={<AdminPromotions />} />
-              <Route path="loyalty" element={<AdminLoyalty />} />
-              <Route path="segments" element={<AdminCustomerSegments />} />
-              <Route path="trade-activities" element={<AdminTradeActivities />} />
-              <Route path="kpi" element={<AdminKPI />} />
-              <Route path="approvals" element={<AdminApprovals />} />
-              <Route path="inventory" element={<AdminInventory />} />
-              <Route path="biz-review" element={<BizReview />} />
-              <Route path="org-structure" element={<OrgStructure />} />
-              <Route path="aop-planning" element={<AdminAOP />} />
-            </Routes>
-          </AdminWrapper>
-        } />
-      </Routes>
+      <AdminWrapper>
+        <Routes>
+          <Route path="/Anminh/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/Anminh/admin/customers" element={<AdminCustomers />} />
+          <Route path="/Anminh/admin/routes" element={<AdminRoutes />} />
+          <Route path="/Anminh/admin/map" element={<AdminMap />} />
+          <Route path="/Anminh/admin/reports" element={<AdminReports />} />
+          <Route path="/Anminh/admin/orders" element={<AdminOrders />} />
+          <Route path="/Anminh/admin/products" element={<AdminProducts />} />
+          <Route path="/Anminh/admin/categories" element={<AdminCategories />} />
+          <Route path="/Anminh/admin/users" element={<AdminUsers />} />
+          <Route path="/Anminh/admin/settings" element={<AdminSettings />} />
+          <Route path="/Anminh/admin/reset" element={<AdminReset />} />
+          <Route path="/Anminh/admin/promotions" element={<AdminPromotions />} />
+          <Route path="/Anminh/admin/loyalty" element={<AdminLoyalty />} />
+          <Route path="/Anminh/admin/segments" element={<AdminCustomerSegments />} />
+          <Route path="/Anminh/admin/trade-activities" element={<AdminTradeActivities />} />
+          <Route path="/Anminh/admin/kpi" element={<AdminKPI />} />
+          <Route path="/Anminh/admin/approvals" element={<AdminApprovals />} />
+          <Route path="/Anminh/admin/inventory" element={<AdminInventory />} />
+          <Route path="/Anminh/admin/biz-review" element={<BizReview />} />
+          <Route path="/Anminh/admin/org-structure" element={<OrgStructure />} />
+          <Route path="/Anminh/admin/aop-planning" element={<AdminAOP />} />
+        </Routes>
+      </AdminWrapper>
     );
   }
 

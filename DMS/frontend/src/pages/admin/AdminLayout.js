@@ -99,7 +99,7 @@ const AdminLayout = ({ children }) => {
       icon: '💊',
       subItems: [
         { id: 'prod_list', label: 'Danh sách sản phẩm', path: '/Anminh/admin/products' },
-        { id: 'prod_group', label: 'Danh mục & Nhóm', path: '/Anminh/admin/products' }
+        { id: 'prod_group', label: 'Danh mục & Nhóm', path: '/Anminh/admin/categories' }
       ]
     },
     {

@@ -43,7 +43,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-anminh_db}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-anminh_db}?schema=public&connection_limit=20&pool_timeout=20&connect_timeout=10
       JWT_SECRET: ${JWT_SECRET:-change_this_to_a_strong_secret_minimum_32_characters}
       FRONTEND_ORIGIN: https://dms.ammedtech.com
     ports:
@@ -82,8 +82,6 @@ services:
         condition: service_healthy
     networks:
       - dms_network
-    volumes:
-      - ./DMS/frontend/build:/usr/share/nginx/html
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
