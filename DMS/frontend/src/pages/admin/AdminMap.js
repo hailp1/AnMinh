@@ -23,16 +23,20 @@ const createCustomIcon = (color, text, isSmall = false) => L.divIcon({
   iconAnchor: [isSmall ? 12 : 16, isSmall ? 12 : 16]
 });
 
-const createTdvIcon = (status, name) => {
+const createTdvIcon = (status, name, role) => {
   let color = '#94a3b8'; // Offline (Gray)
-  if (status === 'ACTIVE') color = '#22c55e'; // Green
+  if (status === 'ACTIVE') {
+    color = role === 'DRIVER' ? '#f59e0b' : '#22c55e'; // Orange for Driver, Green for TDV
+  }
+
+  const displayText = role === 'DRIVER' ? '🚚' : name.charAt(0);
 
   return L.divIcon({
     className: 'tdv-marker',
     html: `
       <div style="position:relative">
-        <div style="background:${color};width:40px;height:40px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:16px;box-shadow:0 4px 6px rgba(0,0,0,0.3)">
-          ${name.charAt(0)}
+        <div style="background:${color};width:40px;height:40px;border-radius:50%;border:3px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:${role === 'DRIVER' ? '20px' : '16px'};box-shadow:0 4px 6px rgba(0,0,0,0.3)">
+          ${displayText}
         </div>
         ${status === 'ACTIVE' ? '<div style="position:absolute;bottom:0;right:0;width:12px;height:12px;background:#22c55e;border:2px solid #fff;border-radius:50%"></div>' : ''}
       </div>
@@ -87,11 +91,13 @@ const AdminMap = () => {
 
   const loadTdvs = async () => {
     try {
-      const data = await usersAPI.getAll({ role: 'TDV' });
-      setTdvs(data);
-      if (data.length > 0) setSelectedTdv(data[0].id);
+      const tdvData = await usersAPI.getAll({ role: 'TDV' });
+      const driverData = await usersAPI.getAll({ role: 'DRIVER' });
+      const allUsers = [...tdvData, ...driverData];
+      setTdvs(allUsers);
+      if (allUsers.length > 0) setSelectedTdv(allUsers[0].id);
     } catch (error) {
-      console.error('Error loading TDVs:', error);
+      console.error('Error loading users:', error);
     }
   };
 
@@ -209,10 +215,11 @@ const AdminMap = () => {
                 onChange={(e) => setFilterLiveTdv(e.target.value)}
                 style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', minWidth: '200px' }}
               >
-                <option value="">-- Tất cả TDV ({liveLocations.length}) --</option>
+                <option value="">-- Tất cả TDV & Tài Xế ({liveLocations.length}) --</option>
                 {tdvs.map(u => {
                   const status = liveLocations.find(l => l.id === u.id)?.status || 'NO_DATA';
-                  return <option key={u.id} value={u.id}>{u.name} {status === 'ACTIVE' ? '(Online)' : ''}</option>;
+                  const roleLabel = u.role === 'DRIVER' ? ' (Tài xế)' : '';
+                  return <option key={u.id} value={u.id}>{u.name}{roleLabel} {status === 'ACTIVE' ? '(Online)' : ''}</option>;
                 })}
               </select>
             </div>
@@ -265,12 +272,27 @@ const AdminMap = () => {
               <Marker
                 key={tdv.id}
                 position={[tdv.lat, tdv.lng]}
-                icon={createTdvIcon(tdv.status, tdv.name)}
+                icon={createTdvIcon(tdv.status, tdv.name, tdv.role)}
               >
                 <Popup className="custom-popup">
                   <div style={{ minWidth: '200px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '14px', color: '#1e293b' }}>{tdv.name}</strong>
+                      <div>
+                        <strong style={{ fontSize: '14px', color: '#1e293b' }}>{tdv.name}</strong>
+                        {tdv.role === 'DRIVER' && (
+                          <span style={{
+                            fontSize: '10px',
+                            marginLeft: '6px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            fontWeight: 'bold'
+                          }}>
+                            TÀI XẾ
+                          </span>
+                        )}
+                      </div>
                       <span style={{
                         fontSize: '11px', fontWeight: 'bold',
                         padding: '2px 6px', borderRadius: '4px',

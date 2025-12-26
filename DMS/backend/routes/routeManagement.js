@@ -629,11 +629,11 @@ router.get('/live-tracking', auth, async (req, res) => {
 
         const tdvs = await prisma.user.findMany({
             where: {
-                role: 'TDV',
+                role: { in: ['TDV', 'DRIVER'] }, // Include both TDV and DRIVER
                 isActive: true,
                 id: Array.isArray(safeIds) ? { in: safeIds } : undefined
             },
-            select: { id: true, name: true, employeeCode: true, phone: true }
+            select: { id: true, name: true, employeeCode: true, phone: true, role: true } // Add role to select
         });
 
         // 2. Get LATEST location for each TDV (Last Check-in ever)
@@ -696,6 +696,7 @@ router.get('/live-tracking', auth, async (req, res) => {
                 id: tdv.id,
                 name: tdv.name,
                 code: tdv.employeeCode,
+                role: tdv.role, // Add role for frontend filtering
                 lat,
                 lng,
                 status, // ACTIVE (Green), OFFLINE (Gray), NO_DATA (Hidden)
