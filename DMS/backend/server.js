@@ -129,7 +129,7 @@ app.use('/api/role-hierarchy', roleHierarchyRoutes);
 app.use('/api/territory-kpi', territoryKpiRoutes);
 app.use('/api/assignment-rules', assignmentRulesRoutes);
 app.use('/api/reporting-line', reportingLineRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+// app.use('/api/dashboard', dashboardRoutes); // Temporarily disabled - causing crashes
 
 // Root endpoint
 app.get('/api', (req, res) => {
