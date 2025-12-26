@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import ImportModal from '../../components/ImportModal';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
@@ -40,6 +41,7 @@ const AdminCustomers = () => {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'grid'
   const [selectedCustomer, setSelectedCustomer] = useState(null); // For Right Panel
   const [showModal, setShowModal] = useState(false); // For Creating
+  const [showImportModal, setShowImportModal] = useState(false); // For Import
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -157,7 +159,7 @@ const AdminCustomers = () => {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button style={ss.btnSecondary}><Download size={18} /> Export</button>
-          <button style={ss.btnSecondary}><Upload size={18} /> Import</button>
+          <button style={ss.btnSecondary} onClick={() => setShowImportModal(true)}><Upload size={18} /> Import</button>
           <button style={ss.btnPrimary} onClick={() => { setSelectedCustomer(null); setShowModal(true); }}>
             <Plus size={20} /> Thêm Mới
           </button>
@@ -364,6 +366,18 @@ const AdminCustomers = () => {
           </div>
         )}
       </div>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        endpoint="customers"
+        title="Import Khách Hàng"
+        onSuccess={() => {
+          loadData();
+          setShowImportModal(false);
+        }}
+      />
     </div>
   );
 };
