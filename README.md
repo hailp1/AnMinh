@@ -120,7 +120,7 @@ scripts\START_LOCAL.bat
 scripts\STOP_LOCAL.bat
 ```
 
-📖 **Detailed Guide:** See [HUONG_DAN_CHAY_LOCAL.md](HUONG_DAN_CHAY_LOCAL.md)
+📖 **Detailed Guide:** See [docs/HUONG_DAN_CHAY_LOCAL.md](docs/HUONG_DAN_CHAY_LOCAL.md)
 
 ### Option 2: Manual Docker Commands
 
@@ -193,8 +193,8 @@ docker-compose -f docker-compose.yml up -d --build backend
 docker-compose -f docker-compose.yml up -d --build frontend
 ```
 
-📖 **Detailed Guide:** See [HUONG_DAN_PUBLISH_PRODUCTION.md](HUONG_DAN_PUBLISH_PRODUCTION.md)  
-⚡ **Quick Reference:** See [QUICK_START_PUBLISH.md](QUICK_START_PUBLISH.md)
+📖 **Detailed Guide:** See [docs/HUONG_DAN_PUBLISH_PRODUCTION.md](docs/HUONG_DAN_PUBLISH_PRODUCTION.md)  
+⚡ **Quick Reference:** See [docs/QUICK_START_PUBLISH.md](docs/QUICK_START_PUBLISH.md)
 
 ---
 
@@ -339,10 +339,13 @@ npm run test:e2e
 
 ## 📚 Documentation
 
-- [System Audit Report](SYSTEM_AUDIT_REPORT.md)
-- [Medium Issues Plan](MEDIUM_ISSUES_PLAN.md)
-- [Delivery Module Plan](DELIVERY_MODULE_PLAN.md)
-- [GPS Tracking Guide](DELIVERY_GPS_TRACKING.md)
+- [Project Status](docs/PROJECT_STATUS.md)
+- [Optimization Summary](docs/OPTIMIZATION_SUMMARY.md)
+- [Quick Start Guide](docs/QUICK_START_PUBLISH.md)
+- [Hướng dẫn chạy local](docs/HUONG_DAN_CHAY_LOCAL.md)
+- [Hướng dẫn publish production](docs/HUONG_DAN_PUBLISH_PRODUCTION.md)
+- [Hướng dẫn sử dụng](docs/HUONG_DAN_SU_DUNG.md)
+- [Danh sách chương trình KM](docs/DANH_SACH_CHUONG_TRINH_KM.md)
 - [API Documentation](docs/API.md) (Coming soon)
 
 ---
