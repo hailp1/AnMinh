@@ -67,30 +67,29 @@ export const cache = {
     },
 
     /**
-     * Delete key from cache
-     * @param {string} key - Cache key to delete
+     * Delete a single key
+     * @param {string} key - Cache key
+     * @returns {Promise<number>} Number of keys deleted
      */
     async del(key) {
         try {
-            await redis.del(key);
-            return true;
+            return await redis.del(key);
         } catch (error) {
             console.error(`Cache DEL error for key "${key}":`, error.message);
-            return false;
+            return 0;
         }
     },
 
     /**
-     * Delete multiple keys matching a pattern
-     * @param {string} pattern - Pattern to match (e.g., 'products:*')
+     * Delete keys matching a pattern
+     * @param {string} pattern - Pattern with wildcards (e.g., 'orders:list:*')
+     * @returns {Promise<number>} Number of keys deleted
      */
     async delPattern(pattern) {
         try {
             const keys = await redis.keys(pattern);
-            if (keys.length > 0) {
-                await redis.del(...keys);
-            }
-            return keys.length;
+            if (keys.length === 0) return 0;
+            return await redis.del(...keys);
         } catch (error) {
             console.error(`Cache DEL pattern error for "${pattern}":`, error.message);
             return 0;

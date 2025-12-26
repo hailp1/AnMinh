@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../lib/prisma.js';
 import auth from '../middleware/auth.js';
 import { getSafeUserIds } from '../lib/dataScope.js';
+import { cache } from '../lib/cache.js';
 
 const router = express.Router();
 
@@ -54,7 +55,17 @@ router.get('/summary', auth, async (req, res) => {
 // Lấy danh sách đơn hàng
 router.get('/', auth, async (req, res) => {
   try {
-    const { status, pharmacyId, userId } = req.query;
+    const { status, pharmacyId, userId, page = 1, limit = 20 } = req.query;
+
+    // Create cache key
+    const cacheKey = `orders:list:${req.user.id}:${status || 'all'}:${pharmacyId || 'all'}:${userId || 'all'}:${page}:${limit}`;
+
+    // Try cache first
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     let where = {};
 
     // --- DATA SCOPING ---
@@ -78,26 +89,56 @@ router.get('/', auth, async (req, res) => {
 
     // If strict userId requested (and passed scope check implicitly by 'AND' query or needs explicit check)
     if (userId) {
-      if (allowedIds && !allowedIds.includes(userId)) return res.json([]); // Security check
+      if (allowedIds && !allowedIds.includes(userId)) return res.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } });
       where.userId = userId;
     }
 
-    const orders = await prisma.order.findMany({
-      where,
-      include: {
-        user: { select: { id: true, name: true, phone: true } },
-        pharmacy: {
-          select: {
-            id: true, name: true, phone: true, address: true, code: true,
-            territory: { include: { businessUnit: true } }
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    // Parallel queries for data and count
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: {
+          user: { select: { id: true, name: true, phone: true } },
+          pharmacy: {
+            select: {
+              id: true, name: true, phone: true, address: true, code: true
+            },
+          },
+          items: {
+            select: {
+              id: true,
+              quantity: true,
+              price: true,
+              subtotal: true,
+              product: { select: { id: true, name: true, code: true, unit: true } }
+            }
           },
         },
-        items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.order.count({ where })
+    ]);
 
-    res.json(orders);
+    const result = {
+      data: orders,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    };
+
+    // Cache for 2 minutes
+    await cache.set(cacheKey, result, 120);
+
+    res.json(result);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ error: 'Lỗi server' });
@@ -123,11 +164,21 @@ router.post('/', auth, async (req, res) => {
     const orderCount = await prisma.order.count();
     const orderNumber = `ORD${String(orderCount + 1).padStart(6, '0')}`;
 
+    // OPTIMIZATION: Batch product lookup instead of N+1 queries
+    const productIds = items.map(i => i.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, price: true, name: true, code: true }
+    });
+
+    // Create product map for O(1) lookup
+    const productMap = new Map(products.map(p => [p.id, p]));
+
     let totalAmount = 0;
     const orderItems = [];
 
     for (const item of items) {
-      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      const product = productMap.get(item.productId);
       if (!product) return res.status(400).json({ error: `Sản phẩm ${item.productId} không tồn tại` });
 
       const quantity = parseInt(item.quantity);
@@ -154,6 +205,9 @@ router.post('/', auth, async (req, res) => {
         items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } },
       },
     });
+
+    // Invalidate order list cache
+    await cache.delPattern(`orders:list:${req.user.id}:*`);
 
     res.json(order);
   } catch (error) {
@@ -268,6 +322,9 @@ router.put('/:id/status', auth, async (req, res) => {
       }
     });
 
+    // Invalidate order list cache
+    await cache.delPattern(`orders:list:*`);
+
     res.json(finalOrder);
   } catch (error) {
     console.error('Error updating order status:', error);
@@ -293,6 +350,9 @@ router.delete('/:id', auth, async (req, res) => {
 
     await prisma.orderItem.deleteMany({ where: { orderId: id } });
     await prisma.order.delete({ where: { id } });
+
+    // Invalidate order list cache
+    await cache.delPattern(`orders:list:*`);
 
     res.json({ message: 'Đã xóa đơn hàng thành công' });
   } catch (error) {
@@ -334,6 +394,9 @@ router.put('/:id', auth, async (req, res) => {
       }
       return tx.order.findUnique({ where: { id }, include: { items: true } });
     });
+
+    // Invalidate order list cache
+    await cache.delPattern(`orders:list:*`);
 
     res.json(updatedOrder);
   } catch (error) {
