@@ -115,7 +115,7 @@ router.get('/backup/sql', adminAuth, async (req, res) => {
 // Seed Real Data for Demo
 router.get('/seed-real-data', async (req, res) => {
     try {
-        console.log('Starting seed real data...');
+        // Seeding real data...
 
         // 1. UPDATE CUSTOMER COORDINATES FIRST (Focus HCM)
         // Center of HCM: 10.7769, 106.7009
@@ -144,7 +144,7 @@ router.get('/seed-real-data', async (req, res) => {
             updatedCustomers.push(updated);
             updatedCoordsCount++;
         }
-        console.log(`Updated coordinates for ${updatedCoordsCount} customers.`);
+        logger.info(`Updated coordinates for ${updatedCoordsCount} customers.`);
 
         // 2. SIMULATE LOGIN ACTIVITY (Create Check-in VisitPlan) FOR 15 SRS
         const tdvs = await prisma.user.findMany({
@@ -194,7 +194,7 @@ router.get('/seed-real-data', async (req, res) => {
                 visitsCreated++;
             }
         }
-        console.log(`Simulated check-ins for ${visitsCreated} TDVs.`);
+        logger.info(`Simulated check-ins for ${visitsCreated} TDVs.`);
 
         // 3. ASSIGN ROUTES (F4, spread Mon-Sat or T2-T7) for TDVs
         // We will assign available customers to available TDVs.
@@ -255,7 +255,7 @@ router.get('/seed-real-data', async (req, res) => {
                 }
             }
         }
-        console.log(`Assigned ${assignedRoutesCount} route entries.`);
+        logger.info(`Assigned ${assignedRoutesCount} route entries.`);
 
         res.json({
             success: true,

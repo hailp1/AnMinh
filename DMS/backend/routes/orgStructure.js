@@ -83,7 +83,7 @@ router.get('/org-chart', async (req, res) => {
 
 router.post('/seed-demo-request', async (req, res) => {
     try {
-        console.log('🚀 SYNCING EXISTING USERS TO ORG CHART...');
+        logger.info('SYNCING EXISTING USERS TO ORG CHART...');
 
         // 1. Check Pre-requisites
         const positions = await prisma.orgPosition.findMany();
@@ -107,7 +107,7 @@ router.post('/seed-demo-request', async (req, res) => {
             prisma.employee.deleteMany({ where: { employeeCode: { not: 'ADMIN_SYS' } } })
         ]);
 
-        console.log('✅ Structure Cleaned. Mapping Users...');
+        logger.info('Structure Cleaned. Mapping Users...');
 
         await prisma.$transaction(async (tx) => {
             const passwordHash = await bcrypt.hash('123456', 10);
@@ -156,11 +156,11 @@ router.post('/seed-demo-request', async (req, res) => {
                 orderBy: { createdAt: 'asc' }
             });
 
-            console.log(`Found ${existingTdvs.length} existing TDVs to assign.`);
+            logger.info(`Found ${existingTdvs.length} existing TDVs to assign.`);
 
             if (existingTdvs.length === 0) {
                 // FALLBACK: If no TDVs exist, create some placeholders so the chart isn't empty
-                console.log('No existing TDVs found. Creating placeholders...');
+                logger.info('No existing TDVs found. Creating placeholders...');
                 for (let i = 1; i <= 20; i++) {
                     const code = `TDV${String(i).padStart(3, '0')}`;
                     const u = await tx.user.create({
@@ -211,8 +211,8 @@ router.post('/seed-demo-request', async (req, res) => {
             await assignToManager(tuanList, rsmTuan.id);
             await assignToManager(tuList, ssTu.id);
 
-            console.log(`Assigned ${tuanList.length} TDVs to Mr. Tuan`);
-            console.log(`Assigned ${tuList.length} TDVs to Mr. Tu`);
+            logger.info(`Assigned ${tuanList.length} TDVs to Mr. Tuan`);
+            logger.info(`Assigned ${tuList.length} TDVs to Mr. Tu`);
         });
 
         res.json({ success: true, message: 'Đã cập nhật Org Chart và gán các User TDV có sẵn vào hệ thống thành công!' });

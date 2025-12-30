@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import compression from 'compression';
 import { config } from 'dotenv';
 import logger from './lib/logger.js';
 import path from 'path';
@@ -45,6 +46,12 @@ import reportingLineRoutes from './routes/reportingLine.js';
 
 config();
 
+// Validate critical environment variables
+if (!process.env.JWT_SECRET) {
+  logger.error('CRITICAL: JWT_SECRET environment variable is not set!');
+  throw new Error('JWT_SECRET is required for security. Please set it in .env file');
+}
+
 import analyticsRoutes from './routes/analytics.js';
 
 const app = express();
@@ -61,6 +68,9 @@ app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Compression
+app.use(compression());
+
 // Serve static uploads
 app.use('/uploads', express.static('uploads'));
 
@@ -74,6 +84,17 @@ app.use(cors({
   ],
   credentials: true
 }));
+
+// HTTPS Redirect (Production only)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      logger.warn(`HTTP request redirected to HTTPS: ${req.url}`);
+      return res.redirect(`https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
 
 // Helmet
 app.use(helmet({
@@ -140,8 +161,9 @@ app.get('/api', (req, res) => {
 
 // Error handling
 app.use((err, req, res, next) => {
-  logger.error(err.stack);
-  res.status(500).json({ message: 'Lỗi server', error: err.message });
+  logger.error('Server error:', err);
+  // Never expose error details in production
+  res.status(500).json({ message: 'Lỗi server' });
 });
 
 const PORT = process.env.PORT || 5000;

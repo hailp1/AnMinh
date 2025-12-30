@@ -25,7 +25,7 @@ router.get('/warehouses', auth, async (req, res) => {
 // Create warehouse
 router.post('/warehouses', [adminAuth, ...inventoryValidators.createWarehouse, validate], async (req, res) => {
     try {
-        console.log('Creating warehouse with data:', req.body);
+        logger.info('Creating warehouse with data:', req.body);
         const { code, name, address, type, managerId } = req.body;
 
         // Check if warehouse code already exists
@@ -44,7 +44,7 @@ router.post('/warehouses', [adminAuth, ...inventoryValidators.createWarehouse, v
             }
         });
 
-        console.log('Warehouse created:', warehouse);
+        logger.info('Warehouse created:', warehouse);
         res.json(warehouse);
     } catch (error) {
         console.error('Error creating warehouse:', error);

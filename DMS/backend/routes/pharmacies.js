@@ -219,7 +219,7 @@ router.post('/', auth, async (req, res) => {
           isActive: true
         }
       });
-      console.log(`Auto-assigned pharmacy ${pharmacy.id} to TDV ${req.user.id}`);
+      logger.info(`Auto-assigned pharmacy ${pharmacy.id} to TDV ${req.user.id}`);
     }
 
     res.json(pharmacy);
