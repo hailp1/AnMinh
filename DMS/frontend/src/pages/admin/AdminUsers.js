@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { usersAPI } from '../../services/api';
+import ImportModal from '../../components/ImportModal';
 import {
   Users, UserPlus, Search, Filter, Download, Upload,
   MoreVertical, Edit2, Trash2, CheckCircle, XCircle,
@@ -57,6 +58,7 @@ const AdminUsers = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Metadata
   const [regions, setRegions] = useState([]);
@@ -219,6 +221,9 @@ const AdminUsers = () => {
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={exportExcel} style={btnSecondaryStyle}>
             <Download size={18} /> Export
+          </button>
+          <button onClick={() => setShowImportModal(true)} style={btnSecondaryStyle}>
+            <Upload size={18} /> Import
           </button>
           <button onClick={() => {
             setEditingUser(null); setFormData({
@@ -443,6 +448,18 @@ const AdminUsers = () => {
           </Card>
         </div>
       )}
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        endpoint="users"
+        title="Import Nhân Viên"
+        onSuccess={() => {
+          loadUsers();
+          setShowImportModal(false);
+        }}
+      />
     </div>
   );
 };

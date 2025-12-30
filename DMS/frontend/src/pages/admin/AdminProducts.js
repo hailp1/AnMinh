@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Package, Search, Filter, Plus, Edit, Trash2, Tag,
   Layers, MoreVertical, LayoutGrid, List, Image as ImageIcon,
   DollarSign, Activity, AlertCircle, ShoppingBag, Archive, ChevronRight,
   Download, Upload, X, Save
 } from 'lucide-react';
+import ImportModal from '../../components/ImportModal';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api';
 
@@ -41,8 +42,7 @@ const AdminProducts = () => {
   const [selectedProduct, setSelectedProduct] = useState(null); // For Right Panel Detail
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-
-  const fileInputRef = useRef(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,41 +136,6 @@ const AdminProducts = () => {
     window.open(`${API_BASE}/excel/template/products`, '_blank');
   };
 
-  const handleImportClick = () => {
-    fileInputRef.current.click();
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/products/admin/products/import`, {
-        method: 'POST',
-        headers: { 'x-auth-token': token },
-        body: formData
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        loadData();
-      } else {
-        alert(`Lỗi Import: ${data.error}`);
-        if (data.errors) console.error(data.errors);
-      }
-    } catch (error) {
-      console.error('Import Error:', error);
-      alert('Lỗi khi upload file');
-    }
-    // Reset input
-    e.target.value = null;
-  };
-
   // KPIs
   const kpiData = useMemo(() => {
     return {
@@ -248,17 +213,10 @@ const AdminProducts = () => {
           Product Catalog
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-            accept=".xlsx, .xls"
-          />
           <button onClick={handleDownloadTemplate} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Download size={18} /> Template
           </button>
-          <button onClick={handleImportClick} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => setShowImportModal(true)} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Upload size={18} /> Import
           </button>
           <button onClick={handleExport} style={{ background: 'white', border: `1px solid ${THEME.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -430,6 +388,18 @@ const AdminProducts = () => {
           onSave={handleSave}
         />
       )}
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        endpoint="products"
+        title="Import Sản Phẩm"
+        onSuccess={() => {
+          loadData();
+          setShowImportModal(false);
+        }}
+      />
     </div>
   );
 };
