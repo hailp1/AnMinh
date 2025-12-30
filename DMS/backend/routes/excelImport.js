@@ -1,6 +1,6 @@
 import express from 'express';
 import XLSX from 'xlsx';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma.js';
 import { upload } from '../middleware/upload.js';
 import {
