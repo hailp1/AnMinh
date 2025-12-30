@@ -56,8 +56,8 @@ router.post('/generate', auth, async (req, res) => {
               data: {
                 userId,
                 pharmacyId: pId,
-                visitDate: dt,
-                visitTime: new Date(dt.setHours(9, 0, 0)),
+                visitDate: new Date(dt), // Create new Date instance
+                visitTime: '09:00', // String format as per schema
                 status: 'PLANNED',
                 territoryId: pharm.territoryId
               }

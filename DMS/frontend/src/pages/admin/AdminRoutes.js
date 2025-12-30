@@ -13,6 +13,8 @@ const AdminRoutes = () => {
     const [message, setMessage] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [detailsData, setDetailsData] = useState(null);
 
     // Load Metadata
     useEffect(() => {
@@ -240,6 +242,84 @@ const AdminRoutes = () => {
         XLSX.writeFile(wb, 'Template_Phan_Tuyen_MCP.xlsx');
     };
 
+    const handleExportRoute = () => {
+        if (!selectedUser || routeData.length === 0) {
+            alert('Chưa có dữ liệu để xuất!');
+            return;
+        }
+
+        const user = users.find(u => u.id === selectedUser);
+
+        // Sheet 1: Route Details
+        const routeSheet = routeData.map((r, i) => ({
+            'STT': i + 1,
+            'Mã KH': r.code,
+            'Tên Nhà Thuốc': r.name,
+            'Địa chỉ': r.address,
+            'Điện thoại': r.phone,
+            'Thứ': r.day === 8 ? 'CN' : `T${r.day}`,
+            'Tần suất': r.frequency
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws1 = XLSX.utils.json_to_sheet(routeSheet);
+        XLSX.utils.book_append_sheet(wb, ws1, `Tuyến ${user.employeeCode}`);
+
+        // Download
+        const fileName = `Tuyen_${user.employeeCode}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    };
+
+    const handleViewDetails = async () => {
+        if (!selectedUser || routeData.length === 0) {
+            alert('Chưa có dữ liệu để xem!');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const user = users.find(u => u.id === selectedUser);
+
+            // Fetch visit plans for next 4 weeks
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 28);
+
+            const visitPlans = await visitPlansAPI.getAll({
+                userId: selectedUser,
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            });
+
+            // Group data by day
+            const dayGroups = {};
+            routeData.forEach(r => {
+                const dayLabel = r.day === 8 ? 'CN' : `T${r.day}`;
+                if (!dayGroups[dayLabel]) dayGroups[dayLabel] = [];
+                dayGroups[dayLabel].push(r);
+            });
+
+            setDetailsData({
+                user,
+                routeData,
+                dayGroups,
+                visitPlans: visitPlans || [],
+                stats: {
+                    totalCustomers: routeData.length,
+                    visitsPerWeek: routeData.length,
+                    totalVisitsGenerated: visitPlans ? visitPlans.length : 0
+                }
+            });
+
+            setShowDetailsModal(true);
+        } catch (error) {
+            console.error('Error loading details:', error);
+            alert('Lỗi khi tải chi tiết: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleImportExcel = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -322,6 +402,18 @@ const AdminRoutes = () => {
                             <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Tổng số: {routeData.length} khách hàng</div>
                         </div>
                         <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={handleViewDetails}
+                                style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <span>📊</span> Xem Chi Tiết
+                            </button>
+                            <button
+                                onClick={handleExportRoute}
+                                style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <span>📥</span> Xuất Excel
+                            </button>
                             <button
                                 onClick={() => setShowAddModal(true)}
                                 style={{ padding: '10px 20px', background: '#F29E2E', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
@@ -443,6 +535,189 @@ const AdminRoutes = () => {
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Details Modal */}
+            {showDetailsModal && detailsData && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowDetailsModal(false)}>
+                    <div style={{ background: 'white', borderRadius: '12px', padding: '24px', maxWidth: '1200px', maxHeight: '90vh', overflow: 'auto', width: '90%' }} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '16px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
+                                📊 Chi Tiết Tuyến: {detailsData.user.name} ({detailsData.user.employeeCode})
+                            </h2>
+                            <button onClick={() => setShowDetailsModal(false)} style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>×</button>
+                        </div>
+
+                        {/* Statistics Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                            <div style={{ background: '#f0fdf4', padding: '16px', borderRadius: '8px', border: '1px solid #86efac' }}>
+                                <div style={{ fontSize: '14px', color: '#166534', marginBottom: '4px' }}>Tổng khách hàng</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#15803d' }}>{detailsData.stats.totalCustomers}</div>
+                            </div>
+                            <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #93c5fd' }}>
+                                <div style={{ fontSize: '14px', color: '#1e40af', marginBottom: '4px' }}>Lượt viếng/tuần</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#1d4ed8' }}>{detailsData.stats.visitsPerWeek}</div>
+                            </div>
+                            <div style={{ background: '#fef3c7', padding: '16px', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                                <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '4px' }}>Lịch đã tạo (4 tuần)</div>
+                                <div style={{ fontSize: '32px', fontWeight: '700', color: '#b45309' }}>{detailsData.stats.totalVisitsGenerated}</div>
+                            </div>
+                        </div>
+
+                        {/* Day Distribution */}
+                        <div style={{ marginBottom: '24px', background: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#374151' }}>Phân bổ theo ngày</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '8px' }}>
+                                {Object.keys(detailsData.dayGroups).sort().map(day => {
+                                    const count = detailsData.dayGroups[day].length;
+                                    const percent = ((count / detailsData.stats.totalCustomers) * 100).toFixed(0);
+                                    return (
+                                        <div key={day} style={{ textAlign: 'center', padding: '8px', background: 'white', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>{day}</div>
+                                            <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{count}</div>
+                                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>{percent}%</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Customer List Table */}
+                        <div style={{ marginBottom: '24px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#374151' }}>Danh sách khách hàng</h3>
+                            <div style={{ overflowX: 'auto', maxHeight: '300px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                    <thead style={{ background: '#f9fafb', position: 'sticky', top: 0 }}>
+                                        <tr>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>STT</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Mã KH</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Tên nhà thuốc</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Địa chỉ</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>SĐT</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Thứ</th>
+                                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Tần suất</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {detailsData.routeData.map((r, i) => (
+                                            <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                                <td style={{ padding: '12px' }}>{i + 1}</td>
+                                                <td style={{ padding: '12px' }}>{r.code}</td>
+                                                <td style={{ padding: '12px', fontWeight: '500' }}>{r.name}</td>
+                                                <td style={{ padding: '12px', fontSize: '13px', color: '#6b7280' }}>{r.address}</td>
+                                                <td style={{ padding: '12px', fontSize: '13px' }}>{r.phone}</td>
+                                                <td style={{ padding: '12px' }}>
+                                                    <span style={{ padding: '4px 8px', background: '#dbeafe', color: '#1e40af', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                                        {r.day === 8 ? 'CN' : `T${r.day}`}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '12px' }}>
+                                                    <span style={{ padding: '4px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                                        {r.frequency}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Visit Schedule Table */}
+                        {detailsData.visitPlans.length > 0 && (
+                            <div style={{ marginBottom: '24px' }}>
+                                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#374151' }}>
+                                    Lịch viếng thăm đã tạo ({detailsData.visitPlans.length} lượt)
+                                </h3>
+                                <div style={{ overflowX: 'auto', maxHeight: '300px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                        <thead style={{ background: '#f9fafb', position: 'sticky', top: 0 }}>
+                                            <tr>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>STT</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Ngày</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Giờ</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Nhà thuốc</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Địa chỉ</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {detailsData.visitPlans.map((v, i) => (
+                                                <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                                    <td style={{ padding: '12px' }}>{i + 1}</td>
+                                                    <td style={{ padding: '12px', fontWeight: '500' }}>
+                                                        {new Date(v.visitDate).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                                                    </td>
+                                                    <td style={{ padding: '12px' }}>{v.visitTime || '09:00'}</td>
+                                                    <td style={{ padding: '12px' }}>{v.pharmacy?.name || ''}</td>
+                                                    <td style={{ padding: '12px', fontSize: '13px', color: '#6b7280' }}>{v.pharmacy?.address || ''}</td>
+                                                    <td style={{ padding: '12px' }}>
+                                                        <span style={{
+                                                            padding: '4px 8px',
+                                                            background: v.status === 'COMPLETED' ? '#d1fae5' : v.status === 'PLANNED' ? '#dbeafe' : '#fee2e2',
+                                                            color: v.status === 'COMPLETED' ? '#065f46' : v.status === 'PLANNED' ? '#1e40af' : '#991b1b',
+                                                            borderRadius: '4px',
+                                                            fontSize: '12px',
+                                                            fontWeight: '600'
+                                                        }}>
+                                                            {v.status === 'PLANNED' ? 'Kế hoạch' : v.status === 'COMPLETED' ? 'Hoàn thành' : v.status}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Footer Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '16px', borderTop: '2px solid #e5e7eb' }}>
+                            <button
+                                onClick={() => {
+                                    const wb = XLSX.utils.book_new();
+                                    const summarySheet = XLSX.utils.json_to_sheet([{
+                                        'TDV': detailsData.user.name,
+                                        'Mã NV': detailsData.user.employeeCode,
+                                        'Tổng KH': detailsData.stats.totalCustomers,
+                                        'Lượt/tuần': detailsData.stats.visitsPerWeek,
+                                        'Lịch đã tạo': detailsData.stats.totalVisitsGenerated
+                                    }]);
+                                    XLSX.utils.book_append_sheet(wb, summarySheet, 'Tổng quan');
+                                    const customerSheet = XLSX.utils.json_to_sheet(
+                                        detailsData.routeData.map((r, i) => ({
+                                            'STT': i + 1, 'Mã KH': r.code, 'Tên': r.name, 'Địa chỉ': r.address,
+                                            'SĐT': r.phone, 'Thứ': r.day === 8 ? 'CN' : `T${r.day}`, 'Tần suất': r.frequency
+                                        }))
+                                    );
+                                    XLSX.utils.book_append_sheet(wb, customerSheet, 'Danh sách KH');
+                                    if (detailsData.visitPlans.length > 0) {
+                                        const scheduleSheet = XLSX.utils.json_to_sheet(
+                                            detailsData.visitPlans.map((v, i) => ({
+                                                'STT': i + 1, 'Ngày': new Date(v.visitDate).toLocaleDateString('vi-VN'),
+                                                'Giờ': v.visitTime || '09:00', 'Nhà thuốc': v.pharmacy?.name || '',
+                                                'Địa chỉ': v.pharmacy?.address || '',
+                                                'Trạng thái': v.status === 'PLANNED' ? 'Kế hoạch' : v.status === 'COMPLETED' ? 'Hoàn thành' : v.status
+                                            }))
+                                        );
+                                        XLSX.utils.book_append_sheet(wb, scheduleSheet, 'Lịch viếng thăm');
+                                    }
+                                    XLSX.writeFile(wb, `ChiTiet_Tuyen_${detailsData.user.employeeCode}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                                }}
+                                style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <span>📥</span> Xuất Excel Chi Tiết
+                            </button>
+                            <button
+                                onClick={() => setShowDetailsModal(false)}
+                                style={{ padding: '10px 20px', background: '#6b7280', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                                Đóng
+                            </button>
                         </div>
                     </div>
                 </div>
